@@ -6,34 +6,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/AuthContext"
 import {
-  Users,
-  Calendar,
-  TrendingUp,
-  Phone,
-  Mail,
-  BarChart3,
-  Bot,
-  Settings,
-  Bell,
-  Search,
-  Filter,
-  Database,
-  BrainCircuit,
-  Download,
-  Upload,
-  Zap,
-  LogOut,
-  User,
-  ChevronDown,
-  Plus,
-  RefreshCw,
-  Eye,
-  Edit,
-  Trash2
+  Search, Filter, Bell, Bot, ChevronDown, Settings, BrainCircuit,
+  RefreshCw, LogOut, Plus, Upload, BarChart3, Download, Eye, User, Zap
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -54,169 +31,92 @@ import { ImportExportSystem } from "../import-export/ImportExportSystem"
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState("overview")
-  const [showAddLeadForm, setShowAddLeadForm] = useState(false)
   const { toast } = useToast()
   const { user, logout } = useAuth()
+  const isAdmin = user?.role === "admin"
 
-  // Simulate real-time notifications
   const showNotification = useCallback((type: "lead" | "agent" | "task") => {
-    switch (type) {
-      case "lead":
-        toast({
-          title: "New Lead Generated",
-          description: "Sarah Johnson interested in 3BR Downtown condo - $450K budget",
-        })
-        break
-      case "agent":
-        toast({
-          title: "Agent Status Update",
-          description: "Lead Nurturing AI completed 5 follow-up emails successfully",
-        })
-        break
-      case "task":
-        toast({
-          title: "Task Completed",
-          description: "Document processing completed for David Wilson",
-        })
-        break
+    const messages = {
+      lead: { title: "New Lead Generated", description: "Sarah Johnson interested in 3BR Downtown condo - $450K budget" },
+      agent: { title: "Agent Status Update", description: "Lead Nurturing AI completed 5 follow-up emails successfully" },
+      task: { title: "Task Completed", description: "Document processing completed for David Wilson" },
     }
+    toast(messages[type])
   }, [toast])
 
-  // Auto-trigger notifications for demo
   useEffect(() => {
     const interval = setInterval(() => {
       const notifications = ["lead", "agent", "task"]
-      const randomNotification = notifications[Math.floor(Math.random() * notifications.length)]
-      showNotification(randomNotification as "lead" | "agent" | "task")
-    }, 45000) // Every 45 seconds
-
+      const random = notifications[Math.floor(Math.random() * notifications.length)]
+      showNotification(random as "lead" | "agent" | "task")
+    }, 45000)
     return () => clearInterval(interval)
   }, [showNotification])
 
-  const handleSearch = () => {
-    toast({
-      title: "Search Leads",
-      description: "Opening advanced search interface...",
-    })
-    // In a real app, this would open a search modal
-  }
-
-  const handleFilter = () => {
-    toast({
-      title: "Filter Options",
-      description: "Showing lead filtering options",
-    })
-    // In a real app, this would open filter controls
-  }
-
   const handleAddLead = () => {
-    // Switch to leads tab and trigger the add form
     setActiveTab("leads")
-    // Small delay to ensure the tab has switched
     setTimeout(() => {
-      // The KanbanBoard component will handle opening the form
-      toast({
-        title: "Add New Lead",
-        description: "Opening lead creation form...",
-      })
+      toast({ title: "Add New Lead", description: "Opening lead creation form..." })
     }, 100)
   }
 
   const handleRefresh = () => {
-    toast({
-      title: "Refreshing Data",
-      description: "Updating dashboard with latest information...",
-    })
-    // In a real app, this would refresh the data
+    toast({ title: "Refreshing Data", description: "Updating dashboard with latest information..." })
   }
 
   const handleExportData = () => {
     setActiveTab("import-export")
-    toast({
-      title: "Export Data",
-      description: "Navigating to export tools...",
-    })
+    toast({ title: "Export Data", description: "Navigating to export tools..." })
   }
 
   const handleViewReports = () => {
     setActiveTab("analytics")
-    toast({
-      title: "View Reports",
-      description: "Opening advanced analytics dashboard...",
-    })
+    toast({ title: "View Reports", description: "Opening advanced analytics dashboard..." })
   }
 
   const handleLogout = () => {
     logout()
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out",
-    })
+    toast({ title: "Logged Out", description: "You have been successfully logged out" })
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      {/* Header */}
       <header className="mb-8">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-                <Bot className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  RealtorsPal AI
-                </h1>
-                <p className="text-slate-600">Smart Real Estate CRM Powered by Agentic AI</p>
-              </div>
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+              <Bot className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                RealtorsPal AI
+              </h1>
+              <p className="text-slate-600">Smart Real Estate CRM Powered by Agentic AI</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Backend Status Indicator */}
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 border border-green-200">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span className="text-xs font-medium text-green-700">
-                Live Data
-              </span>
+              <span className="text-xs font-medium text-green-700">Live Data</span>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSearch}
-            >
-              <Search className="w-4 h-4 mr-2" />
-              Search
+            <Button variant="outline" size="sm" onClick={() => toast({ title: "Search Leads", description: "Opening advanced search interface..." })}>
+              <Search className="w-4 h-4 mr-2" /> Search
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleFilter}
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
+            <Button variant="outline" size="sm" onClick={() => toast({ title: "Filter Options", description: "Showing lead filtering options" })}>
+              <Filter className="w-4 h-4 mr-2" /> Filters
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => showNotification("agent")}
-            >
-              <Bell className="w-4 h-4 mr-2" />
-              Alerts
-              <Badge variant="secondary" className="ml-2">3</Badge>
+            <Button variant="outline" size="sm" onClick={() => showNotification("agent")}>
+              <Bell className="w-4 h-4 mr-2" /> Alerts <Badge variant="secondary" className="ml-2">3</Badge>
             </Button>
 
-            {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-2">
                   <Avatar className="w-6 h-6">
                     <AvatarImage src={user?.avatar} />
-                    <AvatarFallback className="text-xs">
-                      {user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
-                    </AvatarFallback>
+                    <AvatarFallback className="text-xs">{user?.name?.split(' ').map(n => n[0]).join('') || 'U'}</AvatarFallback>
                   </Avatar>
                   <span className="hidden md:inline">{user?.name}</span>
                   <ChevronDown className="w-4 h-4" />
@@ -227,28 +127,22 @@ export function Dashboard() {
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium">{user?.name}</p>
                     <p className="text-xs text-slate-500">{user?.email}</p>
-                    <Badge variant="secondary" className="w-fit text-xs">
-                      {user?.role}
-                    </Badge>
+                    <Badge variant="secondary" className="w-fit text-xs">{user?.role}</Badge>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setActiveTab("settings")}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
+                  <Settings className="w-4 h-4 mr-2" /> Settings
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setActiveTab("agent-config")}>
-                  <BrainCircuit className="w-4 h-4 mr-2" />
-                  AI Configuration
+                  <BrainCircuit className="w-4 h-4 mr-2" /> AI Configuration
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleRefresh}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh Data
+                  <RefreshCw className="w-4 h-4 mr-2" /> Refresh Data
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
+                  <LogOut className="w-4 h-4 mr-2" /> Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -256,7 +150,6 @@ export function Dashboard() {
         </div>
       </header>
 
-      {/* Main Dashboard */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-7 bg-white/50 backdrop-blur-sm">
           <TabsTrigger value="overview">Dashboard</TabsTrigger>
@@ -269,105 +162,62 @@ export function Dashboard() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <MetricsOverview />
+          <MetricsOverview isAdmin={isAdmin} />
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <div className="xl:col-span-2">
               <KanbanBoard />
             </div>
             <div>
-              <AIAgentPanels />
+              <AIAgentPanels isAdmin={isAdmin} />
             </div>
           </div>
 
-          {/* Quick Actions */}
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200/50">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <Zap className="w-5 h-5" />
-                    Quick Actions
+                    <Zap className="w-5 h-5" /> Quick Actions
                   </CardTitle>
-                  <CardDescription>
-                    Frequently used tools and shortcuts
-                  </CardDescription>
+                  <CardDescription>Frequently used tools and shortcuts</CardDescription>
                 </div>
                 <Button size="sm" variant="outline" onClick={handleAddLead}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Lead
+                  <Plus className="w-4 h-4 mr-2" /> Add Lead
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button
-                  variant="outline"
-                  className="h-20 flex-col gap-2"
-                  onClick={() => setActiveTab("import-export")}
-                >
-                  <Upload className="w-6 h-6" />
-                  Import Leads
+                <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setActiveTab("import-export")}>
+                  <Upload className="w-6 h-6" /> Import Leads
                 </Button>
-                <Button
-                  variant="outline"
-                  className="h-20 flex-col gap-2"
-                  onClick={handleViewReports}
-                >
-                  <BarChart3 className="w-6 h-6" />
-                  View Reports
+                <Button variant="outline" className="h-20 flex-col gap-2" onClick={handleViewReports}>
+                  <BarChart3 className="w-6 h-6" /> View Reports
                 </Button>
-                <Button
-                  variant="outline"
-                  className="h-20 flex-col gap-2"
-                  onClick={() => setActiveTab("agent-config")}
-                >
-                  <BrainCircuit className="w-6 h-6" />
-                  Configure AI
+                <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setActiveTab("agent-config")}>
+                  <BrainCircuit className="w-6 h-6" /> Configure AI
                 </Button>
-                <Button
-                  variant="outline"
-                  className="h-20 flex-col gap-2"
-                  onClick={() => setActiveTab("settings")}
-                >
-                  <Settings className="w-6 h-6" />
-                  System Setup
+                <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setActiveTab("settings")}>
+                  <Settings className="w-6 h-6" /> System Setup
                 </Button>
               </div>
 
-              {/* Additional Actions */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                <Button
-                  variant="outline"
-                  className="h-16 flex-col gap-1"
-                  onClick={handleExportData}
-                >
+                <Button variant="outline" className="h-16 flex-col gap-1" onClick={handleExportData}>
                   <Download className="w-5 h-5" />
                   <span className="text-xs">Export Data</span>
                 </Button>
-                <Button
-                  variant="outline"
-                  className="h-16 flex-col gap-1"
-                  onClick={() => showNotification("lead")}
-                >
+                <Button variant="outline" className="h-16 flex-col gap-1" onClick={() => showNotification("lead")}>
                   <Eye className="w-5 h-5" />
                   <span className="text-xs">View Activity</span>
                 </Button>
-                <Button
-                  variant="outline"
-                  className="h-16 flex-col gap-1"
-                  onClick={handleRefresh}
-                >
+                <Button variant="outline" className="h-16 flex-col gap-1" onClick={handleRefresh}>
                   <RefreshCw className="w-5 h-5" />
                   <span className="text-xs">Refresh All</span>
                 </Button>
-                <Button
-                  variant="outline"
-                  className="h-16 flex-col gap-1"
-                  onClick={() => toast({
-                    title: "Help & Support",
-                    description: "Opening documentation and support resources...",
-                  })}
-                >
+                <Button variant="outline" className="h-16 flex-col gap-1" onClick={() =>
+                  toast({ title: "Help & Support", description: "Opening documentation and support resources..." })
+                }>
                   <User className="w-5 h-5" />
                   <span className="text-xs">Get Help</span>
                 </Button>
@@ -381,11 +231,11 @@ export function Dashboard() {
         </TabsContent>
 
         <TabsContent value="agents">
-          <AIAgentPanels expanded={true} />
+          <AIAgentPanels expanded={true} isAdmin={isAdmin} />
         </TabsContent>
 
         <TabsContent value="analytics">
-          <AdvancedAnalytics />
+          <AdvancedAnalytics isAdmin={isAdmin} />
         </TabsContent>
 
         <TabsContent value="import-export">
@@ -403,3 +253,4 @@ export function Dashboard() {
     </div>
   )
 }
+

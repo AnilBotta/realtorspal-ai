@@ -9,9 +9,10 @@ import { VoiceCall } from "../voice/VoiceCall"
 import { AddLeadForm } from "../leads/AddLeadForm"
 import { useToast } from "@/hooks/use-toast"
 import { useLeads } from "@/hooks/useLeads"
+import { useAuth } from "@/contexts/AuthContext"
 import type { Lead } from "@/lib/api"
 import {
-  Phone,
+  PhoneCall,
   Mail,
   MessageSquare,
   Calendar,
@@ -20,13 +21,8 @@ import {
   Clock,
   Plus,
   Filter,
-  MoreHorizontal,
-  PhoneCall,
-  User,
-  Loader2,
-  AlertCircle,
-  Database,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from "lucide-react"
 
 interface KanbanBoardProps {
@@ -39,15 +35,26 @@ export function KanbanBoard({ expanded = false }: KanbanBoardProps) {
   const [showAddLeadForm, setShowAddLeadForm] = useState(false)
   const { toast } = useToast()
   const { leads, isLoading, error, addLead, updateLeadStage, refetch } = useLeads()
+  const { user } = useAuth()
+  const isAdmin = user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL
+
+  const visibleLeads = isAdmin
+    ? leads
+    : {
+        new: [],
+        contacted: [],
+        appointment: [],
+        onboarded: [],
+        closed: [],
+      }
 
   const stages = [
-    { id: "new", name: "New Leads", color: "bg-blue-100 border-blue-200", count: leads.new?.length || 0 },
-    { id: "contacted", name: "Contacted", color: "bg-yellow-100 border-yellow-200", count: leads.contacted?.length || 0 },
-    { id: "appointment", name: "Appointment Booked", color: "bg-purple-100 border-purple-200", count: leads.appointment?.length || 0 },
-    { id: "onboarded", name: "Onboarded", color: "bg-green-100 border-green-200", count: leads.onboarded?.length || 0 },
-    { id: "closed", name: "Closed", color: "bg-gray-100 border-gray-200", count: leads.closed?.length || 0 }
+    { id: "new", name: "New Leads", color: "bg-blue-100 border-blue-200", count: visibleLeads.new?.length || 0 },
+    { id: "contacted", name: "Contacted", color: "bg-yellow-100 border-yellow-200", count: visibleLeads.contacted?.length || 0 },
+    { id: "appointment", name: "Appointment Booked", color: "bg-purple-100 border-purple-200", count: visibleLeads.appointment?.length || 0 },
+    { id: "onboarded", name: "Onboarded", color: "bg-green-100 border-green-200", count: visibleLeads.onboarded?.length || 0 },
+    { id: "closed", name: "Closed", color: "bg-gray-100 border-gray-200", count: visibleLeads.closed?.length || 0 }
   ]
-
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -140,7 +147,6 @@ export function KanbanBoard({ expanded = false }: KanbanBoardProps) {
           <span>Created: {new Date(lead.created_at).toLocaleDateString()}</span>
         </div>
 
-        {/* Source and AI Agent Tags */}
         <div className="flex flex-wrap gap-1">
           <Badge variant="outline" className={`text-xs ${getSourceColor(lead.source)}`}>
             {lead.source}
@@ -236,11 +242,11 @@ export function KanbanBoard({ expanded = false }: KanbanBoardProps) {
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-sm">{stage.name}</h3>
                     <Badge variant="secondary" className="text-xs">
-                      {leads[stage.id]?.length || 0}
+                      {stage.count}
                     </Badge>
                   </div>
                   <div className="space-y-3">
-                    {leads[stage.id]?.map((lead) => (
+                    {visibleLeads[stage.id]?.map((lead) => (
                       <LeadCard key={lead.id} lead={lead} />
                     ))}
                   </div>
@@ -260,14 +266,12 @@ export function KanbanBoard({ expanded = false }: KanbanBoardProps) {
         </CardContent>
       </Card>
 
-      {/* Add Lead Form Modal */}
       <AddLeadForm
         isOpen={showAddLeadForm}
         onClose={() => setShowAddLeadForm(false)}
         onAddLead={handleAddLead}
       />
 
-      {/* Voice Call Modal */}
       {activeCall && (
         <VoiceCall
           leadName={activeCall.name}
@@ -279,3 +283,4 @@ export function KanbanBoard({ expanded = false }: KanbanBoardProps) {
     </>
   )
 }
+
