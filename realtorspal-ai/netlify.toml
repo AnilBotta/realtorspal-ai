@@ -6,9 +6,12 @@
   publish = "out"
 
 [build.environment]
-  NEXT_PUBLIC_API_URL = "http://172.234.26.134/api"
+  NEXT_PUBLIC_API_URL = "http://172.234.26.134:5000"
   NEXT_PUBLIC_APP_ENV = "production"
   NEXT_PUBLIC_APP_VERSION = "11.0.0"
+  NEXT_PUBLIC_ENABLE_ANALYTICS = "true"
+  NEXT_PUBLIC_ENABLE_VOICE_CALLS = "true"
+  NEXT_PUBLIC_ENABLE_AI_AGENTS = "true"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

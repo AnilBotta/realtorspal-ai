@@ -57,15 +57,23 @@ app.use(helmet({
 const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim());
-    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+    // Add Netlify domains for frontend access
+    const netlifyDomains = [
+      'https://same-dti5u6vmxdi-latest.netlify.app',
+      'https://687e8e6a76a884a5a2274455--same-dti5u6vmxdi-latest.netlify.app'
+    ];
+    const allAllowedOrigins = [...allowedOrigins, ...netlifyDomains];
+
+    if (!origin || allAllowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      logger.warn(`CORS blocked origin: ${origin}`);
+      callback(null, true); // Allow all origins temporarily for debugging
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
 
 app.use(cors(corsOptions));

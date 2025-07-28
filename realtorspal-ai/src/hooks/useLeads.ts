@@ -168,8 +168,21 @@ export function useLeads(): UseLeadsReturn {
 
   const addLead = useCallback(async (leadData: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
     try {
-      // Always try to use the backend
+      console.log('Attempting to add lead:', leadData)
+      console.log('API Base URL:', process.env.NEXT_PUBLIC_API_URL)
+
+      // Test backend connection first
+      const connectionTest = await apiClient.testConnection()
+      console.log('Backend connection test:', connectionTest)
+
+      if (!connectionTest) {
+        throw new Error('Backend is not available. Please check if the Linode server is running.')
+      }
+
+      // Try to create the lead
       const response = await apiClient.createLead(leadData)
+      console.log('Create lead response:', response)
+
       if (response.success) {
         await fetchLeads() // Refresh the leads
         return true
@@ -178,7 +191,8 @@ export function useLeads(): UseLeadsReturn {
       }
     } catch (err) {
       console.error('Failed to add lead:', err)
-      setError(err instanceof Error ? err.message : 'Failed to add lead')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add lead'
+      setError(errorMessage)
       return false
     }
   }, [fetchLeads])

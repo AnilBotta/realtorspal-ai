@@ -1,5 +1,5 @@
 // API Client for RealtorsPal AI Backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://172.234.26.134:5000'
 
 interface ApiResponse<T> {
   success: boolean
