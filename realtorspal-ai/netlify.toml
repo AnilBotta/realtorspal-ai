@@ -3,7 +3,7 @@
 
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "out"
 
 [build.environment]
   NEXT_PUBLIC_API_URL = "http://172.234.26.134/api"
