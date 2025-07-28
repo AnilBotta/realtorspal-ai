@@ -2,11 +2,13 @@
   remote_images = ["https://source.unsplash.com/.*", "https://images.unsplash.com/.*", "https://ext.same-assets.com/.*", "https://ugc.same-assets.com/.*"]
 
 [build]
-  command = "bun run build"
+  command = "npm run build"
   publish = ".next"
 
 [build.environment]
-  NETLIFY_NEXT_PLUGIN_SKIP = "true"
+  NEXT_PUBLIC_API_URL = "http://172.234.26.134/api"
+  NEXT_PUBLIC_APP_ENV = "production"
+  NEXT_PUBLIC_APP_VERSION = "11.0.0"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
