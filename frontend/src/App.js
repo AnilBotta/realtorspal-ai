@@ -1,6 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import "./App.css";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL; // Must be defined in frontend/.env
 
@@ -151,17 +163,36 @@ function Analytics({ user }) {
   }, [user.id]);
 
   if (!data) return <div className="card">Loading analytics...</div>;
+
+  const labels = Object.keys(data.by_stage);
+  const values = Object.values(data.by_stage);
+  const chartData = {
+    labels,
+    datasets: [
+      {
+        label: "Leads by Stage",
+        data: values,
+        backgroundColor: "rgba(16, 185, 129, 0.6)",
+        borderColor: "rgba(5, 150, 105, 1)",
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: { position: "top" },
+      title: { display: true, text: "Pipeline Overview" },
+    },
+  };
+
   return (
     <div className="card">
       <h2>Analytics</h2>
       <p>Total Leads: {data.total_leads}</p>
-      <div className="grid">
-        {Object.entries(data.by_stage).map(([k, v]) => (
-          <div key={k} className="metric">
-            <div className="metric-name">{k}</div>
-            <div className="metric-value">{v}</div>
-          </div>
-        ))}
+      <div style={{ background: "white", padding: 12, borderRadius: 12 }}>
+        <Bar data={chartData} options={options} />
       </div>
     </div>
   );

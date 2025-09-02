@@ -1,6 +1,6 @@
 {
   "name": "realtorspal-frontend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "start": "react-scripts start",
@@ -14,9 +14,15 @@
     "react-scripts": "5.0.1",
     "axios": "^1.7.9",
     "zustand": "^4.5.5",
-    "classnames": "^2.5.1"
+    "classnames": "^2.5.1",
+    "react-chartjs-2": "^5.2.0",
+    "chart.js": "^4.4.6"
   },
-  "proxy": "http://localhost:8001",
+  "devDependencies": {
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.5.3",
+    "autoprefixer": "^10.4.20"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
