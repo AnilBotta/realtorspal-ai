@@ -1,0 +1,28 @@
+:root{
+  --emerald:#10b981;
+  --emerald-600:#059669;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial; background:#f6f9f7}
+.container{max-width:1200px;margin:0 auto;padding:24px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.header h1{color:var(--emerald)}
+.header nav button{margin-right:8px;border:1px solid var(--emerald);background:white;color:var(--emerald);padding:8px 12px;border-radius:8px;cursor:pointer}
+.header nav button.active{background:var(--emerald);color:white}
+.card{background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+.card form{display:grid;grid-template-columns:1fr;gap:8px}
+.card .error{color:#dc2626}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.kanban .kanban-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.columns{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.column{background:#f0fdf4;border:1px solid #e5e7eb;border-radius:12px;padding:8px}
+.column-title{font-weight:600;color:var(--emerald-600);margin-bottom:8px}
+.column-cards{display:grid;gap:8px}
+.lead .lead-name{font-weight:600;margin-bottom:8px}
+.lead .lead-stage button{margin-right:6px;margin-bottom:6px;padding:4px 6px;border-radius:6px;border:1px solid #e5e7eb;background:white;cursor:pointer}
+.lead .lead-stage button.active{background:var(--emerald);color:white;border-color:var(--emerald)}
+button{cursor:pointer}
+input{padding:8px;border:1px solid #e5e7eb;border-radius:8px}
+.metric{background:#ecfdf5;border:1px solid #e5e7eb;border-radius:8px;padding:12px}
+.metric-name{color:#065f46;font-weight:600}
+.metric-value{font-size:20px;color:#064e3b}
