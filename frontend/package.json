@@ -16,6 +16,7 @@
     "zustand": "^4.5.5",
     "classnames": "^2.5.1"
   },
+  "proxy": "http://localhost:8001",
   "browserslist": {
     "production": [
       ">0.2%",
