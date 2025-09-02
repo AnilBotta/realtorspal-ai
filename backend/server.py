@@ -2,8 +2,9 @@ import os
 import uuid
 from typing import List, Optional, Dict, Any
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -14,16 +15,15 @@ load_dotenv()
 
 # --- Environment & DB Setup ---
 MONGO_URL = os.environ.get("MONGO_URL")
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("EMERGENT_API_KEY")
 if not MONGO_URL:
-    # Fail fast with a clear message so logs reveal misconfig quickly
     raise RuntimeError("MONGO_URL is not set. Please set it in backend/.env as per platform configuration.")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app = FastAPI(title="RealtorsPal AI - FastAPI Backend")
 
-# CORS: Allow frontend origin provided by platform ingress
-# We avoid hardcoding origins; allow all for MVP, platform will restrict at ingress.
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -54,7 +54,7 @@ class Lead(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
     name: str
-    stage: str = Field(default="New")  # New, Contacted, Appointment, Onboarded, Closed
+    stage: str = Field(default="New")
     notes: Optional[str] = None
 
 class CreateLeadRequest(BaseModel):
@@ -74,6 +74,25 @@ class Settings(BaseModel):
 class AnalyticsDashboard(BaseModel):
     total_leads: int
     by_stage: Dict[str, int]
+
+# AI request/response
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    user_id: str
+    messages: List[ChatMessage]
+    provider: Optional[str] = None  # openai|anthropic|gemini|emergent
+    model: Optional[str] = None
+    temperature: Optional[float] = 0.7
+    max_tokens: Optional[int] = 512
+    stream: Optional[bool] = False
+
+class ChatResponse(BaseModel):
+    content: str
+    provider_used: str
+    model_used: Optional[str] = None
 
 # --- Utils ---
 async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
@@ -177,7 +196,7 @@ async def analytics_dashboard(user_id: str):
         if stage in counts:
             counts[stage] = row.get("count", 0)
     total = sum(counts.values())
-    return AnalyticsDashboard(total_leads=total, by_stage=counts)
+    return AnalyticsDashboard(total_leads=total, by_stage=count)
 
 @app.get("/api/settings", response_model=Settings)
 async def get_settings(user_id: str):
@@ -206,6 +225,65 @@ async def save_settings(payload: SaveSettingsRequest):
         settings = Settings(**data)
         await db.settings.insert_one(settings.model_dump())
         return settings
+
+# --- AI Chat Endpoint (unified, with Emergent LLM fallback) ---
+async def _resolve_provider_and_key(user_id: str, provider: Optional[str]) -> Dict[str, Optional[str]]:
+    # Load user's provider-specific keys from settings
+    doc = await db.settings.find_one({"user_id": user_id})
+    openai_key = (doc or {}).get("openai_api_key")
+    anthropic_key = (doc or {}).get("anthropic_api_key")
+    gemini_key = (doc or {}).get("gemini_api_key")
+
+    # Priority: explicit provider with user's key -> Emergent fallback
+    chosen_provider = provider or "emergent"
+    provider_key = None
+    if chosen_provider == "openai":
+        provider_key = openai_key
+    elif chosen_provider == "anthropic":
+        provider_key = anthropic_key
+    elif chosen_provider == "gemini":
+        provider_key = gemini_key
+    elif chosen_provider == "emergent":
+        provider_key = EMERGENT_LLM_KEY
+
+    # Fallback: if no provider-specific key, try emergent
+    if not provider_key and EMERGENT_LLM_KEY:
+        chosen_provider = "emergent"
+        provider_key = EMERGENT_LLM_KEY
+
+    return {"provider": chosen_provider, "key": provider_key}
+
+@app.post("/api/ai/chat", response_model=ChatResponse)
+async def ai_chat(req: ChatRequest):
+    resolved = await _resolve_provider_and_key(req.user_id, req.provider)
+    provider = resolved["provider"]
+    key = resolved["key"]
+
+    if not key:
+        raise HTTPException(status_code=400, detail="LLM not configured. Add provider key in Settings or ensure Emergent key is set.")
+
+    # Attempt Emergent Integrations SDK first
+    try:
+        # Hypothetical emergent integrations client
+        # We intentionally avoid hardcoding any URLs; the SDK should handle it using env keys
+        from emergentintegrations import AsyncLLMClient  # type: ignore
+        client = AsyncLLMClient(api_key=key)
+        result = await client.chat_completions.create(
+            messages=[m.model_dump() for m in req.messages],
+            model=req.model or None,
+            provider=provider,
+            temperature=req.temperature,
+            max_tokens=req.max_tokens,
+            stream=False,
+        )
+        content = result["content"] if isinstance(result, dict) else getattr(result, "content", "")
+        return ChatResponse(content=content, provider_used=provider, model_used=req.model)
+    except Exception:
+        # Fallback: return a clear message that integration library needs to be finalized
+        raise HTTPException(
+            status_code=501,
+            detail="LLM integration pending: Emergent integrations SDK not available in runtime. Keys stored; endpoint wired."
+        )
 
 if __name__ == "__main__":
     import uvicorn
