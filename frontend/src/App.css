@@ -13,6 +13,7 @@ body{margin:0;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Aria
 .card form{display:grid;grid-template-columns:1fr;gap:8px}
 .card .error{color:#dc2626}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.muted{color:#6b7280;font-size:12px;margin-bottom:8px}
 .kanban .kanban-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .columns{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
 .column{background:#f0fdf4;border:1px solid #e5e7eb;border-radius:12px;padding:8px}
@@ -26,3 +27,21 @@ input{padding:8px;border:1px solid #e5e7eb;border-radius:8px}
 .metric{background:#ecfdf5;border:1px solid #e5e7eb;border-radius:8px;padding:12px}
 .metric-name{color:#065f46;font-weight:600}
 .metric-value{font-size:20px;color:#064e3b}
+
+/* Chat */
+.chat-toolbar .row{display:flex;gap:12px;margin-bottom:12px}
+.chat-toolbar .col{flex:1;display:flex;flex-direction:column;gap:6px}
+.chat-toolbar select{padding:8px;border:1px solid #e5e7eb;border-radius:8px}
+.chat-window{display:grid;gap:8px;max-height:420px;overflow:auto;padding:8px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;margin:8px 0}
+.bubble{padding:10px 12px;border-radius:12px}
+.bubble.user{background:#e0f2fe;border:1px solid #bae6fd}
+.bubble.assistant{background:#ecfdf5;border:1px solid #bbf7d0}
+.bubble .role{font-size:12px;color:#374151;margin-bottom:4px}
+.bubble .content{white-space:pre-wrap}
+.chat-input{display:flex;gap:8px}
+.chat-input input{flex:1}
+
+@media (max-width: 900px){
+  .columns{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid{grid-template-columns:1fr}
+}

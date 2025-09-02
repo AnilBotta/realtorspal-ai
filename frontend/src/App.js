@@ -64,6 +64,7 @@ function Settings({ user }) {
   return (
     <div className="card">
       <h2>Settings</h2>
+      <p className="muted">Enter your LLM provider keys here. If left empty, the system will use the Emergent universal key (when available).</p>
       <div className="grid">
         <label>OpenAI API Key</label>
         <input value={form.openai_api_key} onChange={(e) => setForm({ ...form, openai_api_key: e.target.value })} />
@@ -166,6 +167,88 @@ function Analytics({ user }) {
   );
 }
 
+function Chat({ user }) {
+  const [messages, setMessages] = useState([{ role: "system", content: "You are a helpful assistant for RealtorsPal AI." }]);
+  const [input, setInput] = useState("");
+  const [provider, setProvider] = useState(""); // empty means auto/emergent
+  const [model, setModel] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text) return;
+    const next = [...messages, { role: "user", content: text }];
+    setMessages(next);
+    setInput("");
+    setLoading(true);
+    setError("");
+    try {
+      const { data } = await axios.post(`${API_BASE}/ai/chat`, {
+        user_id: user.id,
+        messages: next,
+        provider: provider || undefined,
+        model: model || undefined,
+        temperature: 0.7,
+        max_tokens: 512,
+      });
+      setMessages((arr) => [...arr, { role: "assistant", content: data.content }]);
+    } catch (err) {
+      const msg = err?.response?.data?.detail || err.message || "Chat failed";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="card">
+      <h2>AI Chat</h2>
+      <div className="chat-toolbar">
+        <div className="row">
+          <div className="col">
+            <label>Provider</label>
+            <select value={provider} onChange={(e) => setProvider(e.target.value)}>
+              <option value="">Auto (Emergent)</option>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="gemini">Gemini</option>
+              <option value="emergent">Emergent</option>
+            </select>
+          </div>
+          <div className="col">
+            <label>Model (optional)</label>
+            <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. gpt-4o-mini" />
+          </div>
+        </div>
+      </div>
+      <div className="chat-window">
+        {messages.filter((m) => m.role !== "system").map((m, idx) => (
+          <div key={idx} className={`bubble ${m.role}`}>
+            <div className="role">{m.role}</div>
+            <div className="content">{m.content}</div>
+          </div>
+        ))}
+      </div>
+      <div className="chat-input">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
+          placeholder="Ask anything about your leads, follow-ups, or property marketing..."
+        />
+        <button onClick={send} disabled={loading}>{loading ? "Generating..." : "Send"}</button>
+      </div>
+      {error && <p className="error" style={{ marginTop: 8 }}>{error}</p>}
+    </div>
+  );
+}
+
 export default function App() {
   const [session, setSession] = useState(null);
   const [tab, setTab] = useState("kanban");
@@ -179,11 +262,13 @@ export default function App() {
         <nav>
           <button className={tab === "kanban" ? "active" : ""} onClick={() => setTab("kanban")}>Kanban</button>
           <button className={tab === "analytics" ? "active" : ""} onClick={() => setTab("analytics")}>Analytics</button>
+          <button className={tab === "chat" ? "active" : ""} onClick={() => setTab("chat")}>Chat</button>
           <button className={tab === "settings" ? "active" : ""} onClick={() => setTab("settings")}>Settings</button>
         </nav>
       </header>
       {tab === "kanban" && <Kanban user={session.user} />}
       {tab === "analytics" && <Analytics user={session.user} />}
+      {tab === "chat" && <Chat user={session.user} />}
       {tab === "settings" && <Settings user={session.user} />}
     </div>
   );
