@@ -196,7 +196,7 @@ async def analytics_dashboard(user_id: str):
         if stage in counts:
             counts[stage] = row.get("count", 0)
     total = sum(counts.values())
-    return AnalyticsDashboard(total_leads=total, by_stage=count)
+    return AnalyticsDashboard(total_leads=total, by_stage=counts)
 
 @app.get("/api/settings", response_model=Settings)
 async def get_settings(user_id: str):
