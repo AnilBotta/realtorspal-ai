@@ -261,6 +261,7 @@ class RealtorsPalAPITester:
             self.test_analytics_dashboard,
             self.test_get_settings,
             self.test_save_settings,
+            self.test_ai_chat,
         ]
         
         for test in tests:
