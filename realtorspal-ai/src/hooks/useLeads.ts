@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiClient } from '@/lib/api'
 import type { Lead } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface UseLeadsReturn {
-  leads: Record<string, Lead[]>
+  leads: Record<Lead['stage'], Lead[]>
   isLoading: boolean
   error: string | null
   addLead: (lead: Omit<Lead, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>
@@ -14,8 +14,7 @@ interface UseLeadsReturn {
   totalLeads: number
 }
 
-// Empty state initialization
-const emptyLeadGroups: Record<string, Lead[]> = {
+const emptyLeadGroups: Record<Lead['stage'], Lead[]> = {
   new: [],
   contacted: [],
   appointment: [],
@@ -23,7 +22,7 @@ const emptyLeadGroups: Record<string, Lead[]> = {
   closed: [],
 }
 
-// Demo-only seed (shown when showDemo === true)
+// Demo/Admin seed
 const DEMO_LEADS: Lead[] = [
   {
     id: 'D1',
@@ -56,120 +55,105 @@ const DEMO_LEADS: Lead[] = [
   },
 ]
 
-function groupLeadsByStage(leadsArray: Lead[]): Record<string, Lead[]> {
-  const grouped: Record<string, Lead[]> = {
+function groupLeadsByStage(list: Lead[]): Record<Lead['stage'], Lead[]> {
+  const grouped: Record<Lead['stage'], Lead[]> = {
     new: [],
     contacted: [],
     appointment: [],
     onboarded: [],
     closed: [],
   }
-
-  leadsArray.forEach((lead) => {
-    if (grouped[lead.stage]) {
-      grouped[lead.stage].push(lead)
-    }
-  })
-
+  for (const lead of list) {
+    grouped[lead.stage]?.push(lead)
+  }
   return grouped
 }
 
 export function useLeads(): UseLeadsReturn {
   const { user } = useAuth()
-  // Admins ALSO see demo data
-  const showDemo = user?.role === 'demo' || user?.role === 'admin'
+  const isSandbox = user?.role === 'demo' || user?.role === 'admin'
 
-  const [leads, setLeads] = useState<Record<string, Lead[]>>(emptyLeadGroups)
+  const [leads, setLeads] = useState<Record<Lead['stage'], Lead[]>>(emptyLeadGroups)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Ensure sandbox demo data is only seeded once
+  const initializedRef = useRef(false)
 
   const fetchLeads = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // Demo/admin users: show local seed data
-      if (showDemo) {
-        setLeads(groupLeadsByStage(DEMO_LEADS))
+      if (isSandbox) {
+        // Seed ONCE in sandbox; keep in-memory changes thereafter
+        if (!initializedRef.current) {
+          setLeads(groupLeadsByStage(DEMO_LEADS))
+          initializedRef.current = true
+        }
         return
       }
 
       // Real users: call backend
       const connected = await apiClient.testConnection()
-      if (!connected) {
-        throw new Error('Backend not available')
-      }
+      if (!connected) throw new Error('Backend not available')
 
       const response = await apiClient.getLeads()
       if (response.success) {
-        const groupedLeads = groupLeadsByStage(response.data.leads)
-        setLeads(groupedLeads)
+        setLeads(groupLeadsByStage(response.data.leads))
       } else {
         throw new Error(response.message || 'Failed to fetch leads')
       }
     } catch (err) {
       console.error('Failed to fetch leads:', err)
-      // Non-demo/admin users: empty state on failure
       setLeads(emptyLeadGroups)
       setError(err instanceof Error ? err.message : 'Failed to load leads')
     } finally {
       setIsLoading(false)
     }
-  }, [showDemo])
+  }, [isSandbox])
 
   const addLead = useCallback(
     async (leadData: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
       try {
-        // Normalize once with safe defaults (prevents duplicate keys)
-        const {
-          stage = 'new',
-          priority = 'medium',
-          ...restLead
-        } = leadData
+        const { stage = 'new', priority = 'medium', ...rest } = leadData
 
-        if (showDemo) {
+        if (isSandbox) {
           const fake: Lead = {
             id: `D${Date.now()}`,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            ...restLead,
             stage,
             priority,
+            ...rest,
           }
           const current = Object.values(leads).flat()
           setLeads(groupLeadsByStage([fake, ...current]))
           return true
         }
 
-        // Send normalized payload to backend as well
-        const payload: Omit<Lead, 'id' | 'created_at' | 'updated_at'> = {
-          ...restLead,
-          stage,
-          priority,
-        }
-
+        const payload: Omit<Lead, 'id' | 'created_at' | 'updated_at'> = { stage, priority, ...rest }
         const response = await apiClient.createLead(payload)
         if (response.success) {
           await fetchLeads()
           return true
-        } else {
-          throw new Error(response.message || 'Failed to create lead')
         }
+        throw new Error(response.message || 'Failed to create lead')
       } catch (err) {
         console.error('Failed to add lead:', err)
         setError(err instanceof Error ? err.message : 'Failed to add lead')
         return false
       }
     },
-    [showDemo, leads, fetchLeads]
+    [isSandbox, leads, fetchLeads]
   )
 
   const updateLead = useCallback(
     async (id: string, updates: Partial<Lead>): Promise<boolean> => {
       try {
-        if (showDemo) {
+        if (isSandbox) {
           const current = Object.values(leads).flat()
-          const next = current.map((l) =>
+          const next = current.map(l =>
             l.id === id ? { ...l, ...updates, updated_at: new Date().toISOString() } : l
           )
           setLeads(groupLeadsByStage(next))
@@ -180,24 +164,23 @@ export function useLeads(): UseLeadsReturn {
         if (response.success) {
           await fetchLeads()
           return true
-        } else {
-          throw new Error(response.message || 'Failed to update lead')
         }
+        throw new Error(response.message || 'Failed to update lead')
       } catch (err) {
         console.error('Failed to update lead:', err)
         setError(err instanceof Error ? err.message : 'Failed to update lead')
         return false
       }
     },
-    [showDemo, leads, fetchLeads]
+    [isSandbox, leads, fetchLeads]
   )
 
   const updateLeadStage = useCallback(
     async (id: string, newStage: Lead['stage']): Promise<boolean> => {
       try {
-        if (showDemo) {
+        if (isSandbox) {
           const current = Object.values(leads).flat()
-          const next = current.map((l) =>
+          const next = current.map(l =>
             l.id === id ? { ...l, stage: newStage, updated_at: new Date().toISOString() } : l
           )
           setLeads(groupLeadsByStage(next))
@@ -208,21 +191,22 @@ export function useLeads(): UseLeadsReturn {
         if (response.success) {
           await fetchLeads()
           return true
-        } else {
-          throw new Error(response.message || 'Failed to update lead stage')
         }
+        throw new Error(response.message || 'Failed to update lead stage')
       } catch (err) {
         console.error('Failed to update lead stage:', err)
         setError(err instanceof Error ? err.message : 'Failed to update lead stage')
         return false
       }
     },
-    [showDemo, leads, fetchLeads]
+    [isSandbox, leads, fetchLeads]
   )
 
   const refetch = useCallback(async () => {
+    // In sandbox, do NOT refetch (avoid resetting demo changes)
+    if (isSandbox) return
     await fetchLeads()
-  }, [fetchLeads])
+  }, [fetchLeads, isSandbox])
 
   useEffect(() => {
     fetchLeads()

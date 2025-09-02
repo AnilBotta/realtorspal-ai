@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiClient } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLeads } from '@/hooks/useLeads'
 
 interface UseDashboardReturn {
   metrics: DashboardMetricsFlat | null
@@ -9,17 +10,15 @@ interface UseDashboardReturn {
   refetch: () => Promise<void>
 }
 
-// Flat shape used by MetricsOverview
 type DashboardMetricsFlat = {
   totalLeads: number
   activeConversations: number
   appointmentsScheduled: number
-  conversionRate: number // percent 0–100
-  revenueGenerated: number
-  responseTime: number   // minutes
+  conversionRate: number   // percent 0–100
+  revenueGenerated: number // $
+  responseTime: number     // minutes
 }
 
-// Empty state for non-demo users when backend has no data / is down
 const emptyMetrics: DashboardMetricsFlat = {
   totalLeads: 0,
   activeConversations: 0,
@@ -29,67 +28,72 @@ const emptyMetrics: DashboardMetricsFlat = {
   responseTime: 0,
 }
 
-// Demo seed (shown for admin + demo)
-const demoMetrics: DashboardMetricsFlat = {
-  totalLeads: 128,
-  activeConversations: 6,
-  appointmentsScheduled: 11,
-  conversionRate: 23, // percent
-  revenueGenerated: 18450,
-  responseTime: 3,
+// --- helpers to parse revenue from budget strings like "$400K - $500K"
+function parseBudgetToAvg(budget: string | undefined): number {
+  if (!budget) return 0
+  // examples: "$400K - $500K", "$700K-$900K", "$1.2M - $1.6M"
+  const nums = budget.match(/([\d.]+)\s*([kKmM]?)/g)
+  if (!nums || nums.length === 0) return 0
+
+  const toNumber = (token: string): number => {
+    const m = token.match(/([\d.]+)\s*([kKmM]?)/)
+    if (!m) return 0
+    const value = parseFloat(m[1] ?? '0')
+    const unit = (m[2] ?? '').toLowerCase()
+    if (unit === 'm') return value * 1_000_000
+    if (unit === 'k') return value * 1_000
+    return value
+  }
+
+  const values = nums.map(toNumber).filter(n => Number.isFinite(n))
+  if (values.length === 0) return 0
+  const avg = values.reduce((a, b) => a + b, 0) / values.length
+  return Math.round(avg)
 }
 
-// Type guards (no `any`)
+// type guards (keep TS happy without any)
 type GetDashboardMetricsFn = () => Promise<{ success: boolean; data?: unknown; message?: string }>
 function hasGetDashboardMetrics(client: unknown): client is { getDashboardMetrics: GetDashboardMetricsFn } {
   if (typeof client !== 'object' || client === null) return false
-  const c = client as Record<string, unknown>
-  return typeof c['getDashboardMetrics'] === 'function'
+  return typeof (client as Record<string, unknown>)['getDashboardMetrics'] === 'function'
 }
 
 type GetAnalyticsFn = () => Promise<{ success: boolean; data?: unknown; message?: string }>
 function hasGetAnalytics(client: unknown): client is { getAnalytics: GetAnalyticsFn } {
   if (typeof client !== 'object' || client === null) return false
-  const c = client as Record<string, unknown>
-  return typeof c['getAnalytics'] === 'function'
+  return typeof (client as Record<string, unknown>)['getAnalytics'] === 'function'
 }
 
-// Normalize various backend shapes into the flat shape expected by the component
+// normalize various backend shapes into flat metrics
 function toFlatMetrics(input: unknown): DashboardMetricsFlat {
   if (typeof input !== 'object' || input === null) return emptyMetrics
   const o = input as Record<string, unknown>
 
-  // If backend already returns flat fields, use them
-  const flatLike =
+  if (
     'totalLeads' in o ||
     'activeConversations' in o ||
-    'appointmentsScheduled' in o ||
-    'revenueGenerated' in o ||
-    'responseTime' in o
-
-  if (flatLike) {
+    'appointmentsScheduled' in o
+  ) {
     return {
       totalLeads: typeof o.totalLeads === 'number' ? o.totalLeads : 0,
       activeConversations: typeof o.activeConversations === 'number' ? o.activeConversations : 0,
       appointmentsScheduled: typeof o.appointmentsScheduled === 'number' ? o.appointmentsScheduled : 0,
-      conversionRate: typeof o.conversionRate === 'number' ? o.conversionRate : 0, // assume percent
+      conversionRate: typeof o.conversionRate === 'number' ? o.conversionRate : 0,
       revenueGenerated: typeof o.revenueGenerated === 'number' ? o.revenueGenerated : 0,
       responseTime: typeof o.responseTime === 'number' ? o.responseTime : 0,
     }
   }
 
-  // If backend returns analytics-style nested data, map it
   const totals = (o['totals'] as Record<string, unknown> | undefined) ?? {}
-
-  const convRateRaw = o['conversionRate']
+  const convRaw = o['conversionRate']
   const conversionRate =
-    typeof convRateRaw === 'number' ? (convRateRaw > 1 ? Math.round(convRateRaw) : Math.round(convRateRaw * 100)) : 0
+    typeof convRaw === 'number' ? (convRaw > 1 ? Math.round(convRaw) : Math.round(convRaw * 100)) : 0
 
   return {
     totalLeads: typeof totals['leads'] === 'number' ? (totals['leads'] as number) : 0,
     activeConversations: typeof totals['conversations'] === 'number' ? (totals['conversations'] as number) : 0,
     appointmentsScheduled: typeof totals['appointments'] === 'number' ? (totals['appointments'] as number) : 0,
-    conversionRate, // percent (0–100)
+    conversionRate,
     revenueGenerated: typeof o['revenue'] === 'number' ? (o['revenue'] as number) : 0,
     responseTime: typeof o['avgResponseMinutes'] === 'number' ? (o['avgResponseMinutes'] as number) : 0,
   }
@@ -97,19 +101,52 @@ function toFlatMetrics(input: unknown): DashboardMetricsFlat {
 
 export function useDashboard(): UseDashboardReturn {
   const { user } = useAuth()
-  const showDemo = user?.role === 'demo' || user?.role === 'admin'
+  const isSandbox = user?.role === 'demo' || user?.role === 'admin'
+
+  // Pull live local leads (for admin/demo metrics)
+  const { leads } = useLeads()
 
   const [metrics, setMetrics] = useState<DashboardMetricsFlat | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const computeSandboxMetrics = useCallback((): DashboardMetricsFlat => {
+    const all = [
+      ...leads.new,
+      ...leads.contacted,
+      ...leads.appointment,
+      ...leads.onboarded,
+      ...leads.closed,
+    ]
+    const totalLeads = all.length
+    const activeConversations = leads.contacted.length + leads.appointment.length
+    const appointmentsScheduled = leads.appointment.length
+    const closed = leads.closed.length
+    const conversionRate = totalLeads > 0 ? Math.round((closed / totalLeads) * 100) : 0
+
+    // Estimate revenue from closed leads' budgets (average of range)
+    const revenueGenerated = leads.closed.reduce((sum, l) => sum + parseBudgetToAvg(l.budget_range), 0)
+
+    // Keep a small, plausible responseTime
+    const responseTime = 3
+
+    return {
+      totalLeads,
+      activeConversations,
+      appointmentsScheduled,
+      conversionRate,
+      revenueGenerated,
+      responseTime,
+    }
+  }, [leads])
 
   const fetchMetrics = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      if (showDemo) {
-        setMetrics(demoMetrics)
+      if (isSandbox) {
+        setMetrics(computeSandboxMetrics())
         return
       }
 
@@ -124,13 +161,12 @@ export function useDashboard(): UseDashboardReturn {
           throw new Error(res?.message || 'Failed to fetch metrics')
         }
       } else if (hasGetAnalytics(apiClient)) {
-        // 👇 Cast to a local, properly-typed variable before calling
-        const clientWithAnalytics = apiClient as { getAnalytics: GetAnalyticsFn }
-        const res = await clientWithAnalytics.getAnalytics()
+        const client = apiClient as { getAnalytics: GetAnalyticsFn }
+        const res = await client.getAnalytics()
         if (res?.success && res?.data) {
           setMetrics(toFlatMetrics(res.data))
         } else {
-          throw new Error(res?.message || 'Analytics not available on apiClient')
+          throw new Error(res?.message || 'Analytics not available')
         }
       } else {
         throw new Error('getDashboardMetrics/getAnalytics not available on apiClient')
@@ -142,15 +178,16 @@ export function useDashboard(): UseDashboardReturn {
     } finally {
       setIsLoading(false)
     }
-  }, [showDemo])
+  }, [isSandbox, computeSandboxMetrics])
 
   const refetch = useCallback(async () => {
     await fetchMetrics()
   }, [fetchMetrics])
 
+  // Initial + whenever leads change (so admin/demo dashboard stays live)
   useEffect(() => {
     fetchMetrics()
-  }, [fetchMetrics])
+  }, [fetchMetrics, leads])
 
   return { metrics, isLoading, error, refetch }
 }

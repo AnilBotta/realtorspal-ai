@@ -10,39 +10,36 @@ import { AddLeadForm } from "../leads/AddLeadForm"
 import { useToast } from "@/hooks/use-toast"
 import { useLeads } from "@/hooks/useLeads"
 import type { Lead } from "@/lib/api"
+
 import {
-  Mail,
-  MessageSquare,
   Calendar,
   DollarSign,
   MapPin,
   Clock,
   Plus,
   Filter,
-  PhoneCall,
-  Loader2,
-  RefreshCw
+  RefreshCw,
+  GripVertical,
 } from "lucide-react"
 
-// dnd-kit
 import {
   DndContext,
   PointerSensor,
   useSensor,
   useSensors,
-  DragOverlay,
   DragEndEvent,
   DragStartEvent,
+  DragOverEvent,
   Over,
-  closestCorners,
+  pointerWithin,
+  useDroppable,
 } from "@dnd-kit/core"
 import {
   SortableContext,
   useSortable,
-  verticalListSortingStrategy
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { useDroppable } from "@dnd-kit/core"
 
 type Stage = "new" | "contacted" | "appointment" | "onboarded" | "closed"
 const STAGES: Stage[] = ["new", "contacted", "appointment", "onboarded", "closed"]
@@ -59,17 +56,28 @@ function getPriorityColor(priority: string) {
     default: return "bg-gray-100 text-gray-700 border-gray-200"
   }
 }
-
 function getSourceColor(source: string) {
   return source === "Manual Entry"
     ? "bg-purple-100 text-purple-700 border-purple-200"
     : "bg-blue-50 text-blue-700 border-blue-200"
 }
 
-/* ---------- Lead Card (visual only) ---------- */
-function LeadCard({ lead, dragging = false }: { lead: Lead; dragging?: boolean }) {
+/* ---------------- Lead Card ---------------- */
+function LeadCard({
+  lead,
+  dragging = false,
+  setHandleRef,
+  handleListeners,
+  handleAttributes,
+}: {
+  lead: Lead
+  dragging?: boolean
+  setHandleRef?: (node: HTMLElement | null) => void
+  handleListeners?: Record<string, unknown>
+  handleAttributes?: Record<string, unknown>
+}) {
   return (
-    <Card className={`w-full mb-3 hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing border-slate-200/50 bg-white/90 backdrop-blur-sm ${dragging ? "opacity-70" : ""}`}>
+    <Card className={`w-full mb-3 border-slate-200/50 bg-white/90 backdrop-blur-sm ${dragging ? "opacity-70 shadow ring-1 ring-slate-200" : "hover:shadow-md"}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
@@ -83,11 +91,22 @@ function LeadCard({ lead, dragging = false }: { lead: Lead; dragging?: boolean }
               <CardDescription className="text-xs">{lead.property_interest}</CardDescription>
             </div>
           </div>
-          <Badge className={`text-xs px-2 py-1 ${getPriorityColor(lead.priority)}`}>
-            {lead.priority}
-          </Badge>
+
+          {/* Drag handle */}
+          <div
+            ref={setHandleRef ?? undefined}
+            {...(handleListeners as Record<string, unknown>)}
+            {...(handleAttributes as Record<string, unknown>)}
+            className="ml-2 inline-flex items-center rounded-md border px-1.5 py-1 text-slate-500 hover:bg-slate-50 cursor-move touch-none select-none"
+            title="Drag"
+            role="button"
+            tabIndex={0}
+          >
+            <GripVertical className="w-4 h-4" />
+          </div>
         </div>
       </CardHeader>
+
       <CardContent className="pt-0 space-y-2">
         <div className="flex items-center gap-2 text-xs text-slate-600">
           <DollarSign className="w-3 h-3" />
@@ -109,61 +128,59 @@ function LeadCard({ lead, dragging = false }: { lead: Lead; dragging?: boolean }
           <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
             Lead Generator AI
           </Badge>
+          <Badge className={`text-xs px-2 py-1 ${getPriorityColor(lead.priority)}`}>
+            {lead.priority}
+          </Badge>
         </div>
 
-        {/* Action buttons: stop mousedown bubbling so clicks don't start a drag */}
         <div className="flex gap-1 pt-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-6 px-2 text-xs hover:bg-green-50 hover:border-green-300"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={() => {/* wire in call modal from parent if desired */}}
-          >
-            Call
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-6 px-2 text-xs hover:bg-blue-50 hover:border-blue-300"
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            Email
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-6 px-2 text-xs hover:bg-purple-50 hover:border-purple-300"
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            SMS
-          </Button>
+          <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onMouseDown={(e) => e.stopPropagation()}>Call</Button>
+          <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onMouseDown={(e) => e.stopPropagation()}>Email</Button>
+          <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onMouseDown={(e) => e.stopPropagation()}>SMS</Button>
         </div>
       </CardContent>
     </Card>
   )
 }
 
-/* ---------- Sortable item wrapper ---------- */
+/* ---------------- Sortable wrapper ---------------- */
 function SortableLead({ lead }: { lead: Lead }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: lead.id,
-    data: { type: "lead", lead }
+    data: { type: "lead", lead },
   })
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    touchAction: "none", // help dragging on browsers/touchpads
+    touchAction: "none",
     width: "100%",
+    zIndex: isDragging ? 50 : "auto",
+    position: "relative",
   }
+
   return (
-    <div ref={setNodeRef} style={style} className="w-full" {...attributes} {...listeners}>
-      <LeadCard lead={lead} dragging={isDragging} />
+    <div ref={setNodeRef} style={style} className="w-full">
+      <LeadCard
+        lead={lead}
+        dragging={isDragging}
+        setHandleRef={setActivatorNodeRef}
+        handleListeners={listeners as unknown as Record<string, unknown>}
+        handleAttributes={attributes as unknown as Record<string, unknown>}
+      />
     </div>
   )
 }
 
-/* ---------- Droppable column ---------- */
+/* ---------------- Droppable column ---------------- */
 function DroppableColumn({
   id,
   children,
@@ -175,13 +192,10 @@ function DroppableColumn({
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id,
-    data: { type: "column", stage: id }
+    data: { type: "column", stage: id },
   })
   return (
-    <div
-      ref={setNodeRef}
-      className={`${className ?? ""} ${isOver ? "ring-2 ring-blue-300" : ""}`}
-    >
+    <div ref={setNodeRef} className={`${className ?? ""} ${isOver ? "ring-2 ring-blue-300" : ""}`}>
       {children}
     </div>
   )
@@ -193,23 +207,24 @@ export function KanbanBoard({ expanded = false }: KanbanBoardProps) {
   const { toast } = useToast()
   const { leads, isLoading, error, addLead, updateLeadStage, refetch } = useLeads()
 
-  // derive columns from hook
-  const initial = useMemo(() => ({
-    new: leads.new ?? [],
-    contacted: leads.contacted ?? [],
-    appointment: leads.appointment ?? [],
-    onboarded: leads.onboarded ?? [],
-    closed: leads.closed ?? [],
-  }), [leads])
-
+  const initial = useMemo(
+    () => ({
+      new: leads.new ?? [],
+      contacted: leads.contacted ?? [],
+      appointment: leads.appointment ?? [],
+      onboarded: leads.onboarded ?? [],
+      closed: leads.closed ?? [],
+    }),
+    [leads]
+  )
   const [columns, setColumns] = useState(initial)
+  useEffect(() => setColumns(initial), [initial])
 
-  useEffect(() => {
-    setColumns(initial)
-  }, [initial])
+  // Keep track of the last column we hovered over during drag
+  const [lastOverStage, setLastOverStage] = useState<Stage | null>(null)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
   )
 
   const handleAddLead = async (newLeadData: Omit<Lead, "id" | "created_at" | "updated_at">) => {
@@ -217,36 +232,42 @@ export function KanbanBoard({ expanded = false }: KanbanBoardProps) {
     toast({
       title: ok ? "Lead Added Successfully" : "Failed to Add Lead",
       description: ok ? `${newLeadData.name} has been added to your lead pipeline` : "There was an error adding the lead.",
-      variant: ok ? "default" : "destructive"
+      variant: ok ? "default" : "destructive",
     })
   }
 
-  const findStageByLeadId = useCallback((id: string): Stage | null => {
-    for (const s of STAGES) {
-      if (columns[s].some(l => l.id === id)) return s
-    }
-    return null
-  }, [columns])
+  const findStageByLeadId = useCallback(
+    (id: string): Stage | null => {
+      for (const s of STAGES) {
+        if (columns[s].some((l) => l.id === id)) return s
+      }
+      return null
+    },
+    [columns]
+  )
 
   const toStageFromOver = (over: Over | null): Stage | null => {
     if (!over) return null
-    // Case 1: over a column droppable
     const d = over.data?.current
     if (d && typeof d === "object" && "stage" in d) {
       const st = (d as { stage: Stage }).stage
       return STAGES.includes(st) ? st : null
     }
-    // Case 2: over another lead -> map that lead's id to its column
-    const overId = String(over.id)
-    const stageFromItem = findStageByLeadId(overId)
-    if (stageFromItem) return stageFromItem
-    // Case 3: over id equals a stage (rare)
+    const overId = String((over as { id: unknown }).id)
+    const fromItem = findStageByLeadId(overId)
+    if (fromItem) return fromItem
     if (STAGES.includes(overId as Stage)) return overId as Stage
     return null
   }
 
-  const onDragStart = (event: DragStartEvent) => {
-    // optional overlay could be set here
+  const onDragStart = (_e: DragStartEvent) => {
+    setLastOverStage(null)
+  }
+
+  const onDragOver = (event: DragOverEvent) => {
+    const { over } = event
+    const stage = toStageFromOver(over)
+    if (stage) setLastOverStage(stage)
   }
 
   const onDragEnd = async (event: DragEndEvent) => {
@@ -254,28 +275,28 @@ export function KanbanBoard({ expanded = false }: KanbanBoardProps) {
     if (!active?.id) return
 
     const fromStage = findStageByLeadId(String(active.id))
-    const toStage = toStageFromOver(over)
+    const toStage = toStageFromOver(over) || lastOverStage
 
     if (!fromStage || !toStage || fromStage === toStage) return
 
-    // optimistic move locally
-    setColumns(prev => {
+    // optimistic UI update
+    setColumns((prev) => {
       const fromItems = [...prev[fromStage]]
-      const toItems = [...prev[toStage]]
-      const moving = fromItems.find(l => l.id === active.id)
+      const toItems = [...prev[toStage!]]
+      const moving = fromItems.find((l) => l.id === active.id)
       if (!moving) return prev
-      const nextFrom = fromItems.filter(l => l.id !== active.id)
-      const nextTo = [{ ...moving, stage: toStage }, ...toItems]
-      return { ...prev, [fromStage]: nextFrom, [toStage]: nextTo }
+      return {
+        ...prev,
+        [fromStage]: fromItems.filter((l) => l.id !== active.id),
+        [toStage!]: [{ ...moving, stage: toStage! }, ...toItems],
+      }
     })
 
     const ok = await updateLeadStage(String(active.id), toStage)
-    if (!ok) {
-      // rollback if failed
-      setColumns(initial)
-    } else {
-      await refetch()
-    }
+    if (!ok) setColumns(initial)
+    else await refetch()
+
+    setLastOverStage(null)
   }
 
   if (isLoading) {
@@ -283,7 +304,7 @@ export function KanbanBoard({ expanded = false }: KanbanBoardProps) {
       <Card className="bg-white/80 backdrop-blur-sm border-slate-200/50">
         <CardContent className="flex items-center justify-center py-12">
           <div className="flex items-center gap-2 text-slate-600">
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <span className="w-5 h-5 animate-spin border-2 border-slate-300 border-t-transparent rounded-full" />
             <span>Loading leads...</span>
           </div>
         </CardContent>
@@ -334,15 +355,16 @@ export function KanbanBoard({ expanded = false }: KanbanBoardProps) {
           <DndContext
             sensors={sensors}
             onDragStart={onDragStart}
+            onDragOver={onDragOver}
             onDragEnd={onDragEnd}
-            collisionDetection={closestCorners}
+            collisionDetection={pointerWithin}  // more reliable in grid columns
           >
             <div className={`grid gap-4 ${expanded ? "grid-cols-1 lg:grid-cols-5" : "grid-cols-1 lg:grid-cols-5"} overflow-x-auto`}>
               {STAGES.map((stage) => {
                 const meta = stageMeta[stage]
                 const items = columns[stage]
                 return (
-                  <div key={stage} className="min-w-[280px]">
+                  <div key={stage} className="min-w-[300px]">
                     <DroppableColumn id={stage} className={`rounded-lg border-2 border-dashed ${meta.color} p-4 min-h-[500px]`}>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="font-semibold text-sm">{meta.name}</h3>
@@ -351,8 +373,8 @@ export function KanbanBoard({ expanded = false }: KanbanBoardProps) {
                         </Badge>
                       </div>
 
-                      <SortableContext items={items.map(l => l.id)} strategy={verticalListSortingStrategy}>
-                        <div className="space-y-3">
+                      <SortableContext items={items.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+                        <div className="flex flex-col gap-3 w-full">
                           {items.map((lead) => (
                             <SortableLead key={lead.id} lead={lead} />
                           ))}
@@ -373,20 +395,16 @@ export function KanbanBoard({ expanded = false }: KanbanBoardProps) {
                 )
               })}
             </div>
-
-            <DragOverlay>{/* optional overlay */}</DragOverlay>
           </DndContext>
         </CardContent>
       </Card>
 
-      {/* Add Lead Modal */}
       <AddLeadForm
         isOpen={showAddLeadForm}
         onClose={() => setShowAddLeadForm(false)}
         onAddLead={handleAddLead}
       />
 
-      {/* Voice Call Modal */}
       {activeCall && (
         <VoiceCall
           leadName={activeCall.name}
