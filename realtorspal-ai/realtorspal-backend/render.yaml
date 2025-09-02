@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: realtorspal-ai-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: postgresql://neondb_owner:npg_lewydJ4hqDk9@ep-small-flower-aflk9tdv-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require
+      - key: JWT_SECRET
+        value: realtorspal_super_secure_jwt_secret_key_production_2024_32_chars_minimum
+      - key: CORS_ORIGIN
+        value: https://same-dti5u6vmxdi-latest.netlify.app,http://localhost:3000
+      - key: LOG_LEVEL
+        value: info
+    scaling:
+      minInstances: 1
+      maxInstances: 3
