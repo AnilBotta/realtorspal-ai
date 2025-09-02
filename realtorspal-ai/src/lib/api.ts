@@ -11,7 +11,7 @@ interface User {
   id: string
   email: string
   name: string
-  role: 'admin' | 'agent' | 'viewer'
+  role: 'admin' | 'agent' | 'viewer' | 'demo' // ← added 'demo'
   avatar?: string
   created_at?: string
 }
@@ -57,7 +57,6 @@ class ApiClient {
 
   constructor() {
     this.baseURL = API_BASE_URL
-    // Try to get token from localStorage
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('auth_token')
     }
@@ -69,19 +68,32 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`
 
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
-        ...options.headers,
-      },
-      ...options,
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      ...(options.headers as Record<string, string> | undefined),
     }
+
+    // Tag demo users so backend can sandbox/no-op if desired
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('realtorspal_user')
+        if (saved) {
+          const u = JSON.parse(saved) as Partial<User>
+          if (u?.role === 'demo') {
+            headers['X-Demo-User'] = 'true'
+          }
+        }
+      }
+    } catch {
+      // ignore tagging errors
+    }
+
+    const config: RequestInit = { ...options, headers }
 
     try {
       const response = await fetch(url, config)
 
-      // Check if response is JSON
       const contentType = response.headers.get('content-type')
       if (!contentType || !contentType.includes('application/json')) {
         throw new Error(`Server returned ${response.status}: ${response.statusText}`)
@@ -116,14 +128,12 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
-
     if (response.success && response.data.token) {
       this.token = response.data.token
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth_token', response.data.token)
       }
     }
-
     return response
   }
 
@@ -132,14 +142,12 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
     })
-
     if (response.success && response.data.token) {
       this.token = response.data.token
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth_token', response.data.token)
       }
     }
-
     return response
   }
 
@@ -153,7 +161,6 @@ class ApiClient {
     } catch {
       // Ignore logout errors
     }
-
     this.token = null
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token')
@@ -177,7 +184,6 @@ class ApiClient {
         }
       })
     }
-
     const endpoint = `/api/leads${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
     return this.request<{ leads: Lead[]; total: number; page: number }>(endpoint)
   }
@@ -250,3 +256,4 @@ export const apiClient = new ApiClient()
 
 // Export types for use in components
 export type { User, Lead, Activity, DashboardMetrics, ApiResponse }
+

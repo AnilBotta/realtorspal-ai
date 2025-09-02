@@ -1,21 +1,16 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { useDashboard } from "@/hooks/useDashboard"
-import { useAuth } from "@/contexts/AuthContext"
 import {
   Users,
   Calendar,
   TrendingUp,
   Phone,
-  Mail,
   DollarSign,
   Target,
   Clock,
-  ArrowUpIcon,
-  ArrowDownIcon,
   Loader2,
   AlertCircle,
   Database
@@ -23,7 +18,6 @@ import {
 
 export function MetricsOverview() {
   const { metrics, isLoading, error, refetch } = useDashboard()
-  const { backendConnected } = useAuth()
 
   if (isLoading) {
     return (
@@ -58,48 +52,36 @@ export function MetricsOverview() {
     {
       title: "Total Leads",
       value: metrics.totalLeads.toLocaleString(),
-      change: "+12.5%",
-      changeType: "increase",
       icon: Users,
-      description: "This month"
+      description: "Total leads in your workspace"
     },
     {
       title: "Active Conversations",
       value: metrics.activeConversations.toString(),
-      change: "+8.2%",
-      changeType: "increase",
       icon: Phone,
       description: "Currently engaged"
     },
     {
       title: "Appointments Scheduled",
       value: metrics.appointmentsScheduled.toString(),
-      change: "+15.7%",
-      changeType: "increase",
       icon: Calendar,
-      description: "This week"
+      description: "Upcoming appointments"
     },
     {
       title: "Conversion Rate",
       value: `${metrics.conversionRate}%`,
-      change: "-2.1%",
-      changeType: "decrease",
       icon: Target,
       description: "Lead to client"
     },
     {
       title: "Revenue Generated",
       value: `${metrics.revenueGenerated.toLocaleString()}`,
-      change: "+28.3%",
-      changeType: "increase",
       icon: DollarSign,
-      description: "This quarter"
+      description: "Attributed revenue"
     },
     {
       title: "Response Time",
       value: `${metrics.responseTime} min`,
-      change: "-45.2%",
-      changeType: "increase",
       icon: Clock,
       description: "Average AI response"
     }
@@ -118,9 +100,7 @@ export function MetricsOverview() {
       {error && !metrics && (
         <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
           <Database className="w-4 h-4 text-red-600" />
-          <span className="text-sm text-red-700">
-            Unable to load metrics data
-          </span>
+          <span className="text-sm text-red-700">Unable to load metrics data</span>
           <button onClick={refetch} className="text-red-600 hover:underline text-sm ml-auto">
             Retry
           </button>
@@ -136,21 +116,6 @@ export function MetricsOverview() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <Icon className="w-5 h-5 text-slate-600" />
-                  <Badge
-                    variant={metric.changeType === "increase" ? "default" : "secondary"}
-                    className={`text-xs ${
-                      metric.changeType === "increase"
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                        : "bg-red-100 text-red-700 hover:bg-red-200"
-                    }`}
-                  >
-                    {metric.changeType === "increase" ? (
-                      <ArrowUpIcon className="w-3 h-3 mr-1" />
-                    ) : (
-                      <ArrowDownIcon className="w-3 h-3 mr-1" />
-                    )}
-                    {metric.change}
-                  </Badge>
                 </div>
                 <CardTitle className="text-2xl font-bold">{metric.value}</CardTitle>
                 <CardDescription className="text-sm">{metric.title}</CardDescription>
@@ -182,10 +147,7 @@ export function MetricsOverview() {
                   <span className="font-medium">{metric.label}</span>
                   <span className="text-slate-600">{metric.value}%</span>
                 </div>
-                <Progress
-                  value={metric.value}
-                  className="h-2"
-                />
+                <Progress value={metric.value} className="h-2" />
                 <div className="flex justify-between text-xs text-slate-500">
                   <span>Target: {metric.target}%</span>
                   <span className={metric.value >= metric.target ? "text-green-600" : "text-orange-600"}>
@@ -200,3 +162,4 @@ export function MetricsOverview() {
     </div>
   )
 }
+
