@@ -7,6 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorClient
+from dotenv import load_dotenv
+
+# Load environment from backend/.env if present
+load_dotenv()
 
 # --- Environment & DB Setup ---
 MONGO_URL = os.environ.get("MONGO_URL")
