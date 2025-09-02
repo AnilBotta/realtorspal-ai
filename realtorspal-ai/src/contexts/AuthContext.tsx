@@ -23,30 +23,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Test backend connection
+        // Detect backend availability
         const connected = await apiClient.testConnection()
         setBackendConnected(connected)
 
-        // Check for existing session
+        // Restore session
         const savedUser = localStorage.getItem('realtorspal_user')
         const token = localStorage.getItem('auth_token')
 
         if (savedUser && token && connected) {
           try {
-            // Verify token with backend
             const response = await apiClient.getCurrentUser()
             if (response.success) {
               setUser(response.data)
             } else {
-              // Token invalid, use saved user data
               setUser(JSON.parse(savedUser))
             }
           } catch {
-            // Backend not available, use saved user data
             setUser(JSON.parse(savedUser))
           }
         } else if (savedUser) {
-          // No backend connection, use saved user data
           setUser(JSON.parse(savedUser))
         }
       } catch (error) {
@@ -62,14 +58,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true)
 
+    // Try real backend first
     try {
-      // Try real backend authentication first
       if (backendConnected) {
         const response = await apiClient.login(email, password)
         if (response.success) {
-          const userData = {
+          const userData: User = {
             ...response.data.user,
-            avatar: response.data.user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(response.data.user.name)}&background=6366f1&color=fff`
+            avatar:
+              response.data.user.avatar ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(response.data.user.name)}&background=6366f1&color=fff`,
           }
           setUser(userData)
           localStorage.setItem('realtorspal_user', JSON.stringify(userData))
@@ -78,21 +76,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.warn('Backend login failed, trying demo mode:', error)
+      console.warn('Backend login failed, checking explicit demo/admin fallback:', error)
     }
 
-    // Fallback to demo authentication
-    if (email === 'admin@realtorspal.ai' && password === 'password123') {
+    // Explicit demo login
+    if (email === 'demo@realtorspal.ai' && password === 'demo123') {
       const demoUser: User = {
-        id: '1',
+        id: 'demo-1',
+        email,
+        name: 'RealtorsPal Demo',
+        role: 'demo',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Demo')}&background=6366f1&color=fff`,
+      }
+      setUser(demoUser)
+      localStorage.setItem('realtorspal_user', JSON.stringify(demoUser))
+      setIsLoading(false)
+      return true
+    }
+
+    // Optional admin fallback
+    if (email === 'admin@realtorspal.ai' && password === 'password123') {
+      const demoAdmin: User = {
+        id: 'admin-1',
         email,
         name: 'RealtorsPal Admin',
         role: 'admin',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Admin')}&background=6366f1&color=fff`
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Admin')}&background=6366f1&color=fff`,
       }
-
-      setUser(demoUser)
-      localStorage.setItem('realtorspal_user', JSON.stringify(demoUser))
+      setUser(demoAdmin)
+      localStorage.setItem('realtorspal_user', JSON.stringify(demoAdmin))
       setIsLoading(false)
       return true
     }
@@ -105,13 +117,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true)
 
     try {
-      // Try real backend registration first
       if (backendConnected) {
         const response = await apiClient.register(email, password, name)
         if (response.success) {
-          const userData = {
+          const userData: User = {
             ...response.data.user,
-            avatar: response.data.user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`
+            avatar:
+              response.data.user.avatar ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`,
           }
           setUser(userData)
           localStorage.setItem('realtorspal_user', JSON.stringify(userData))
@@ -120,25 +133,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.warn('Backend signup failed, trying demo mode:', error)
+      console.warn('Backend signup failed:', error)
     }
 
-    // Fallback to demo registration
-    if (email && password.length >= 6 && name) {
-      const demoUser: User = {
-        id: Date.now().toString(),
-        email,
-        name,
-        role: 'agent',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`
-      }
-
-      setUser(demoUser)
-      localStorage.setItem('realtorspal_user', JSON.stringify(demoUser))
-      setIsLoading(false)
-      return true
-    }
-
+    // No demo/agent auto-signup fallback
     setIsLoading(false)
     return false
   }
@@ -171,3 +169,4 @@ export function useAuth() {
   }
   return context
 }
+
