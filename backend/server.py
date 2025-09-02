@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, AsyncGenerator
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,6 +35,16 @@ app.add_middleware(
 # Mongo client
 client = AsyncIOMotorClient(MONGO_URL)
 db = client["realtorspal"]
+
+# Try import Emergent integrations client in a resilient way
+EmergentAsyncClient = None
+try:
+    from emergentintegrations import AsyncLLMClient as EmergentAsyncClient  # type: ignore
+except Exception:
+    try:
+        from emergentintegrations.llm import AsyncLLMClient as EmergentAsyncClient  # type: ignore
+    except Exception:
+        EmergentAsyncClient = None
 
 # --- Models ---
 class UserOut(BaseModel):
@@ -226,16 +236,14 @@ async def save_settings(payload: SaveSettingsRequest):
         await db.settings.insert_one(settings.model_dump())
         return settings
 
-# --- AI Chat Endpoint (unified, with Emergent LLM fallback) ---
+# --- AI Chat Endpoint (unified, uses Emergent LLM or user provider keys) ---
 async def _resolve_provider_and_key(user_id: str, provider: Optional[str]) -> Dict[str, Optional[str]]:
-    # Load user's provider-specific keys from settings
     doc = await db.settings.find_one({"user_id": user_id})
     openai_key = (doc or {}).get("openai_api_key")
     anthropic_key = (doc or {}).get("anthropic_api_key")
     gemini_key = (doc or {}).get("gemini_api_key")
 
-    # Priority: explicit provider with user's key -> Emergent fallback
-    chosen_provider = provider or "emergent"
+    chosen_provider = (provider or "emergent").lower()
     provider_key = None
     if chosen_provider == "openai":
         provider_key = openai_key
@@ -243,15 +251,54 @@ async def _resolve_provider_and_key(user_id: str, provider: Optional[str]) -> Di
         provider_key = anthropic_key
     elif chosen_provider == "gemini":
         provider_key = gemini_key
-    elif chosen_provider == "emergent":
+    else:
+        chosen_provider = "emergent"
         provider_key = EMERGENT_LLM_KEY
 
-    # Fallback: if no provider-specific key, try emergent
     if not provider_key and EMERGENT_LLM_KEY:
         chosen_provider = "emergent"
         provider_key = EMERGENT_LLM_KEY
 
     return {"provider": chosen_provider, "key": provider_key}
+
+async def _call_emergent_llm(
+    api_key: str,
+    messages: List[Dict[str, str]],
+    provider: Optional[str],
+    model: Optional[str],
+    temperature: Optional[float],
+    max_tokens: Optional[int],
+    stream: bool,
+) -> Any:
+    if EmergentAsyncClient is None:
+        raise ImportError("emergentintegrations not installed")
+
+    client = EmergentAsyncClient(api_key=api_key)
+
+    # Compose model string if provider and model are both present
+    model_param = model
+    if provider and model:
+        model_param = model  # provider may be passed separately depending on SDK
+
+    if stream:
+        # Assuming SDK returns an async generator when stream=True
+        return await client.chat_completions.create(
+            messages=messages,
+            model=model_param,
+            provider=provider,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+        )
+    else:
+        return await client.chat_completions.create(
+            messages=messages,
+            model=model_param,
+            provider=provider,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=False,
+        )
 
 @app.post("/api/ai/chat", response_model=ChatResponse)
 async def ai_chat(req: ChatRequest):
@@ -262,28 +309,42 @@ async def ai_chat(req: ChatRequest):
     if not key:
         raise HTTPException(status_code=400, detail="LLM not configured. Add provider key in Settings or ensure Emergent key is set.")
 
-    # Attempt Emergent Integrations SDK first
     try:
-        # Hypothetical emergent integrations client
-        # We intentionally avoid hardcoding any URLs; the SDK should handle it using env keys
-        from emergentintegrations import AsyncLLMClient  # type: ignore
-        client = AsyncLLMClient(api_key=key)
-        result = await client.chat_completions.create(
-            messages=[m.model_dump() for m in req.messages],
-            model=req.model or None,
+        messages = [m.model_dump() for m in req.messages]
+        result = await _call_emergent_llm(
+            api_key=key,
+            messages=messages,
             provider=provider,
+            model=req.model,
             temperature=req.temperature,
             max_tokens=req.max_tokens,
             stream=False,
         )
-        content = result["content"] if isinstance(result, dict) else getattr(result, "content", "")
+        # Try to normalize common shapes
+        content: Optional[str] = None
+        if isinstance(result, dict):
+            if "choices" in result and result["choices"]:
+                choice = result["choices"][0]
+                if isinstance(choice, dict):
+                    msg = choice.get("message") or {}
+                    content = msg.get("content")
+            if not content:
+                content = result.get("content")
+        else:
+            content = getattr(result, "content", None)
+
+        if not content:
+            content = "(No content returned by LLM)"
+
         return ChatResponse(content=content, provider_used=provider, model_used=req.model)
-    except Exception:
-        # Fallback: return a clear message that integration library needs to be finalized
+    except ImportError:
+        # SDK not available
         raise HTTPException(
             status_code=501,
-            detail="LLM integration pending: Emergent integrations SDK not available in runtime. Keys stored; endpoint wired."
+            detail="LLM integration pending: Emergent integrations SDK not available in runtime."
         )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"LLM call failed: {e}")
 
 if __name__ == "__main__":
     import uvicorn
