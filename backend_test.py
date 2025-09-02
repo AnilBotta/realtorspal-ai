@@ -185,6 +185,35 @@ class RealtorsPalAPITester:
             self.log_test("Get Settings", False, f"Exception: {str(e)}")
             return False
 
+    def test_ai_chat(self) -> bool:
+        """Test POST /api/ai/chat - should return 501 Not Implemented"""
+        if not self.user_id:
+            self.log_test("AI Chat", False, "No user_id available")
+            return False
+        
+        try:
+            payload = {
+                "user_id": self.user_id,
+                "messages": [{"role": "user", "content": "Hello"}]
+            }
+            response = requests.post(f"{self.base_url}/ai/chat", json=payload, timeout=10)
+            
+            # Expecting 501 Not Implemented as per requirements
+            if response.status_code == 501:
+                data = response.json()
+                if "detail" in data and "integration pending" in data["detail"].lower():
+                    self.log_test("AI Chat", True, f"Expected 501 response: {data['detail']}")
+                    return True
+                else:
+                    self.log_test("AI Chat", False, f"501 status but unexpected message: {data}")
+                    return False
+            else:
+                self.log_test("AI Chat", False, f"Expected 501, got {response.status_code}: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("AI Chat", False, f"Exception: {str(e)}")
+            return False
+
     def test_save_settings(self) -> bool:
         """Test POST /api/settings with dummy keys"""
         if not self.user_id:
