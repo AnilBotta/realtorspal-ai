@@ -10,8 +10,8 @@ import json
 from typing import Optional, Dict, Any
 
 class RealtorsPalAPITester:
-    def __init__(self, base_url: str = "http://localhost:8001/api"):
-        # Direct backend URL for testing
+    def __init__(self, base_url: str = "/api"):
+        # Use the same public endpoint as frontend
         self.base_url = base_url
         self.user_id: Optional[str] = None
         self.token: Optional[str] = None
