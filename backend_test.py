@@ -7,6 +7,7 @@ Tests all endpoints defined in /app/backend/server.py
 import requests
 import sys
 import json
+import time
 from typing import Optional, Dict, Any
 
 class RealtorsPalAPITester:
