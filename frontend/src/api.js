@@ -11,7 +11,7 @@ const api = axios.create({
 export const login = (email, password) => api.post(`/api/auth/login`, { email, password });
 
 export const getSettings = (user_id) => api.get(`/api/settings`, { params: { user_id } });
-export const saveSettings = (payload) => api.post(`/settings`, payload);
+export const saveSettings = (payload) => api.post(`/api/settings`, payload);
 
 export const getLeads = (user_id) => api.get(`/leads`, { params: { user_id } });
 export const createLead = (payload) => api.post(`/leads`, payload);
