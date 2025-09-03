@@ -27,6 +27,27 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app = FastAPI(title="RealtorsPal AI - FastAPI Backend")
 
+# Custom validation error handler
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    print(f"Validation error on {request.method} {request.url}")
+    print(f"Validation errors: {exc.errors()}")
+    
+    # Log the request body for debugging
+    try:
+        body = await request.body()
+        print(f"Request body: {body.decode()}")
+    except Exception as e:
+        print(f"Could not read request body: {e}")
+    
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": exc.errors(),
+            "message": "Validation failed"
+        }
+    )
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
