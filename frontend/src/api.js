@@ -17,7 +17,7 @@ export const getLeads = (user_id) => api.get(`/leads`, { params: { user_id } });
 export const createLead = (payload) => api.post(`/leads`, payload);
 export const updateLeadStage = (lead_id, stage) => api.put(`/leads/${lead_id}/stage`, { stage });
 
-export const getDashboardAnalytics = (user_id) => api.get(`/api/analytics/dashboard`, { params: { user_id } });
+export const getDashboardAnalytics = (user_id) => api.get(`/analytics/dashboard`, { params: { user_id } });
 
 export const chat = (payload) => api.post(`/ai/chat`, payload);
 
