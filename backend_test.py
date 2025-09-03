@@ -489,6 +489,100 @@ class RealtorsPalAPITester:
             self.log_test("Import Leads Invalid Data", False, f"Exception: {str(e)}")
             return False
 
+    def test_import_leads_user_excel_format(self) -> bool:
+        """Test POST /api/leads/import with user's Excel data format"""
+        # Use the specific user_id from demo session
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Use timestamp to ensure unique emails
+            timestamp = int(time.time()) + 4
+            payload = {
+                "user_id": demo_user_id,
+                "default_stage": "New",
+                "in_dashboard": True,
+                "leads": [
+                    {
+                        "first_name": "Sanjay",
+                        "last_name": "Sharma",
+                        "email": f"sanjaysharma.{timestamp}@gmail.com",
+                        "phone": "13654578956",  # Phone format from user's Excel (no + prefix)
+                        "property_type": "Single Family Home",
+                        "neighborhood": "Downtown",
+                        "priority": "high",
+                        "source_tags": ["Excel Import", "Referral"],
+                        "stage": "New"
+                    },
+                    {
+                        "first_name": "Sameer",
+                        "last_name": "Gokle",
+                        "email": f"sameergokle.{timestamp}@gmail.com",
+                        "phone": "14155551234",  # Another phone format from Excel
+                        "property_type": "Condo",
+                        "neighborhood": "Midtown",
+                        "priority": "medium",
+                        "source_tags": ["Excel Import"],
+                        "stage": "New"
+                    },
+                    {
+                        "first_name": "Priya",
+                        "last_name": "Patel",
+                        "email": f"priyapatel.{timestamp}@yahoo.com",
+                        "phone": "4085551111",  # 10-digit format
+                        "property_type": "Townhouse",
+                        "neighborhood": "Suburbs",
+                        "priority": "low",
+                        "source_tags": ["Excel Import", "Website"],
+                        "stage": "New"
+                    }
+                ]
+            }
+            response = requests.post(f"{self.base_url}/leads/import", json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if (result.get("inserted") == 3 and 
+                    result.get("skipped") == 0 and 
+                    len(result.get("inserted_leads", [])) == 3):
+                    
+                    # Verify phone normalization
+                    inserted_leads = result.get("inserted_leads", [])
+                    phone_checks = []
+                    email_checks = []
+                    
+                    for lead in inserted_leads:
+                        # Check phone normalization to E.164 format
+                        if lead.get("phone") and lead["phone"].startswith("+1"):
+                            phone_checks.append(f"{lead['first_name']}: {lead['phone']}")
+                        
+                        # Check email validation
+                        if lead.get("email") and "@" in lead["email"]:
+                            email_checks.append(f"{lead['first_name']}: {lead['email']}")
+                    
+                    # Verify response structure includes inserted_leads array
+                    has_inserted_leads_array = "inserted_leads" in result and isinstance(result["inserted_leads"], list)
+                    
+                    if len(phone_checks) == 3 and len(email_checks) == 3 and has_inserted_leads_array:
+                        self.log_test("Import Leads User Excel Format", True, 
+                                    f"Successfully imported {result['inserted']} leads with proper normalization. "
+                                    f"Phones: {phone_checks}. Emails: {email_checks}. "
+                                    f"Response includes inserted_leads array: {has_inserted_leads_array}")
+                        return True
+                    else:
+                        self.log_test("Import Leads User Excel Format", False, 
+                                    f"Data validation failed. Phones: {phone_checks}, Emails: {email_checks}, "
+                                    f"Has inserted_leads: {has_inserted_leads_array}")
+                        return False
+                else:
+                    self.log_test("Import Leads User Excel Format", False, f"Unexpected import result: {result}")
+                    return False
+            else:
+                self.log_test("Import Leads User Excel Format", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Import Leads User Excel Format", False, f"Exception: {str(e)}")
+            return False
+
     def run_import_tests_only(self) -> bool:
         """Run only the lead import functionality tests"""
         print("🚀 Starting Lead Import Functionality Tests")
