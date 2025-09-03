@@ -320,6 +320,19 @@ async def import_leads(payload: ImportPayload):
             full_name = item.name or " ".join([v for v in [item.first_name, item.last_name] if v]).strip() or "New Lead"
             stage = item.stage or payload.default_stage or "New"
             
+            # Validate and normalize email
+            validated_email = None
+            if item.email and item.email.strip():
+                try:
+                    # Use email-validator for more lenient validation
+                    validation = validate_email(item.email.strip())
+                    validated_email = validation.email
+                    print(f"Email validated: '{item.email}' -> '{validated_email}'")
+                except EmailNotValidError as e:
+                    print(f"Invalid email '{item.email}': {e}")
+                    # Skip lead with invalid email or set to None
+                    validated_email = None
+            
             # Normalize phone number
             normalized_phone = normalize_phone(item.phone)
             print(f"Phone normalized from '{item.phone}' to '{normalized_phone}'")
@@ -329,7 +342,7 @@ async def import_leads(payload: ImportPayload):
                 name=full_name,
                 first_name=item.first_name,
                 last_name=item.last_name,
-                email=item.email,
+                email=validated_email,
                 phone=normalized_phone,
                 property_type=item.property_type,
                 neighborhood=item.neighborhood,
