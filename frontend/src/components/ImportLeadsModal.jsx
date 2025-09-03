@@ -99,9 +99,17 @@ export default function ImportLeadsModal({ open, onClose, onImported, onImportAp
   }, [rows, mapping]);
 
   const applyImport = async () => {
+    console.log('=== IMPORT BUTTON CLICKED ===');
+    console.log('Current step:', step);
+    console.log('User ID:', userId);
+    console.log('Rows to process:', rows.length);
+    console.log('Mapping:', mapping);
+    console.log('Default stage:', defaultStage);
+    console.log('In dashboard:', inDashboard);
+    
     setBusy(true);
     try{
-      const leads = rows.map((r) => {
+      const leads = rows.map((r, index) => {
         const o = {};
         Object.entries(mapping).forEach(([src, dest]) => {
           if (!dest) return;
@@ -114,20 +122,35 @@ export default function ImportLeadsModal({ open, onClose, onImported, onImportAp
           }
           if (val !== undefined) o[dest] = val;
         });
+        console.log(`Processed lead ${index}:`, o);
         return o;
       });
+      
+      console.log('Final leads array to import:', leads);
       const payload = { user_id: userId, default_stage: defaultStage, in_dashboard: inDashboard, leads };
+      console.log('Final payload:', payload);
+      
+      console.log('Calling onImportApi...');
       const res = await onImportApi(payload);
+      console.log('Import API response:', res);
+      
       setResult(res);
-      if (res?.inserted_leads?.length) onImported(res.inserted_leads);
+      if (res?.inserted_leads?.length) {
+        console.log('Calling onImported with', res.inserted_leads.length, 'leads');
+        onImported(res.inserted_leads);
+      } else {
+        console.log('No inserted_leads in response or empty array');
+      }
       setStep(3);
+      console.log('=== IMPORT COMPLETED SUCCESSFULLY ===');
     }catch(e){
-      console.error('Import error:', e);
+      console.error('=== IMPORT ERROR ===', e);
       let errorMsg = 'Import failed';
       
       if (e?.response?.data) {
         // If backend returned structured error
         const errorData = e.response.data;
+        console.error('Backend error data:', errorData);
         if (typeof errorData === 'string') {
           errorMsg = errorData;
         } else if (errorData.detail) {
@@ -141,6 +164,7 @@ export default function ImportLeadsModal({ open, onClose, onImported, onImportAp
         errorMsg = e.message;
       }
       
+      console.error('Final error message:', errorMsg);
       alert(errorMsg);
     }finally{
       setBusy(false);
