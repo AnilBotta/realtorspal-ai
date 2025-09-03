@@ -552,8 +552,16 @@ class RealtorsPalAPITester:
             return False
 
 def main():
-    tester = RealtorsPalAPITester()
-    success = tester.run_all_tests()
+    import sys
+    
+    # Check if we should run only import tests
+    if len(sys.argv) > 1 and sys.argv[1] == "--import-only":
+        tester = RealtorsPalAPITester()
+        success = tester.run_import_tests_only()
+    else:
+        tester = RealtorsPalAPITester()
+        success = tester.run_all_tests()
+    
     return 0 if success else 1
 
 if __name__ == "__main__":
