@@ -11,8 +11,22 @@ import time
 from typing import Optional, Dict, Any
 
 class RealtorsPalAPITester:
-    def __init__(self, base_url: str = "http://localhost:8001/api"):
+    def __init__(self, base_url: str = None):
         # Use the backend URL from frontend .env file
+        if base_url is None:
+            # Read the production URL from frontend .env
+            try:
+                with open('/app/frontend/.env', 'r') as f:
+                    for line in f:
+                        if line.startswith('REACT_APP_BACKEND_URL='):
+                            frontend_url = line.split('=', 1)[1].strip()
+                            base_url = f"{frontend_url}/api"
+                            break
+                if base_url is None:
+                    base_url = "http://localhost:8001/api"  # fallback
+            except:
+                base_url = "http://localhost:8001/api"  # fallback
+        
         self.base_url = base_url
         self.user_id: Optional[str] = None
         self.token: Optional[str] = None
