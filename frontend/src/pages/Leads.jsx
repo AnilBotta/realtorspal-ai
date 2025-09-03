@@ -102,17 +102,40 @@ export default function Leads({ user }){
   };
 
   const onImportApi = async (payload) => {
-    console.log('Import API call details:');
+    console.log('=== onImportApi CALLED ===');
     console.log('Payload being sent:', JSON.stringify(payload, null, 2));
     
     try {
+      console.log('Calling importLeads function...');
       const response = await importLeads(payload);
-      console.log('Import API response:', response.data);
+      console.log('Raw importLeads response:', response);
+      console.log('Response data:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Import API error:', error);
-      console.error('Error response:', error.response?.data);
-      throw error;
+      console.error('=== onImportApi ERROR ===');
+      console.error('Error type:', typeof error);
+      console.error('Error object:', error);
+      console.error('Error message:', error?.message);
+      console.error('Error response:', error?.response);
+      console.error('Error response status:', error?.response?.status);
+      console.error('Error response data:', error?.response?.data);
+      console.error('Error config:', error?.config);
+      
+      // Re-throw the error with more context
+      if (error?.response?.data) {
+        console.error('Throwing backend error');
+        throw error;
+      } else if (error?.message) {
+        console.error('Throwing network error');
+        const networkError = new Error(`Network error: ${error.message}`);
+        networkError.response = { data: { detail: `Network error: ${error.message}` } };
+        throw networkError;
+      } else {
+        console.error('Throwing unknown error');
+        const unknownError = new Error(`Unknown error: ${JSON.stringify(error)}`);
+        unknownError.response = { data: { detail: `Unknown error: ${JSON.stringify(error)}` } };
+        throw unknownError;
+      }
     }
   };
 
