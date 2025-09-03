@@ -496,6 +496,11 @@ class RealtorsPalAPITester:
             self.test_get_settings,
             self.test_save_settings,
             self.test_ai_chat,
+            # Lead import functionality tests
+            self.test_import_leads_basic,
+            self.test_import_leads_phone_normalization,
+            self.test_import_leads_duplicate_emails,
+            self.test_import_leads_invalid_data,
         ]
         
         for test in tests:
