@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getLeads, createLead, updateLead, deleteLead, chat } from "../api";
+import { getLeads, createLead, updateLead, deleteLead, importLeads } from "../api";
 import AddLeadModal from "../components/AddLeadModal";
 import LeadDrawer from "../components/LeadDrawer";
 import ImportLeadsModal from "../components/ImportLeadsModal";
-import axios from "axios";
 
 const STAGES = ["New", "Contacted", "Appointment", "Onboarded", "Closed"];
 const PRIORITIES = ["high", "medium", "low"];
