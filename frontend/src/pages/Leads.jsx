@@ -64,10 +64,15 @@ export default function Leads({ user }){
   const onDeleteLead = async (leadId) => {
     try{
       await deleteLead(leadId);
-      setLeads(arr => arr.filter(l => l.id !== leadId));
+      console.log(`Lead ${leadId} deleted, refreshing leads list...`);
+      // Refresh the entire list to ensure consistency
+      await loadLeads();
       setOpenDrawer(false);
       setActiveLead(null);
-    }catch(err){ alert(err?.response?.data?.detail || 'Failed to delete lead'); }
+    }catch(err){ 
+      console.error('Delete error:', err);
+      alert(err?.response?.data?.detail || 'Failed to delete lead'); 
+    }
   };
 
   const addToDashboard = async (lead) => {
