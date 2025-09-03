@@ -11,8 +11,8 @@ import time
 from typing import Optional, Dict, Any
 
 class RealtorsPalAPITester:
-    def __init__(self, base_url: str = "https://realtor-lead-hub.preview.emergentagent.com/api"):
-        # Use public backend URL for testing
+    def __init__(self, base_url: str = "http://localhost:8001/api"):
+        # Use the backend URL from frontend .env file
         self.base_url = base_url
         self.user_id: Optional[str] = None
         self.token: Optional[str] = None
