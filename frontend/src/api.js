@@ -8,7 +8,7 @@ const api = axios.create({
   baseURL: API_BASE,
 });
 
-export const login = (email, password) => api.post(`/api/auth/login`, { email, password });
+export const login = (email, password) => api.post(`/auth/login`, { email, password });
 
 export const getSettings = (user_id) => api.get(`/api/settings`, { params: { user_id } });
 export const saveSettings = (payload) => api.post(`/api/settings`, payload);
