@@ -158,7 +158,23 @@ async def verify_password(plain: str, hashed: str) -> bool:
 async def on_startup():
     await db.users.create_index("email", unique=True)
     await db.leads.create_index([("user_id", 1)])
-    await db.leads.create_index([("user_id", 1), ("email", 1)], unique=True, sparse=True)
+
+    # Drop previous conflicting unique index if present
+    try:
+        async for idx in db.leads.list_indexes():
+            if idx.get("name") == "user_id_1_email_1":
+                await db.leads.drop_index("user_id_1_email_1")
+                break
+    except Exception:
+        pass
+
+    # Create a partial unique index so only documents with a real string email are indexed
+    await db.leads.create_index(
+        [("user_id", 1), ("email", 1)],
+        unique=True,
+        partialFilterExpression={"email": {"$type": "string"}},
+    )
+
     await db.settings.create_index([("user_id", 1)], unique=True)
 
     # Seed demo user
@@ -171,18 +187,22 @@ async def on_startup():
         sample = [
             {"first_name": "John", "last_name": "Carter", "email": "john.carter@example.com", "stage": "New", "property_type": "3BR Condo", "neighborhood": "Downtown", "price_min": 400000, "price_max": 500000, "priority": "high", "source_tags": ["Website", "Lead Generator AI"]},
             {"first_name": "Mia", "last_name": "Nguyen", "email": "mia.nguyen@example.com", "stage": "Contacted", "property_type": "Townhouse", "neighborhood": "Suburbs", "price_min": 700000, "price_max": 900000, "priority": "medium", "source_tags": ["Referral", "Lead Generator AI"]},
+            {"first_name": "Isabella", "last_name": "Garcia", "stage": "Appointment", "property_type": "3BR Condo", "neighborhood": "Downtown", "price_min": 450000, "price_max": 550000, "priority": "low"},
         ]
         docs = []
         for s in sample:
             full_name = f"{s.get('first_name','')} {s.get('last_name','')}".strip()
-            docs.append({
+            doc = {
                 "id": str(uuid.uuid4()),
                 "user_id": user["id"],
                 "name": full_name or None,
                 **s,
                 "notes": None,
                 "created_at": datetime.utcnow().isoformat(),
-            })
+            }
+            # Remove None fields to avoid storing email: None
+            doc = {k: v for k, v in doc.items() if v is not None}
+            docs.append(doc)
         if docs:
             await db.leads.insert_many(docs)
 
@@ -242,7 +262,7 @@ async def create_lead(payload: CreateLeadRequest):
         notes=payload.notes,
     )
     try:
-        await db.leads.insert_one(lead.model_dump())
+        await db.leads.insert_one(lead.model_dump(exclude_none=True))
     except DuplicateKeyError:
         raise HTTPException(status_code=409, detail="A lead with this email already exists for this user.")
     return lead
