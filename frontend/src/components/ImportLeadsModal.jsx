@@ -311,7 +311,7 @@ export default function ImportLeadsModal({ open, onClose, onImported, onImportAp
                       </div>
                     )}
                     <div className="mt-4 flex items-center justify-end gap-2">
-                      <button onClick={onClose} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">Done</button>
+                      <button onClick={handleClose} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">Done</button>
                     </div>
                   </div>
                 )}
