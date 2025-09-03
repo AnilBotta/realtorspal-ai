@@ -10,7 +10,7 @@ import json
 from typing import Optional, Dict, Any
 
 class RealtorsPalAPITester:
-    def __init__(self, base_url: str = "https://realtor-buddy-1.preview.emergentagent.com/api"):
+    def __init__(self, base_url: str = "https://realtor-lead-hub.preview.emergentagent.com/api"):
         # Use public backend URL for testing
         self.base_url = base_url
         self.user_id: Optional[str] = None
