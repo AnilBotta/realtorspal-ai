@@ -172,26 +172,46 @@ export default function ImportLeadsModal({ open, onClose, onImported, onImportAp
       console.log('=== IMPORT COMPLETED SUCCESSFULLY ===');
     }catch(e){
       console.error('=== IMPORT ERROR ===', e);
+      console.error('Error type:', typeof e);
+      console.error('Error message:', e?.message);
+      console.error('Error response:', e?.response);
+      console.error('Error response data:', e?.response?.data);
+      console.error('Error stack:', e?.stack);
+      
       let errorMsg = 'Import failed';
       
-      if (e?.response?.data) {
-        // If backend returned structured error
-        const errorData = e.response.data;
-        console.error('Backend error data:', errorData);
-        if (typeof errorData === 'string') {
-          errorMsg = errorData;
-        } else if (errorData.detail) {
-          errorMsg = errorData.detail;
-        } else if (errorData.errors && Array.isArray(errorData.errors)) {
-          errorMsg = `Import failed with ${errorData.errors.length} errors. First error: ${errorData.errors[0]?.reason || 'Unknown error'}`;
+      try {
+        if (e?.response?.data) {
+          const errorData = e.response.data;
+          console.error('Processing backend error data:', errorData);
+          
+          if (typeof errorData === 'string') {
+            errorMsg = errorData;
+          } else if (errorData.detail) {
+            if (typeof errorData.detail === 'string') {
+              errorMsg = errorData.detail;
+            } else if (Array.isArray(errorData.detail)) {
+              // Handle pydantic validation errors
+              errorMsg = `Validation error: ${errorData.detail.map(err => `${err.loc?.join('.')} - ${err.msg}`).join('; ')}`;
+            } else {
+              errorMsg = `Import failed: ${JSON.stringify(errorData.detail)}`;
+            }
+          } else if (errorData.errors && Array.isArray(errorData.errors)) {
+            errorMsg = `Import failed with ${errorData.errors.length} errors. First error: ${errorData.errors[0]?.reason || 'Unknown error'}`;
+          } else {
+            errorMsg = `Import failed with server error: ${JSON.stringify(errorData)}`;
+          }
+        } else if (e?.message) {
+          errorMsg = e.message;
         } else {
-          errorMsg = 'Import failed with server error';
+          errorMsg = `Import failed: ${JSON.stringify(e)}`;
         }
-      } else if (e?.message) {
-        errorMsg = e.message;
+      } catch (parseError) {
+        console.error('Error parsing error message:', parseError);
+        errorMsg = `Import failed with parsing error: ${String(e)}`;
       }
       
-      console.error('Final error message:', errorMsg);
+      console.error('Final error message to show:', errorMsg);
       alert(errorMsg);
     }finally{
       setBusy(false);
