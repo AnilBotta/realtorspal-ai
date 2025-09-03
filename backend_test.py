@@ -479,6 +479,41 @@ class RealtorsPalAPITester:
             self.log_test("Import Leads Invalid Data", False, f"Exception: {str(e)}")
             return False
 
+    def run_import_tests_only(self) -> bool:
+        """Run only the lead import functionality tests"""
+        print("🚀 Starting Lead Import Functionality Tests")
+        print(f"📍 Base URL: {self.base_url}")
+        print("=" * 60)
+        
+        # First get authentication
+        if not self.test_health():
+            return False
+        if not self.test_login():
+            return False
+        
+        # Run import-specific tests
+        import_tests = [
+            self.test_import_leads_basic,
+            self.test_import_leads_phone_normalization,
+            self.test_import_leads_duplicate_emails,
+            self.test_import_leads_invalid_data,
+        ]
+        
+        import_tests_passed = 0
+        for test in import_tests:
+            if test():
+                import_tests_passed += 1
+        
+        print("=" * 60)
+        print(f"📊 Import Tests Results: {import_tests_passed}/{len(import_tests)} tests passed")
+        
+        if import_tests_passed == len(import_tests):
+            print("🎉 All lead import tests PASSED!")
+            return True
+        else:
+            print("⚠️  Some lead import tests FAILED!")
+            return False
+
     def run_all_tests(self) -> bool:
         """Run all backend API tests"""
         print("🚀 Starting RealtorsPal AI Backend API Tests")
