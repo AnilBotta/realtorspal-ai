@@ -281,6 +281,9 @@ async def create_lead(payload: CreateLeadRequest):
 
 @app.post("/api/leads/import", response_model=ImportResult)
 async def import_leads(payload: ImportPayload):
+    print(f"Import request received for user {payload.user_id}")
+    print(f"Number of leads to import: {len(payload.leads)}")
+    
     inserted = 0
     skipped = 0
     errors: List[Dict[str, Any]] = []
@@ -288,11 +291,14 @@ async def import_leads(payload: ImportPayload):
 
     for idx, item in enumerate(payload.leads):
         try:
+            print(f"Processing lead {idx}: {item.first_name} {item.last_name} - {item.email}")
+            
             full_name = item.name or " ".join([v for v in [item.first_name, item.last_name] if v]).strip() or "New Lead"
             stage = item.stage or payload.default_stage or "New"
             
             # Normalize phone number
             normalized_phone = normalize_phone(item.phone)
+            print(f"Phone normalized from '{item.phone}' to '{normalized_phone}'")
             
             lead = Lead(
                 user_id=payload.user_id,
@@ -314,13 +320,20 @@ async def import_leads(payload: ImportPayload):
             await db.leads.insert_one(lead.model_dump(exclude_none=True))
             inserted += 1
             inserted_docs.append(lead)
+            print(f"Successfully inserted lead {idx}")
         except DuplicateKeyError:
             skipped += 1
-            errors.append({"row": idx, "email": item.email, "reason": "duplicate email for this user"})
+            error_msg = "duplicate email for this user"
+            errors.append({"row": idx, "email": item.email, "reason": error_msg})
+            print(f"Skipped lead {idx}: {error_msg}")
         except Exception as e:
             skipped += 1
-            errors.append({"row": idx, "reason": str(e)})
+            error_msg = str(e)
+            errors.append({"row": idx, "reason": error_msg})
+            print(f"Error processing lead {idx}: {error_msg}")
+            print(f"Lead data: {item}")
 
+    print(f"Import completed: {inserted} inserted, {skipped} skipped")
     return ImportResult(inserted=inserted, skipped=skipped, errors=errors, inserted_leads=inserted_docs)
 
 @app.put("/api/leads/{lead_id}/stage", response_model=Lead)
