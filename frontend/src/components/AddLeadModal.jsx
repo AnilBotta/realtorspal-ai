@@ -49,7 +49,7 @@ export default function AddLeadModal({ open, onClose, onCreate, defaultValues })
     price_min: "",
     price_max: "",
     priority: "medium",
-    source_tags: "",
+    source_tags: "Manual",
     notes: "",
     ...(defaultValues || {}),
   });
@@ -96,12 +96,19 @@ export default function AddLeadModal({ open, onClose, onCreate, defaultValues })
       return;
     }
 
+    let tags = undefined;
+    if (form.source_tags && String(form.source_tags).trim().length > 0) {
+      tags = String(form.source_tags).split(",").map((s) => s.trim()).filter(Boolean);
+    } else {
+      tags = ["Manual"]; // default
+    }
+
     const payload = {
       ...form,
       phone: normalizedPhone || undefined,
       price_min: form.price_min ? parseInt(form.price_min, 10) : undefined,
       price_max: form.price_max ? parseInt(form.price_max, 10) : undefined,
-      source_tags: form.source_tags ? form.source_tags.split(",").map((s) => s.trim()).filter(Boolean) : undefined,
+      source_tags: tags,
     };
     onCreate(payload);
   };
@@ -123,8 +130,12 @@ export default function AddLeadModal({ open, onClose, onCreate, defaultValues })
                   <div className="text-sm font-medium text-slate-700 mb-2">Personal Information</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div>
-                      <label className="text-slate-600">Full Name</label>
-                      <input className="mt-1 w-full px-3 py-2 rounded-lg border" placeholder="e.g., John Doe" value={`${form.first_name}`.trim() || ''} onChange={(e)=>update('first_name', e.target.value)} />
+                      <label className="text-slate-600">First Name</label>
+                      <input className="mt-1 w-full px-3 py-2 rounded-lg border" value={form.first_name} onChange={(e)=>update('first_name', e.target.value)} onBlur={()=>blur('first_name')} />
+                    </div>
+                    <div>
+                      <label className="text-slate-600">Last Name</label>
+                      <input className="mt-1 w-full px-3 py-2 rounded-lg border" value={form.last_name} onChange={(e)=>update('last_name', e.target.value)} onBlur={()=>blur('last_name')} />
                     </div>
                     <div>
                       <label className="text-slate-600">Email Address (optional)</label>
@@ -191,7 +202,7 @@ export default function AddLeadModal({ open, onClose, onCreate, defaultValues })
                   <div className="grid grid-cols-1 gap-3 text-sm">
                     <div>
                       <label className="text-slate-600">Tags (comma separated)</label>
-                      <input className="mt-1 w-full px-3 py-2 rounded-lg border" value={form.source_tags} onChange={(e)=>update('source_tags', e.target.value)} placeholder="Website, Lead Generator AI" />
+                      <input className="mt-1 w-full px-3 py-2 rounded-lg border" value={form.source_tags} onChange={(e)=>update('source_tags', e.target.value)} placeholder="Manual, Website, Lead Generator AI" />
                     </div>
                     <div>
                       <label className="text-slate-600">Notes (Optional)</label>
