@@ -245,6 +245,240 @@ class RealtorsPalAPITester:
             self.log_test("Save Settings", False, f"Exception: {str(e)}")
             return False
 
+    def test_import_leads_basic(self) -> bool:
+        """Test POST /api/leads/import with valid data"""
+        if not self.user_id:
+            self.log_test("Import Leads Basic", False, "No user_id available")
+            return False
+        
+        try:
+            payload = {
+                "user_id": self.user_id,
+                "default_stage": "New",
+                "in_dashboard": True,
+                "leads": [
+                    {
+                        "first_name": "John",
+                        "last_name": "Smith",
+                        "email": "john.smith@example.com",
+                        "phone": "+14155551234",
+                        "property_type": "Single Family",
+                        "neighborhood": "Downtown",
+                        "price_min": 500000,
+                        "price_max": 750000,
+                        "priority": "high",
+                        "notes": "Looking for a family home"
+                    },
+                    {
+                        "first_name": "Sarah",
+                        "last_name": "Johnson",
+                        "email": "sarah.johnson@example.com",
+                        "phone": "+14155559876",
+                        "property_type": "Condo",
+                        "neighborhood": "Midtown",
+                        "price_min": 300000,
+                        "price_max": 500000,
+                        "priority": "medium"
+                    }
+                ]
+            }
+            response = requests.post(f"{self.base_url}/leads/import", json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if (result.get("inserted") == 2 and 
+                    result.get("skipped") == 0 and 
+                    len(result.get("inserted_leads", [])) == 2):
+                    self.log_test("Import Leads Basic", True, f"Imported {result['inserted']} leads successfully")
+                    return True
+                else:
+                    self.log_test("Import Leads Basic", False, f"Unexpected import result: {result}")
+                    return False
+            else:
+                self.log_test("Import Leads Basic", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Import Leads Basic", False, f"Exception: {str(e)}")
+            return False
+
+    def test_import_leads_phone_normalization(self) -> bool:
+        """Test POST /api/leads/import with phone numbers needing normalization"""
+        if not self.user_id:
+            self.log_test("Import Leads Phone Normalization", False, "No user_id available")
+            return False
+        
+        try:
+            payload = {
+                "user_id": self.user_id,
+                "default_stage": "New",
+                "in_dashboard": False,
+                "leads": [
+                    {
+                        "first_name": "Mike",
+                        "last_name": "Davis",
+                        "email": "mike.davis@example.com",
+                        "phone": "13654578956",  # US number without + prefix
+                        "property_type": "Townhouse",
+                        "neighborhood": "Suburbs"
+                    },
+                    {
+                        "first_name": "Lisa",
+                        "last_name": "Wilson",
+                        "email": "lisa.wilson@example.com",
+                        "phone": "4155551111",  # 10-digit US number
+                        "property_type": "Apartment",
+                        "neighborhood": "City Center"
+                    }
+                ]
+            }
+            response = requests.post(f"{self.base_url}/leads/import", json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if (result.get("inserted") == 2 and 
+                    result.get("skipped") == 0):
+                    # Check if phone numbers were normalized to E.164 format
+                    inserted_leads = result.get("inserted_leads", [])
+                    phone_normalized = False
+                    for lead in inserted_leads:
+                        if lead.get("phone") and lead["phone"].startswith("+1"):
+                            phone_normalized = True
+                            break
+                    
+                    if phone_normalized:
+                        self.log_test("Import Leads Phone Normalization", True, f"Phone numbers normalized correctly: {[l.get('phone') for l in inserted_leads]}")
+                        return True
+                    else:
+                        self.log_test("Import Leads Phone Normalization", False, f"Phone numbers not normalized: {[l.get('phone') for l in inserted_leads]}")
+                        return False
+                else:
+                    self.log_test("Import Leads Phone Normalization", False, f"Unexpected import result: {result}")
+                    return False
+            else:
+                self.log_test("Import Leads Phone Normalization", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Import Leads Phone Normalization", False, f"Exception: {str(e)}")
+            return False
+
+    def test_import_leads_duplicate_emails(self) -> bool:
+        """Test POST /api/leads/import with duplicate emails"""
+        if not self.user_id:
+            self.log_test("Import Leads Duplicate Emails", False, "No user_id available")
+            return False
+        
+        try:
+            # First, import a lead
+            payload1 = {
+                "user_id": self.user_id,
+                "default_stage": "New",
+                "in_dashboard": True,
+                "leads": [
+                    {
+                        "first_name": "Original",
+                        "last_name": "User",
+                        "email": "duplicate.test@example.com",
+                        "phone": "+14155552222",
+                        "property_type": "House"
+                    }
+                ]
+            }
+            response1 = requests.post(f"{self.base_url}/leads/import", json=payload1, timeout=10)
+            
+            if response1.status_code != 200:
+                self.log_test("Import Leads Duplicate Emails", False, f"Failed to create initial lead: {response1.text}")
+                return False
+            
+            # Now try to import a lead with the same email
+            payload2 = {
+                "user_id": self.user_id,
+                "default_stage": "New",
+                "in_dashboard": True,
+                "leads": [
+                    {
+                        "first_name": "Duplicate",
+                        "last_name": "User",
+                        "email": "duplicate.test@example.com",  # Same email
+                        "phone": "+14155553333",
+                        "property_type": "Condo"
+                    }
+                ]
+            }
+            response2 = requests.post(f"{self.base_url}/leads/import", json=payload2, timeout=10)
+            
+            if response2.status_code == 200:
+                result = response2.json()
+                if (result.get("inserted") == 0 and 
+                    result.get("skipped") == 1 and 
+                    len(result.get("errors", [])) == 1):
+                    error = result["errors"][0]
+                    if "duplicate" in error.get("reason", "").lower():
+                        self.log_test("Import Leads Duplicate Emails", True, f"Duplicate email handled correctly: {result}")
+                        return True
+                    else:
+                        self.log_test("Import Leads Duplicate Emails", False, f"Wrong error reason: {error}")
+                        return False
+                else:
+                    self.log_test("Import Leads Duplicate Emails", False, f"Unexpected duplicate handling: {result}")
+                    return False
+            else:
+                self.log_test("Import Leads Duplicate Emails", False, f"Status: {response2.status_code}, Response: {response2.text}")
+                return False
+        except Exception as e:
+            self.log_test("Import Leads Duplicate Emails", False, f"Exception: {str(e)}")
+            return False
+
+    def test_import_leads_invalid_data(self) -> bool:
+        """Test POST /api/leads/import with invalid data"""
+        if not self.user_id:
+            self.log_test("Import Leads Invalid Data", False, "No user_id available")
+            return False
+        
+        try:
+            payload = {
+                "user_id": self.user_id,
+                "default_stage": "New",
+                "in_dashboard": True,
+                "leads": [
+                    {
+                        "first_name": "Valid",
+                        "last_name": "User",
+                        "email": "valid.user@example.com",
+                        "phone": "+14155554444",
+                        "property_type": "House"
+                    },
+                    {
+                        "first_name": "Invalid",
+                        "last_name": "Email",
+                        "email": "not-an-email",  # Invalid email format
+                        "phone": "+14155555555",
+                        "property_type": "Condo"
+                    }
+                ]
+            }
+            response = requests.post(f"{self.base_url}/leads/import", json=payload, timeout=10)
+            
+            # Should either return 422 for validation error or 200 with errors in response
+            if response.status_code == 422:
+                self.log_test("Import Leads Invalid Data", True, f"Validation error returned as expected: {response.status_code}")
+                return True
+            elif response.status_code == 200:
+                result = response.json()
+                if (result.get("inserted") == 1 and 
+                    result.get("skipped") == 1 and 
+                    len(result.get("errors", [])) == 1):
+                    self.log_test("Import Leads Invalid Data", True, f"Invalid data handled correctly: {result}")
+                    return True
+                else:
+                    self.log_test("Import Leads Invalid Data", False, f"Unexpected invalid data handling: {result}")
+                    return False
+            else:
+                self.log_test("Import Leads Invalid Data", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Import Leads Invalid Data", False, f"Exception: {str(e)}")
+            return False
+
     def run_all_tests(self) -> bool:
         """Run all backend API tests"""
         print("🚀 Starting RealtorsPal AI Backend API Tests")
