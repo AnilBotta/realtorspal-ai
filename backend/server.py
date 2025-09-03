@@ -1,11 +1,12 @@
 import os
+import re
 import uuid
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
@@ -36,6 +37,8 @@ app.add_middleware(
 # Mongo client
 client = AsyncIOMotorClient(MONGO_URL)
 db = client["realtorspal"]
+
+E164_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 
 # --- Models ---
 class UserOut(BaseModel):
@@ -88,6 +91,13 @@ class CreateLeadRequest(BaseModel):
     source_tags: Optional[List[str]] = None
     notes: Optional[str] = None
 
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v):
+        if v is not None and not E164_RE.match(v):
+            raise ValueError("Phone must be in E.164 format, e.g. +1234567890")
+        return v
+
 class UpdateLeadRequest(BaseModel):
     # all fields optional for partial update
     name: Optional[str] = None
@@ -103,6 +113,13 @@ class UpdateLeadRequest(BaseModel):
     price_max: Optional[int] = None
     priority: Optional[str] = None
     source_tags: Optional[List[str]] = None
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v):
+        if v is not None and not E164_RE.match(v):
+            raise ValueError("Phone must be in E.164 format, e.g. +1234567890")
+        return v
 
 class UpdateStageRequest(BaseModel):
     stage: str

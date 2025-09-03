@@ -91,6 +91,8 @@ function LeadCard({ lead, onOpen }){
         <div className="flex items-center gap-2"><DollarSign size={14} className="text-slate-400"/> {formatCurrencyRange(priceMin, priceMax)}</div>
         <div className="flex items-center gap-2"><MapPin size={14} className="text-slate-400"/> {neighborhood}</div>
         <div className="flex items-center gap-2"><Calendar size={14} className="text-slate-400"/> Created: {createdAt}</div>
+        {lead.email && <div className="flex items-center gap-2"><Mail size={14} className="text-slate-400"/> {lead.email}</div>}
+        {lead.phone && <div className="flex items-center gap-2"><Phone size={14} className="text-slate-400"/> {lead.phone}</div>}
       </div>
 
       {/* Tags */}
