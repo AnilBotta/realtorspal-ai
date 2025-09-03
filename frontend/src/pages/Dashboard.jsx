@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getLeads, getDashboardAnalytics, createLead, updateLeadStage, updateLead, deleteLead } from "../api";
+import { getLeads, getDashboardAnalytics, createLead, updateLeadStage } from "../api";
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { DollarSign, MapPin, Calendar, Phone, Mail, MessageSquare, GripVertical } from "lucide-react";
@@ -126,12 +126,11 @@ export default function Dashboard({ user }){
         getLeads(user.id)
       ]);
       setStats(a.data);
-      setLeads(l.data);
+      // only show leads where in_dashboard !== false (i.e., true or undefined)
+      setLeads(l.data.filter(x => x.in_dashboard !== false));
     }
     load();
   }, [user.id]);
-
-  const board = useMemo(() => STAGES.map(s => ({ name: s, count: stats.by_stage[s] || 0 })), [stats]);
 
   const grouped = useMemo(() => {
     const m = Object.fromEntries(STAGES.map(s => [s, []]));
@@ -142,7 +141,8 @@ export default function Dashboard({ user }){
   const addLead = () => setOpenAdd(true);
   const onCreate = async (payload) => {
     try{
-      const { data } = await createLead({ user_id: user.id, ...payload });
+      // Dashboard add -> ensure it appears in dashboard
+      const { data } = await createLead({ user_id: user.id, in_dashboard: true, ...payload });
       setLeads(prev => [...prev, data]);
       setOpenAdd(false);
     }catch(err){ alert(err?.response?.data?.detail || 'Failed to create lead'); }
@@ -179,7 +179,7 @@ export default function Dashboard({ user }){
         <Stat label="Response Time" value={`3 min`} />
       </div>
 
-      {/* Lead Pipeline (full Kanban like Leads tab) */}
+      {/* Lead Pipeline */}
       <div className="bg-white rounded-xl border p-4">
         <div className="text-sm font-semibold mb-3">Lead Pipeline</div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
@@ -196,17 +196,6 @@ export default function Dashboard({ user }){
         </DndContext>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl border p-4">
-        <div className="text-sm font-semibold mb-3">Quick Actions</div>
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-          {["Import Leads","View Reports","Configure AI","System Setup","Export Data","Refresh All"].map(a => (
-            <button key={a} className="px-3 py-2 rounded-lg border text-slate-700 hover:bg-slate-50 text-sm">{a}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* Modals/Drawers reused from Leads */}
       <AddLeadModal open={openAdd} onClose={()=>setOpenAdd(false)} onCreate={onCreate} />
       <LeadDrawer open={openDrawer} lead={activeLead} onClose={()=>setOpenDrawer(false)} onSave={()=>{}} onDelete={()=>{}} />
     </div>

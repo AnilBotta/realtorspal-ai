@@ -75,6 +75,7 @@ class Lead(BaseModel):
     priority: Optional[str] = None  # high|medium|low
     source_tags: Optional[List[str]] = None
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    in_dashboard: Optional[bool] = True  # controls visibility in dashboard kanban
 
 class CreateLeadRequest(BaseModel):
     user_id: str
@@ -90,6 +91,7 @@ class CreateLeadRequest(BaseModel):
     priority: Optional[str] = None
     source_tags: Optional[List[str]] = None
     notes: Optional[str] = None
+    in_dashboard: Optional[bool] = None
 
     @field_validator("phone")
     @classmethod
@@ -113,6 +115,7 @@ class UpdateLeadRequest(BaseModel):
     price_max: Optional[int] = None
     priority: Optional[str] = None
     source_tags: Optional[List[str]] = None
+    in_dashboard: Optional[bool] = None
 
     @field_validator("phone")
     @classmethod
@@ -159,7 +162,7 @@ async def on_startup():
     await db.users.create_index("email", unique=True)
     await db.leads.create_index([("user_id", 1)])
 
-    # Drop previous conflicting unique index if present
+    # Ensure unique email per user only when email exists
     try:
         async for idx in db.leads.list_indexes():
             if idx.get("name") == "user_id_1_email_1":
@@ -167,8 +170,6 @@ async def on_startup():
                 break
     except Exception:
         pass
-
-    # Create a partial unique index so only documents with a real string email are indexed
     await db.leads.create_index(
         [("user_id", 1), ("email", 1)],
         unique=True,
@@ -177,17 +178,15 @@ async def on_startup():
 
     await db.settings.create_index([("user_id", 1)], unique=True)
 
-    # Seed demo user
+    # Seed demo user and a few leads (kept in_dashboard True so they appear in dashboard)
     demo_email = "demo@realtorspal.ai"
     demo_password = "Demo123!"
     existing = await get_user_by_email(demo_email)
     if not existing:
         user = await create_user(demo_email, demo_password, name="Demo User")
-        # Seed sample leads
         sample = [
-            {"first_name": "John", "last_name": "Carter", "email": "john.carter@example.com", "stage": "New", "property_type": "3BR Condo", "neighborhood": "Downtown", "price_min": 400000, "price_max": 500000, "priority": "high", "source_tags": ["Website", "Lead Generator AI"]},
-            {"first_name": "Mia", "last_name": "Nguyen", "email": "mia.nguyen@example.com", "stage": "Contacted", "property_type": "Townhouse", "neighborhood": "Suburbs", "price_min": 700000, "price_max": 900000, "priority": "medium", "source_tags": ["Referral", "Lead Generator AI"]},
-            {"first_name": "Isabella", "last_name": "Garcia", "stage": "Appointment", "property_type": "3BR Condo", "neighborhood": "Downtown", "price_min": 450000, "price_max": 550000, "priority": "low"},
+            {"first_name": "John", "last_name": "Carter", "email": "john.carter@example.com", "stage": "New", "property_type": "3BR Condo", "neighborhood": "Downtown", "price_min": 400000, "price_max": 500000, "priority": "high", "source_tags": ["Website", "Lead Generator AI"], "in_dashboard": True},
+            {"first_name": "Mia", "last_name": "Nguyen", "email": "mia.nguyen@example.com", "stage": "Contacted", "property_type": "Townhouse", "neighborhood": "Suburbs", "price_min": 700000, "price_max": 900000, "priority": "medium", "source_tags": ["Referral", "Lead Generator AI"], "in_dashboard": True},
         ]
         docs = []
         for s in sample:
@@ -200,7 +199,6 @@ async def on_startup():
                 "notes": None,
                 "created_at": datetime.utcnow().isoformat(),
             }
-            # Remove None fields to avoid storing email: None
             doc = {k: v for k, v in doc.items() if v is not None}
             docs.append(doc)
         if docs:
@@ -211,29 +209,13 @@ async def on_startup():
 async def health():
     return {"status": "ok"}
 
-@app.post("/api/auth/login", response_model=LoginResponse)
-async def login(payload: LoginRequest):
-    user = await get_user_by_email(payload.email)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    if not await verify_password(payload.password, user.get("password_hash", "")):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    return {
-        "user": {"id": user["id"], "email": user["email"], "name": user.get("name")},
-        "token": "demo-token",
-    }
-
 @app.get("/api/auth/demo", response_model=LoginResponse)
 async def demo_session():
-    # No-auth demo session: find or create the demo user and return it
     demo_email = "demo@realtorspal.ai"
     user = await get_user_by_email(demo_email)
     if not user:
         user = await create_user(demo_email, "Demo123!", name="Demo User")
-    return {
-        "user": {"id": user["id"], "email": user["email"], "name": user.get("name")},
-        "token": "demo-token",
-    }
+    return {"user": {"id": user["id"], "email": user["email"], "name": user.get("name")}, "token": "demo-token"}
 
 @app.get("/api/leads", response_model=List[Lead])
 async def list_leads(user_id: str):
@@ -246,6 +228,7 @@ async def list_leads(user_id: str):
 @app.post("/api/leads", response_model=Lead)
 async def create_lead(payload: CreateLeadRequest):
     full_name = payload.name or " ".join([v for v in [payload.first_name, payload.last_name] if v]).strip() or "New Lead"
+    in_dashboard = True if payload.in_dashboard is None else payload.in_dashboard
     lead = Lead(
         user_id=payload.user_id,
         name=full_name,
@@ -260,6 +243,7 @@ async def create_lead(payload: CreateLeadRequest):
         priority=payload.priority,
         source_tags=payload.source_tags,
         notes=payload.notes,
+        in_dashboard=in_dashboard,
     )
     try:
         await db.leads.insert_one(lead.model_dump(exclude_none=True))
@@ -277,15 +261,11 @@ async def update_lead_stage(lead_id: str, payload: UpdateStageRequest):
     return Lead(**{k: v for k, v in updated.items() if k != "_id"})
 
 @app.put("/api/leads/{lead_id}", response_model=Lead)
-async def update_lead(lead_id: str, payload: Dict[str, Any]):
+async def update_lead(lead_id: str, payload: UpdateLeadRequest):
     doc = await db.leads.find_one({"id": lead_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Lead not found")
-    # Basic server-side E.164 re-validation if phone present
-    phone = payload.get("phone")
-    if phone is not None and not E164_RE.match(phone):
-        raise HTTPException(status_code=422, detail="Phone must be in E.164 format, e.g. +1234567890")
-    data = {k: v for k, v in payload.items() if v is not None}
+    data = {k: v for k, v in payload.model_dump(exclude_none=True).items()}
     if not data:
         return Lead(**{k: v for k, v in doc.items() if k != "_id"})
     try:
