@@ -71,9 +71,21 @@ export default function Leads({ user }){
     }catch(err){ alert(err?.response?.data?.detail || 'Failed to add to dashboard'); }
   };
 
-  const onImported = (inserted) => {
+  const onImported = async (inserted) => {
+    console.log('onImported called with:', inserted);
     if (Array.isArray(inserted) && inserted.length) {
-      setLeads(prev => [...inserted, ...prev]);
+      console.log(`Successfully imported ${inserted.length} leads, refreshing leads list...`);
+      // Instead of relying on state merging, refresh the entire leads list from database
+      // This ensures we get the most up-to-date data, especially after delete operations
+      try {
+        const { data } = await getLeads(user.id);
+        setLeads(data);
+        console.log(`Leads list refreshed with ${data.length} total leads`);
+      } catch (err) {
+        console.error('Failed to refresh leads list after import:', err);
+        // Fallback to state merging if refresh fails
+        setLeads(prev => [...inserted, ...prev]);
+      }
     }
   };
 
