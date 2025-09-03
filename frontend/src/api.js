@@ -13,7 +13,7 @@ export const login = (email, password) => api.post(`/auth/login`, { email, passw
 export const getSettings = (user_id) => api.get(`/settings`, { params: { user_id } });
 export const saveSettings = (payload) => api.post(`/settings`, payload);
 
-export const getLeads = (user_id) => api.get(`/api/leads`, { params: { user_id } });
+export const getLeads = (user_id) => api.get(`/leads`, { params: { user_id } });
 export const createLead = (payload) => api.post(`/api/leads`, payload);
 export const updateLeadStage = (lead_id, stage) => api.put(`/api/leads/${lead_id}/stage`, { stage });
 
