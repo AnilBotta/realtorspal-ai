@@ -19,6 +19,7 @@ export const createLead = (payload) => api.post(`/leads`, payload);
 export const updateLeadStage = (lead_id, stage) => api.put(`/leads/${lead_id}/stage`, { stage });
 export const updateLead = (lead_id, payload) => api.put(`/leads/${lead_id}`, payload);
 export const deleteLead = (lead_id) => api.delete(`/leads/${lead_id}`);
+export const importLeads = (payload) => api.post(`/leads/import`, payload);
 
 export const getDashboardAnalytics = (user_id) => api.get(`/analytics/dashboard`, { params: { user_id } });
 
