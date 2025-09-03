@@ -75,7 +75,7 @@ class Lead(BaseModel):
     priority: Optional[str] = None  # high|medium|low
     source_tags: Optional[List[str]] = None
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
-    in_dashboard: Optional[bool] = True  # controls visibility in dashboard kanban
+    in_dashboard: Optional[bool] = True
 
 class CreateLeadRequest(BaseModel):
     user_id: str
@@ -91,6 +91,7 @@ class CreateLeadRequest(BaseModel):
     priority: Optional[str] = None
     source_tags: Optional[List[str]] = None
     notes: Optional[str] = None
+    stage: Optional[str] = None
     in_dashboard: Optional[bool] = None
 
     @field_validator("phone")
@@ -138,6 +139,34 @@ class AnalyticsDashboard(BaseModel):
     total_leads: int
     by_stage: Dict[str, int]
 
+# Import payloads
+class ImportItem(BaseModel):
+    name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    property_type: Optional[str] = None
+    neighborhood: Optional[str] = None
+    price_min: Optional[int] = None
+    price_max: Optional[int] = None
+    priority: Optional[str] = None
+    source_tags: Optional[List[str]] = None
+    notes: Optional[str] = None
+    stage: Optional[str] = None
+
+class ImportPayload(BaseModel):
+    user_id: str
+    default_stage: Optional[str] = "New"
+    in_dashboard: Optional[bool] = False
+    leads: List[ImportItem]
+
+class ImportResult(BaseModel):
+    inserted: int
+    skipped: int
+    errors: List[Dict[str, Any]]
+    inserted_leads: List[Lead]
+
 # --- Utils ---
 async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     return await db.users.find_one({"email": email})
@@ -156,13 +185,12 @@ async def create_user(email: str, password: str, name: Optional[str] = None) -> 
 async def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
-# --- Startup: seed demo user and indexes ---
+# --- Startup: indexes & seed ---
 @app.on_event("startup")
 async def on_startup():
     await db.users.create_index("email", unique=True)
     await db.leads.create_index([("user_id", 1)])
-
-    # Ensure unique email per user only when email exists
+    # partial unique only when email exists as string
     try:
         async for idx in db.leads.list_indexes():
             if idx.get("name") == "user_id_1_email_1":
@@ -175,34 +203,7 @@ async def on_startup():
         unique=True,
         partialFilterExpression={"email": {"$type": "string"}},
     )
-
     await db.settings.create_index([("user_id", 1)], unique=True)
-
-    # Seed demo user and a few leads (kept in_dashboard True so they appear in dashboard)
-    demo_email = "demo@realtorspal.ai"
-    demo_password = "Demo123!"
-    existing = await get_user_by_email(demo_email)
-    if not existing:
-        user = await create_user(demo_email, demo_password, name="Demo User")
-        sample = [
-            {"first_name": "John", "last_name": "Carter", "email": "john.carter@example.com", "stage": "New", "property_type": "3BR Condo", "neighborhood": "Downtown", "price_min": 400000, "price_max": 500000, "priority": "high", "source_tags": ["Website", "Lead Generator AI"], "in_dashboard": True},
-            {"first_name": "Mia", "last_name": "Nguyen", "email": "mia.nguyen@example.com", "stage": "Contacted", "property_type": "Townhouse", "neighborhood": "Suburbs", "price_min": 700000, "price_max": 900000, "priority": "medium", "source_tags": ["Referral", "Lead Generator AI"], "in_dashboard": True},
-        ]
-        docs = []
-        for s in sample:
-            full_name = f"{s.get('first_name','')} {s.get('last_name','')}".strip()
-            doc = {
-                "id": str(uuid.uuid4()),
-                "user_id": user["id"],
-                "name": full_name or None,
-                **s,
-                "notes": None,
-                "created_at": datetime.utcnow().isoformat(),
-            }
-            doc = {k: v for k, v in doc.items() if v is not None}
-            docs.append(doc)
-        if docs:
-            await db.leads.insert_many(docs)
 
 # --- Routes ---
 @app.get("/api/health")
@@ -229,6 +230,7 @@ async def list_leads(user_id: str):
 async def create_lead(payload: CreateLeadRequest):
     full_name = payload.name or " ".join([v for v in [payload.first_name, payload.last_name] if v]).strip() or "New Lead"
     in_dashboard = True if payload.in_dashboard is None else payload.in_dashboard
+    stage = payload.stage or "New"
     lead = Lead(
         user_id=payload.user_id,
         name=full_name,
@@ -244,12 +246,53 @@ async def create_lead(payload: CreateLeadRequest):
         source_tags=payload.source_tags,
         notes=payload.notes,
         in_dashboard=in_dashboard,
+        stage=stage,
     )
     try:
         await db.leads.insert_one(lead.model_dump(exclude_none=True))
     except DuplicateKeyError:
         raise HTTPException(status_code=409, detail="A lead with this email already exists for this user.")
     return lead
+
+@app.post("/api/leads/import", response_model=ImportResult)
+async def import_leads(payload: ImportPayload):
+    inserted = 0
+    skipped = 0
+    errors: List[Dict[str, Any]] = []
+    inserted_docs: List[Lead] = []
+
+    for idx, item in enumerate(payload.leads):
+        try:
+            full_name = item.name or " ".join([v for v in [item.first_name, item.last_name] if v]).strip() or "New Lead"
+            stage = item.stage or payload.default_stage or "New"
+            lead = Lead(
+                user_id=payload.user_id,
+                name=full_name,
+                first_name=item.first_name,
+                last_name=item.last_name,
+                email=item.email,
+                phone=item.phone,
+                property_type=item.property_type,
+                neighborhood=item.neighborhood,
+                price_min=item.price_min,
+                price_max=item.price_max,
+                priority=item.priority,
+                source_tags=item.source_tags,
+                notes=item.notes,
+                in_dashboard=payload.in_dashboard,
+                stage=stage,
+            )
+            await db.leads.insert_one(lead.model_dump(exclude_none=True))
+            inserted += 1
+            inserted_docs.append(lead)
+        except DuplicateKeyError:
+            skipped += 1
+            errors.append({"row": idx, "email": item.email, "reason": "duplicate email for this user"})
+        except Exception as e:
+            skipped += 1
+            errors.append({"row": idx, "reason": str(e)})
+
+    return ImportResult(inserted=inserted, skipped=skipped, errors=errors, inserted_leads=inserted_docs)
 
 @app.put("/api/leads/{lead_id}/stage", response_model=Lead)
 async def update_lead_stage(lead_id: str, payload: UpdateStageRequest):

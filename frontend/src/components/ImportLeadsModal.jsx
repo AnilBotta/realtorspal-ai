@@ -1,0 +1,255 @@
+import React, { Fragment, useMemo, useState } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import Papa from "papaparse";
+import * as XLSX from "xlsx";
+
+const TARGET_FIELDS = [
+  { key: "first_name", label: "First Name" },
+  { key: "last_name", label: "Last Name" },
+  { key: "email", label: "Email" },
+  { key: "phone", label: "Phone (E.164)" },
+  { key: "stage", label: "Stage" },
+  { key: "property_type", label: "Property Type" },
+  { key: "neighborhood", label: "Location" },
+  { key: "price_min", label: "Price Min" },
+  { key: "price_max", label: "Price Max" },
+  { key: "priority", label: "Priority" },
+  { key: "source_tags", label: "Tags (comma)" },
+  { key: "notes", label: "Notes" },
+];
+
+const STAGES = ["New","Contacted","Appointment","Onboarded","Closed"]; 
+
+function guessMapping(headers){
+  const m = {};
+  headers.forEach(h => {
+    const k = h.trim().toLowerCase();
+    if (k.includes("first")) m[h] = "first_name";
+    else if (k.includes("last")) m[h] = "last_name";
+    else if (k.includes("email")) m[h] = "email";
+    else if (k.includes("phone") || k.includes("mobile")) m[h] = "phone";
+    else if (k.includes("stage")) m[h] = "stage";
+    else if (k.includes("type")) m[h] = "property_type";
+    else if (k.includes("neighborhood") || k.includes("location") || k.includes("area")) m[h] = "neighborhood";
+    else if (k.includes("min")) m[h] = "price_min";
+    else if (k.includes("max")) m[h] = "price_max";
+    else if (k.includes("priority")) m[h] = "priority";
+    else if (k.includes("tag")) m[h] = "source_tags";
+    else if (k.includes("note")) m[h] = "notes";
+    else m[h] = "";
+  });
+  return m;
+}
+
+export default function ImportLeadsModal({ open, onClose, onImported, onImportApi, userId }){
+  const [step, setStep] = useState(1); // 1: choose, 2: map, 3: review
+  const [fileName, setFileName] = useState("");
+  const [headers, setHeaders] = useState([]);
+  const [rows, setRows] = useState([]);
+  const [mapping, setMapping] = useState({});
+  const [defaultStage, setDefaultStage] = useState("New");
+  const [inDashboard, setInDashboard] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleFile = async (file) => {
+    setFileName(file.name);
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext === 'csv') {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (res) => {
+          const hdrs = res.meta.fields || [];
+          setHeaders(hdrs);
+          setMapping(guessMapping(hdrs));
+          setRows(res.data);
+          setStep(2);
+        }
+      });
+    } else if (["xlsx","xls"].includes(ext)) {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      const hdrs = (json[0] || []).map(String);
+      const dataRows = (json.slice(1) || []).map((arr) => {
+        const obj = {};
+        hdrs.forEach((h, i) => { obj[h] = arr[i]; });
+        return obj;
+      });
+      setHeaders(hdrs);
+      setMapping(guessMapping(hdrs));
+      setRows(dataRows);
+      setStep(2);
+    } else {
+      alert('Please upload a CSV or Excel file');
+    }
+  };
+
+  const mappedPreview = useMemo(() => {
+    return rows.slice(0, 20).map((r) => {
+      const o = {};
+      Object.entries(mapping).forEach(([src, dest]) => {
+        if (!dest) return;
+        o[dest] = r[src];
+      });
+      return o;
+    });
+  }, [rows, mapping]);
+
+  const applyImport = async () => {
+    setBusy(true);
+    try{
+      const leads = rows.map((r) => {
+        const o = {};
+        Object.entries(mapping).forEach(([src, dest]) => {
+          if (!dest) return;
+          let val = r[src];
+          if (dest === 'price_min' || dest === 'price_max') {
+            const n = parseInt(String(val||'').replace(/[^0-9]/g,''), 10);
+            if (!isNaN(n)) val = n; else val = undefined;
+          } else if (dest === 'source_tags' && typeof val === 'string') {
+            val = val.split(',').map(s=>s.trim()).filter(Boolean);
+          }
+          if (val !== undefined) o[dest] = val;
+        });
+        return o;
+      });
+      const payload = { user_id: userId, default_stage: defaultStage, in_dashboard: inDashboard, leads };
+      const res = await onImportApi(payload);
+      setResult(res);
+      if (res?.inserted_leads?.length) onImported(res.inserted_leads);
+      setStep(3);
+    }catch(e){
+      alert(e?.response?.data?.detail || e.message || 'Import failed');
+    }finally{
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Transition appear show={open} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
+          <div className="fixed inset-0 bg-black/30" />
+        </Transition.Child>
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <Transition.Child as={Fragment} enter="ease-out duration-200" enterFrom="opacity-0 translate-y-2" enterTo="opacity-100 translate-y-0" leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
+              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl">
+                <Dialog.Title className="text-lg font-semibold text-slate-800">Import Leads</Dialog.Title>
+
+                {step === 1 && (
+                  <div className="mt-4 grid md:grid-cols-2 gap-4">
+                    <div className="rounded-xl border p-4 bg-slate-50">
+                      <div className="text-sm font-medium mb-2">Upload CSV or Excel</div>
+                      <input type="file" accept=".csv,.xlsx,.xls" onChange={(e)=> e.target.files && handleFile(e.target.files[0])} />
+                      <div className="text-xs text-slate-500 mt-2">Max 10MB. First sheet will be parsed for Excel.</div>
+                    </div>
+                    <div className="rounded-xl border p-4 bg-white">
+                      <div className="text-sm font-medium mb-2">Google Drive / Google Sheets</div>
+                      <div className="text-xs text-slate-500">Coming soon. Click Connect to enable Google import.</div>
+                      <button disabled className="mt-2 px-3 py-2 rounded-lg border text-sm text-slate-400">Connect Google (soon)</button>
+                    </div>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="mt-4">
+                    <div className="text-sm text-slate-600">File: <span className="font-medium text-slate-800">{fileName}</span></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                      <div>
+                        <div className="text-sm font-medium mb-1">Default Stage</div>
+                        <select className="w-full px-2 py-1 rounded border" value={defaultStage} onChange={(e)=>setDefaultStage(e.target.value)}>
+                          {STAGES.map(s=> <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium mb-1">Add to Dashboard</div>
+                        <select className="w-full px-2 py-1 rounded border" value={inDashboard? 'yes':'no'} onChange={(e)=>setInDashboard(e.target.value==='yes')}>
+                          <option value="no">No</option>
+                          <option value="yes">Yes</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <div className="text-sm font-medium mb-2">Map Columns</div>
+                      <div className="overflow-auto border rounded-xl">
+                        <table className="min-w-full text-sm">
+                          <thead className="bg-slate-50 text-slate-600">
+                            <tr>
+                              <th className="text-left p-2">Source Column</th>
+                              <th className="text-left p-2">Map To</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {headers.map(h => (
+                              <tr key={h} className="border-t">
+                                <td className="p-2">{h}</td>
+                                <td className="p-2">
+                                  <select className="px-2 py-1 rounded border" value={mapping[h] || ''} onChange={(e)=>setMapping(m=>({...m, [h]: e.target.value}))}>
+                                    <option value="">Skip</option>
+                                    {TARGET_FIELDS.map(tf => <option key={tf.key} value={tf.key}>{tf.label}</option>)}
+                                  </select>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <div className="text-sm font-medium mb-2">Preview (first 20 rows)</div>
+                      <div className="overflow-auto border rounded-xl">
+                        <table className="min-w-full text-xs">
+                          <thead className="bg-slate-50 text-slate-600">
+                            <tr>
+                              {Object.keys(mappedPreview[0] || {}).map(k => <th key={k} className="text-left p-2">{k}</th>)}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {mappedPreview.map((r,i)=> (
+                              <tr key={i} className="border-t">
+                                {Object.keys(mappedPreview[0] || {}).map(k => <td key={k} className="p-2">{String(r[k] ?? '')}</td>)}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-end gap-2">
+                      <button onClick={()=>setStep(1)} className="px-3 py-2 rounded-lg border text-sm">Back</button>
+                      <button onClick={applyImport} disabled={busy} className={`px-3 py-2 rounded-lg text-white text-sm ${busy? 'bg-slate-300 cursor-not-allowed':'bg-emerald-600 hover:bg-emerald-700'}`}>{busy? 'Importing...':'Import'}</button>
+                    </div>
+                  </div>
+                )}
+
+                {step === 3 && (
+                  <div className="mt-4">
+                    <div className="text-sm">Imported: <span className="font-medium text-emerald-700">{result?.inserted || 0}</span> • Skipped: <span className="font-medium text-rose-700">{result?.skipped || 0}</span></div>
+                    {!!(result?.errors?.length) && (
+                      <div className="mt-2 text-xs text-slate-600">
+                        <div className="font-medium">Errors</div>
+                        <ul className="list-disc pl-5">
+                          {result.errors.slice(0,10).map((e,i)=>(<li key={i}>Row {e.row}: {e.reason}</li>))}
+                        </ul>
+                        {result.errors.length > 10 && <div className="mt-1">+{result.errors.length-10} more</div>}
+                      </div>
+                    )}
+                    <div className="mt-4 flex items-center justify-end gap-2">
+                      <button onClick={onClose} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">Done</button>
+                    </div>
+                  </div>
+                )}
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
+  );
+}

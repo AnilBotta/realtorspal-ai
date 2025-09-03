@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getLeads, createLead, updateLead, deleteLead } from "../api";
+import { getLeads, createLead, updateLead, deleteLead, chat } from "../api";
 import AddLeadModal from "../components/AddLeadModal";
 import LeadDrawer from "../components/LeadDrawer";
+import ImportLeadsModal from "../components/ImportLeadsModal";
+import axios from "axios";
 
 const STAGES = ["New", "Contacted", "Appointment", "Onboarded", "Closed"];
 const PRIORITIES = ["high", "medium", "low"];
@@ -9,6 +11,7 @@ const PRIORITIES = ["high", "medium", "low"];
 export default function Leads({ user }){
   const [leads, setLeads] = useState([]);
   const [openAdd, setOpenAdd] = useState(false);
+  const [openImport, setOpenImport] = useState(false);
   const [openDrawer, setOpenDrawer] = useState(false);
   const [activeLead, setActiveLead] = useState(null);
 
@@ -69,6 +72,19 @@ export default function Leads({ user }){
     }catch(err){ alert(err?.response?.data?.detail || 'Failed to add to dashboard'); }
   };
 
+  const onImported = (inserted) => {
+    if (Array.isArray(inserted) && inserted.length) {
+      setLeads(prev => [...inserted, ...prev]);
+    }
+  };
+
+  const onImportApi = async (payload) => {
+    const API_BASE = process.env.REACT_APP_BACKEND_URL || '/api';
+    const base = API_BASE.endsWith('/api') ? API_BASE : `${API_BASE.replace(/\/$/, '')}/api`;
+    const { data } = await axios.post(`${base}/leads/import`, payload);
+    return data;
+  };
+
   // Base rows
   const rows = useMemo(() => leads.map(l => ({
     id: l.id,
@@ -87,7 +103,7 @@ export default function Leads({ user }){
     raw: l,
   })), [leads]);
 
-  // Search across all visible string fields
+  // Search across all visible string fields and apply filters
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
     let data = rows;
@@ -104,18 +120,12 @@ export default function Leads({ user }){
 
     // Apply filters
     data = data.filter(r => {
-      // Stage
       if (filters.stages.size && !filters.stages.has(r.stage)) return false;
-      // Dashboard
       if (filters.dashboard === 'yes' && !r.in_dashboard) return false;
       if (filters.dashboard === 'no' && r.in_dashboard) return false;
-      // Priority
       if (filters.priority.size && !filters.priority.has((r.priority||'').toLowerCase())) return false;
-      // Property type
       if (filters.property_type && r.property_type !== filters.property_type) return false;
-      // Neighborhood
       if (filters.neighborhood && r.neighborhood !== filters.neighborhood) return false;
-      // Budget min/max (numeric)
       const bmin = filters.budget_min !== '' ? parseInt(filters.budget_min, 10) : null;
       const bmax = filters.budget_max !== '' ? parseInt(filters.budget_max, 10) : null;
       if (bmin !== null && (r.budget_min === null || r.budget_min < bmin)) return false;
@@ -160,6 +170,7 @@ export default function Leads({ user }){
           />
           {/* Filters button */}
           <button onClick={()=>setFiltersOpen(v=>!v)} className="px-3 py-2 rounded-lg border text-slate-700 hover:bg-slate-50 text-sm">Filters</button>
+          <button onClick={()=>setOpenImport(true)} className="px-3 py-2 rounded-lg border text-slate-700 hover:bg-slate-50 text-sm">Import</button>
           <button onClick={()=>setOpenAdd(true)} className="px-3 py-2 rounded-lg border text-slate-700 hover:bg-slate-50 text-sm">Add Lead</button>
 
           {/* Filters panel */}
@@ -269,6 +280,7 @@ export default function Leads({ user }){
       </div>
 
       <AddLeadModal open={openAdd} onClose={()=>setOpenAdd(false)} onCreate={onCreate} />
+      <ImportLeadsModal open={openImport} onClose={()=>setOpenImport(false)} userId={user.id} onImported={onImported} onImportApi={onImportApi} />
       <LeadDrawer open={openDrawer} lead={activeLead} onClose={()=>setOpenDrawer(false)} onSave={onSave} onDelete={onDeleteLead} />
     </div>
   );
