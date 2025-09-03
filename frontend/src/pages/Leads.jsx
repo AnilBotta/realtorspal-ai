@@ -78,17 +78,11 @@ export default function Leads({ user }){
   };
 
   const onImportApi = async (payload) => {
-    const API_BASE = process.env.REACT_APP_BACKEND_URL || '/api';
-    const base = API_BASE.endsWith('/api') ? API_BASE : `${API_BASE.replace(/\/$/, '')}/api`;
-    
-    // Debug logging
     console.log('Import API call details:');
-    console.log('API_BASE:', API_BASE);
-    console.log('Final base URL:', base);
     console.log('Payload being sent:', JSON.stringify(payload, null, 2));
     
     try {
-      const response = await axios.post(`${base}/leads/import`, payload);
+      const response = await importLeads(payload);
       console.log('Import API response:', response.data);
       return response.data;
     } catch (error) {
