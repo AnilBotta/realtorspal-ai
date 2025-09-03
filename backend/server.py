@@ -290,13 +290,17 @@ async def import_leads(payload: ImportPayload):
         try:
             full_name = item.name or " ".join([v for v in [item.first_name, item.last_name] if v]).strip() or "New Lead"
             stage = item.stage or payload.default_stage or "New"
+            
+            # Normalize phone number
+            normalized_phone = normalize_phone(item.phone)
+            
             lead = Lead(
                 user_id=payload.user_id,
                 name=full_name,
                 first_name=item.first_name,
                 last_name=item.last_name,
                 email=item.email,
-                phone=item.phone,
+                phone=normalized_phone,
                 property_type=item.property_type,
                 neighborhood=item.neighborhood,
                 price_min=item.price_min,
