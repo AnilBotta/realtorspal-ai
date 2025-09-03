@@ -18,10 +18,23 @@ export default function App(){
   useEffect(() => {
     async function bootstrap(){
       try{
-        const { data } = await demoLogin();
+        console.log('Starting demo login...');
+        console.log('Backend URL:', process.env.REACT_APP_BACKEND_URL);
+        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Demo login timeout after 10 seconds')), 10000)
+        );
+        
+        const loginPromise = demoLogin();
+        const { data } = await Promise.race([loginPromise, timeoutPromise]);
+        
+        console.log('Demo login successful:', data);
         setSession(data);
       }catch(err){
-        setError(err?.response?.data?.detail || "Failed to initialize demo session");
+        console.error('Demo login error:', err);
+        const errorMsg = err?.response?.data?.detail || err?.message || "Failed to initialize demo session";
+        setError(errorMsg);
       }finally{
         setLoading(false);
       }
