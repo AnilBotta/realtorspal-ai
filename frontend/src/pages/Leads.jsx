@@ -28,12 +28,19 @@ export default function Leads({ user }){
   });
 
   useEffect(() => {
-    async function load(){
+    loadLeads();
+  }, [user.id]);
+
+  const loadLeads = async () => {
+    try {
       const { data } = await getLeads(user.id);
       setLeads(data);
+      console.log(`Loaded ${data.length} leads from database`);
+    } catch (err) {
+      console.error('Failed to load leads:', err);
+      alert('Failed to load leads');
     }
-    load();
-  }, [user.id]);
+  };
 
   const onCreate = async (payload) => {
     try{
