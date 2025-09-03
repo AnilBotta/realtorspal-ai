@@ -4,7 +4,6 @@ from typing import List, Optional, Dict, Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -63,13 +62,23 @@ class LoginResponse(BaseModel):
 class Lead(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
-    name: str
+    # Display name (kept for backward compat)
+    name: Optional[str] = None
+    # New fields
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+
     stage: str = Field(default="New")
     notes: Optional[str] = None
 
 class CreateLeadRequest(BaseModel):
-    name: str
     user_id: str
+    # Optional fields; server will derive display name
+    name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
 
 class UpdateStageRequest(BaseModel):
     stage: str
@@ -127,6 +136,7 @@ async def verify_password(plain: str, hashed: str) -> bool:
 async def on_startup():
     await db.users.create_index("email", unique=True)
     await db.leads.create_index([("user_id", 1)])
+    await db.leads.create_index([("email", 1)])
     await db.settings.create_index([("user_id", 1)], unique=True)
 
     # Seed demo user
@@ -135,18 +145,25 @@ async def on_startup():
     existing = await get_user_by_email(demo_email)
     if not existing:
         user = await create_user(demo_email, demo_password, name="Demo User")
-        # Seed sample leads for demo user
-        sample_names = [
-            "John Miller", "Ava Thompson", "Isabella Garcia", "Liam Johnson", "Sophia Martinez"
+        # Seed sample leads for demo user with new fields
+        sample = [
+            {"first_name": "John", "last_name": "Carter", "email": "john.carter@example.com", "stage": "New"},
+            {"first_name": "Mia", "last_name": "Nguyen", "email": "mia.nguyen@example.com", "stage": "Contacted"},
+            {"first_name": "Isabella", "last_name": "Garcia", "email": "isabella.garcia@example.com", "stage": "Appointment"},
+            {"first_name": "Liam", "last_name": "Johnson", "email": "liam.johnson@example.com", "stage": "Onboarded"},
+            {"first_name": "Sophia", "last_name": "Martinez", "email": "sophia.martinez@example.com", "stage": "Closed"},
         ]
-        stages = ["New", "Contacted", "Appointment", "Onboarded", "Closed"]
         docs = []
-        for i, n in enumerate(sample_names):
+        for s in sample:
+            full_name = f"{s['first_name']} {s['last_name']}".strip()
             docs.append({
                 "id": str(uuid.uuid4()),
                 "user_id": user["id"],
-                "name": n,
-                "stage": stages[i % len(stages)],
+                "name": full_name,
+                "first_name": s["first_name"],
+                "last_name": s["last_name"],
+                "email": s["email"],
+                "stage": s["stage"],
                 "notes": None,
             })
         if docs:
@@ -179,7 +196,15 @@ async def list_leads(user_id: str):
 
 @app.post("/api/leads", response_model=Lead)
 async def create_lead(payload: CreateLeadRequest):
-    lead = Lead(user_id=payload.user_id, name=payload.name)
+    # derive display name
+    full_name = payload.name or " ".join([v for v in [payload.first_name, payload.last_name] if v]).strip() or "New Lead"
+    lead = Lead(
+        user_id=payload.user_id,
+        name=full_name,
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        email=payload.email,
+    )
     await db.leads.insert_one(lead.model_dump())
     return lead
 

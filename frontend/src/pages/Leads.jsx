@@ -45,11 +45,15 @@ function PriorityChip({ level }){
   return <span className={`text-xs px-2 py-0.5 rounded-full ${map[level] || 'bg-slate-50 text-slate-700'}`}>{level || 'low'}</span>;
 }
 
+function displayName(lead){
+  const composed = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
+  return composed || lead.name || 'Lead';
+}
+
 function LeadCard({ lead }){
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `lead-${lead.id}`, data: { leadId: lead.id } });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
 
-  // Derive display fields with graceful fallbacks to match the reference UI
   const stage = lead.stage || 'New';
   const propertyType = lead.property_type || (stage === 'Contacted' ? 'Townhouse' : '3BR Condo');
   const neighborhood = lead.neighborhood || (stage === 'Contacted' ? 'Suburbs' : 'Downtown');
@@ -59,16 +63,18 @@ function LeadCard({ lead }){
   const priority = (lead.priority || (stage === 'New' ? 'high' : stage === 'Contacted' ? 'medium' : 'low')).toLowerCase();
   const tags = lead.source_tags || (stage === 'Contacted' ? ["Referral","Lead Generator AI"] : ["Website","Lead Generator AI"]);
 
+  const nameToShow = displayName(lead);
+
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={`bg-white rounded-2xl border p-3 shadow-sm ${isDragging ? 'opacity-70 ring-2 ring-emerald-300' : ''}`}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-medium">
-            {initialsFromName(lead.name)}
+            {initialsFromName(nameToShow)}
           </div>
           <div>
-            <div className="font-semibold text-slate-800 leading-none">{lead.name}</div>
+            <div className="font-semibold text-slate-800 leading-none">{nameToShow}</div>
             <div className="text-xs text-slate-500 mt-1">{propertyType} - {neighborhood}</div>
           </div>
         </div>
@@ -118,9 +124,18 @@ export default function Leads({ user }){
   }, [leads]);
 
   const addLead = async () => {
-    const name = prompt("Lead name");
+    const name = prompt("Lead name or First Last");
     if (!name) return;
-    const { data } = await createLead({ user_id: user.id, name });
+    // If the user enters "First Last", split to first_name/last_name
+    const parts = name.trim().split(" ");
+    let payload = { user_id: user.id };
+    if (parts.length >= 2){
+      payload.first_name = parts[0];
+      payload.last_name = parts.slice(1).join(" ");
+    } else {
+      payload.name = name;
+    }
+    const { data } = await createLead(payload);
     setLeads(prev => [...prev, data]);
   };
 
