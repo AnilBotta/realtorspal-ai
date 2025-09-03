@@ -889,6 +889,7 @@ class RealtorsPalAPITester:
             self.test_import_leads_duplicate_emails,
             self.test_import_leads_invalid_data,
             self.test_import_leads_user_excel_format,  # New test for user's Excel format
+            self.test_delete_all_import_workflow,  # NEW: Complete DELETE ALL → IMPORT workflow test
         ]
         
         for test in tests:
@@ -907,10 +908,17 @@ class RealtorsPalAPITester:
 def main():
     import sys
     
-    # Check if we should run only import tests
-    if len(sys.argv) > 1 and sys.argv[1] == "--import-only":
-        tester = RealtorsPalAPITester()
-        success = tester.run_import_tests_only()
+    # Check command line arguments for specific test modes
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--import-only":
+            tester = RealtorsPalAPITester()
+            success = tester.run_import_tests_only()
+        elif sys.argv[1] == "--delete-import-workflow":
+            tester = RealtorsPalAPITester()
+            success = tester.run_delete_import_workflow_only()
+        else:
+            tester = RealtorsPalAPITester()
+            success = tester.run_all_tests()
     else:
         tester = RealtorsPalAPITester()
         success = tester.run_all_tests()
