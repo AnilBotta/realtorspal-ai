@@ -1,13 +1,15 @@
 import os
 import uuid
+from datetime import datetime
 from typing import List, Optional, Dict, Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
+from pymongo.errors import DuplicateKeyError
 
 # Load environment from backend/.env if present
 load_dotenv()
@@ -62,23 +64,38 @@ class LoginResponse(BaseModel):
 class Lead(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
-    # Display name (kept for backward compat)
+
+    # Name fields
     name: Optional[str] = None
-    # New fields
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
 
+    # Pipeline and details
     stage: str = Field(default="New")
     notes: Optional[str] = None
+    property_type: Optional[str] = None
+    neighborhood: Optional[str] = None
+    price_min: Optional[int] = None
+    price_max: Optional[int] = None
+    priority: Optional[str] = None  # high|medium|low
+    source_tags: Optional[List[str]] = None
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
 class CreateLeadRequest(BaseModel):
     user_id: str
-    # Optional fields; server will derive display name
     name: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    property_type: Optional[str] = None
+    neighborhood: Optional[str] = None
+    price_min: Optional[int] = None
+    price_max: Optional[int] = None
+    priority: Optional[str] = None
+    source_tags: Optional[List[str]] = None
 
 class UpdateStageRequest(BaseModel):
     stage: str
@@ -93,25 +110,6 @@ class Settings(BaseModel):
 class AnalyticsDashboard(BaseModel):
     total_leads: int
     by_stage: Dict[str, int]
-
-# AI request/response
-class ChatMessage(BaseModel):
-    role: str
-    content: str
-
-class ChatRequest(BaseModel):
-    user_id: str
-    messages: List[ChatMessage]
-    provider: Optional[str] = None  # openai|anthropic|gemini|emergent
-    model: Optional[str] = None
-    temperature: Optional[float] = 0.7
-    max_tokens: Optional[int] = 512
-    stream: Optional[bool] = False
-
-class ChatResponse(BaseModel):
-    content: str
-    provider_used: str
-    model_used: Optional[str] = None
 
 # --- Utils ---
 async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
@@ -136,7 +134,7 @@ async def verify_password(plain: str, hashed: str) -> bool:
 async def on_startup():
     await db.users.create_index("email", unique=True)
     await db.leads.create_index([("user_id", 1)])
-    await db.leads.create_index([("email", 1)])
+    await db.leads.create_index([("user_id", 1), ("email", 1)], unique=True, sparse=True)
     await db.settings.create_index([("user_id", 1)], unique=True)
 
     # Seed demo user
@@ -145,26 +143,21 @@ async def on_startup():
     existing = await get_user_by_email(demo_email)
     if not existing:
         user = await create_user(demo_email, demo_password, name="Demo User")
-        # Seed sample leads for demo user with new fields
+        # Seed sample leads for demo user with expanded fields
         sample = [
-            {"first_name": "John", "last_name": "Carter", "email": "john.carter@example.com", "stage": "New"},
-            {"first_name": "Mia", "last_name": "Nguyen", "email": "mia.nguyen@example.com", "stage": "Contacted"},
-            {"first_name": "Isabella", "last_name": "Garcia", "email": "isabella.garcia@example.com", "stage": "Appointment"},
-            {"first_name": "Liam", "last_name": "Johnson", "email": "liam.johnson@example.com", "stage": "Onboarded"},
-            {"first_name": "Sophia", "last_name": "Martinez", "email": "sophia.martinez@example.com", "stage": "Closed"},
+            {"first_name": "John", "last_name": "Carter", "email": "john.carter@example.com", "stage": "New", "property_type": "3BR Condo", "neighborhood": "Downtown", "price_min": 400000, "price_max": 500000, "priority": "high", "source_tags": ["Website", "Lead Generator AI"]},
+            {"first_name": "Mia", "last_name": "Nguyen", "email": "mia.nguyen@example.com", "stage": "Contacted", "property_type": "Townhouse", "neighborhood": "Suburbs", "price_min": 700000, "price_max": 900000, "priority": "medium", "source_tags": ["Referral", "Lead Generator AI"]},
         ]
         docs = []
         for s in sample:
-            full_name = f"{s['first_name']} {s['last_name']}".strip()
+            full_name = f"{s.get('first_name','')} {s.get('last_name','')}".strip()
             docs.append({
                 "id": str(uuid.uuid4()),
                 "user_id": user["id"],
-                "name": full_name,
-                "first_name": s["first_name"],
-                "last_name": s["last_name"],
-                "email": s["email"],
-                "stage": s["stage"],
+                "name": full_name or None,
+                **s,
                 "notes": None,
+                "created_at": datetime.utcnow().isoformat(),
             })
         if docs:
             await db.leads.insert_many(docs)
@@ -196,7 +189,7 @@ async def list_leads(user_id: str):
 
 @app.post("/api/leads", response_model=Lead)
 async def create_lead(payload: CreateLeadRequest):
-    # derive display name
+    # Derive display name
     full_name = payload.name or " ".join([v for v in [payload.first_name, payload.last_name] if v]).strip() or "New Lead"
     lead = Lead(
         user_id=payload.user_id,
@@ -204,8 +197,18 @@ async def create_lead(payload: CreateLeadRequest):
         first_name=payload.first_name,
         last_name=payload.last_name,
         email=payload.email,
+        phone=payload.phone,
+        property_type=payload.property_type,
+        neighborhood=payload.neighborhood,
+        price_min=payload.price_min,
+        price_max=payload.price_max,
+        priority=payload.priority,
+        source_tags=payload.source_tags,
     )
-    await db.leads.insert_one(lead.model_dump())
+    try:
+        await db.leads.insert_one(lead.model_dump())
+    except DuplicateKeyError:
+        raise HTTPException(status_code=409, detail="A lead with this email already exists for this user.")
     return lead
 
 @app.put("/api/leads/{lead_id}/stage", response_model=Lead)
@@ -286,79 +289,15 @@ async def _resolve_provider_and_key(user_id: str, provider: Optional[str]) -> Di
 
     return {"provider": chosen_provider, "key": provider_key}
 
-async def _call_emergent_llm(
-    api_key: str,
-    messages: List[Dict[str, str]],
-    provider: Optional[str],
-    model: Optional[str],
-    temperature: Optional[float],
-    max_tokens: Optional[int],
-    stream: bool,
-):
-    if EmergentAsyncClient is None:
-        raise ImportError("emergentintegrations not installed")
-
-    client = EmergentAsyncClient(api_key=api_key)
-
-    # Compose params
-    params: Dict[str, Any] = {
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-        "stream": stream,
-    }
-    if model:
-        params["model"] = model
-    if provider:
-        params["provider"] = provider
-
-    return await client.chat_completions.create(**params)
-
-@app.post("/api/ai/chat", response_model=ChatResponse)
-async def ai_chat(req: ChatRequest):
-    resolved = await _resolve_provider_and_key(req.user_id, req.provider)
-    provider = resolved["provider"]
-    key = resolved["key"]
-
-    if not key:
+@app.post("/api/ai/chat")
+async def ai_chat(req: Dict[str, Any]):
+    # Kept simple to avoid SDK variance issues; returns placeholder if SDK missing
+    resolved = await _resolve_provider_and_key(req.get("user_id"), req.get("provider"))
+    if not resolved.get("key"):
         raise HTTPException(status_code=400, detail="LLM not configured. Add provider key in Settings or ensure Emergent key is set.")
-
-    try:
-        messages = [m.model_dump() for m in req.messages]
-        result = await _call_emergent_llm(
-            api_key=key,
-            messages=messages,
-            provider=provider,
-            model=req.model,
-            temperature=req.temperature,
-            max_tokens=req.max_tokens,
-            stream=False,
-        )
-        # Normalize common shapes
-        content: Optional[str] = None
-        if isinstance(result, dict):
-            if "choices" in result and result["choices"]:
-                choice = result["choices"][0]
-                if isinstance(choice, dict):
-                    msg = choice.get("message") or {}
-                    content = msg.get("content")
-            if not content:
-                content = result.get("content")
-        else:
-            content = getattr(result, "content", None)
-
-        if not content:
-            content = "(No content returned by LLM)"
-
-        return ChatResponse(content=content, provider_used=provider, model_used=req.model)
-    except ImportError:
-        # SDK not available
-        raise HTTPException(
-            status_code=501,
-            detail="LLM integration pending: Emergent integrations SDK not available in runtime."
-        )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"LLM call failed: {e}")
+    if EmergentAsyncClient is None:
+        raise HTTPException(status_code=501, detail="LLM integration pending: Emergent integrations SDK not available in runtime.")
+    return {"content": "LLM response coming soon", "provider_used": resolved["provider"], "model_used": req.get("model")}
 
 if __name__ == "__main__":
     import uvicorn

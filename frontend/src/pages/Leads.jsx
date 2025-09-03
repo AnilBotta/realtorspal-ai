@@ -4,6 +4,7 @@ import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { DollarSign, MapPin, Calendar, Phone, Mail, MessageSquare } from "lucide-react";
 import dayjs from "dayjs";
+import AddLeadModal from "../components/AddLeadModal";
 
 const STAGES = ["New", "Contacted", "Appointment", "Onboarded", "Closed"];
 
@@ -107,6 +108,7 @@ function LeadCard({ lead }){
 
 export default function Leads({ user }){
   const [leads, setLeads] = useState([]);
+  const [open, setOpen] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   useEffect(() => {
@@ -123,20 +125,16 @@ export default function Leads({ user }){
     return m;
   }, [leads]);
 
-  const addLead = async () => {
-    const name = prompt("Lead name or First Last");
-    if (!name) return;
-    // If the user enters "First Last", split to first_name/last_name
-    const parts = name.trim().split(" ");
-    let payload = { user_id: user.id };
-    if (parts.length >= 2){
-      payload.first_name = parts[0];
-      payload.last_name = parts.slice(1).join(" ");
-    } else {
-      payload.name = name;
+  const addLead = () => setOpen(true);
+
+  const onCreate = async (payload) => {
+    try{
+      const { data } = await createLead({ user_id: user.id, ...payload });
+      setLeads(prev => [...prev, data]);
+      setOpen(false);
+    }catch(err){
+      alert(err?.response?.data?.detail || 'Failed to create lead');
     }
-    const { data } = await createLead(payload);
-    setLeads(prev => [...prev, data]);
   };
 
   const moveLeadTo = async (leadId, targetStage) => {
@@ -176,6 +174,8 @@ export default function Leads({ user }){
           ))}
         </div>
       </DndContext>
+
+      <AddLeadModal open={open} onClose={()=>setOpen(false)} onCreate={onCreate} />
     </div>
   );
 }
