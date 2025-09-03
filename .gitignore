@@ -119,3 +119,7 @@ realtorspal-ai/output/
 package-lock.json
 yarn.lock
 bun.lockb
+-e 
+# Environment files
+*.env
+*.env.*
