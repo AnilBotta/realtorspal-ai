@@ -109,6 +109,7 @@ The lead import functionality is **FULLY FUNCTIONAL** and meets all specified re
 - ✅ Works with demo user session ID: "03f82986-51af-460c-a549-1c5077e67fb0"
 - ✅ Returns proper response structure with `inserted_leads` array for frontend
 - ✅ Maintains data integrity and proper field mapping
+- ✅ **DELETE ALL → IMPORT workflow works perfectly** (user's exact scenario tested)
 
 **Critical Functionality Verified**:
 1. **Excel Data Format**: Successfully imports data matching user's Excel structure
@@ -116,8 +117,16 @@ The lead import functionality is **FULLY FUNCTIONAL** and meets all specified re
 3. **Email Validation**: Handles Gmail, Yahoo, and other email providers correctly
 4. **Response Structure**: Returns `inserted_leads` array that frontend requires
 5. **Frontend Integration**: Imported leads accessible via GET /api/leads endpoint
+6. **DELETE ALL → IMPORT Workflow**: Backend handles bulk deletion followed by fresh import without any database constraints or index issues
 
-No critical issues found. The system is ready for production use with user's Excel data format.
+**User Workflow Validation**:
+- ✅ DELETE ALL operation: Successfully deletes all leads using individual DELETE /api/leads/{lead_id} calls
+- ✅ IMPORT after deletion: Works exactly the same as fresh import with no database issues
+- ✅ Phone normalization: "13654578956" → "+13654578956" works correctly after deletion/import cycle
+- ✅ Response structure: Import response includes proper inserted_leads array
+- ✅ Data persistence: All imported leads accessible via GET /api/leads
+
+No critical issues found. The system handles the user's exact DELETE ALL → IMPORT workflow perfectly and is ready for production use.
 
 ---
 
