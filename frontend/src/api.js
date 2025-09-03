@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_BASE = process.env.REACT_APP_BACKEND_URL || '/api'; // default to /api if env missing
+const RAW_BASE = process.env.REACT_APP_BACKEND_URL || '/api';
+// Ensure we always target the backend '/api' path per ingress rules
+const API_BASE = RAW_BASE.endsWith('/api') ? RAW_BASE : `${RAW_BASE.replace(/\/$/, '')}/api`;
 
 const api = axios.create({
   baseURL: API_BASE,
