@@ -601,6 +601,7 @@ class RealtorsPalAPITester:
             self.test_import_leads_phone_normalization,
             self.test_import_leads_duplicate_emails,
             self.test_import_leads_invalid_data,
+            self.test_import_leads_user_excel_format,  # New test for user's Excel format
         ]
         
         import_tests_passed = 0
