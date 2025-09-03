@@ -167,7 +167,7 @@ class ImportItem(BaseModel):
     name: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None  # Changed from EmailStr to str to be more lenient
     phone: Optional[str] = None
     property_type: Optional[str] = None
     neighborhood: Optional[str] = None
