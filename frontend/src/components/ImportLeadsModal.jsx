@@ -122,7 +122,26 @@ export default function ImportLeadsModal({ open, onClose, onImported, onImportAp
       if (res?.inserted_leads?.length) onImported(res.inserted_leads);
       setStep(3);
     }catch(e){
-      alert(e?.response?.data?.detail || e.message || 'Import failed');
+      console.error('Import error:', e);
+      let errorMsg = 'Import failed';
+      
+      if (e?.response?.data) {
+        // If backend returned structured error
+        const errorData = e.response.data;
+        if (typeof errorData === 'string') {
+          errorMsg = errorData;
+        } else if (errorData.detail) {
+          errorMsg = errorData.detail;
+        } else if (errorData.errors && Array.isArray(errorData.errors)) {
+          errorMsg = `Import failed with ${errorData.errors.length} errors. First error: ${errorData.errors[0]?.reason || 'Unknown error'}`;
+        } else {
+          errorMsg = 'Import failed with server error';
+        }
+      } else if (e?.message) {
+        errorMsg = e.message;
+      }
+      
+      alert(errorMsg);
     }finally{
       setBusy(false);
     }
