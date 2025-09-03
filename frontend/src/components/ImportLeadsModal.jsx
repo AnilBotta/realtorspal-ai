@@ -52,6 +52,33 @@ export default function ImportLeadsModal({ open, onClose, onImported, onImportAp
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
 
+  // Reset modal state when opening
+  const resetModal = () => {
+    console.log('=== RESETTING IMPORT MODAL ===');
+    setStep(1);
+    setFileName("");
+    setHeaders([]);
+    setRows([]);
+    setMapping({}); 
+    setDefaultStage("New");
+    setInDashboard(false);
+    setBusy(false);
+    setResult(null);
+  };
+
+  // Reset when modal opens
+  React.useEffect(() => {
+    if (open) {
+      resetModal();
+    }
+  }, [open]);
+
+  const handleClose = () => {
+    console.log('=== CLOSING IMPORT MODAL ===');
+    resetModal();
+    onClose();
+  };
+
   const handleFile = async (file) => {
     setFileName(file.name);
     const ext = file.name.split('.').pop()?.toLowerCase();
