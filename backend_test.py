@@ -252,6 +252,8 @@ class RealtorsPalAPITester:
             return False
         
         try:
+            # Use timestamp to ensure unique emails
+            timestamp = int(time.time())
             payload = {
                 "user_id": self.user_id,
                 "default_stage": "New",
@@ -260,7 +262,7 @@ class RealtorsPalAPITester:
                     {
                         "first_name": "John",
                         "last_name": "Smith",
-                        "email": "john.smith@example.com",
+                        "email": f"john.smith.{timestamp}@example.com",
                         "phone": "+14155551234",
                         "property_type": "Single Family",
                         "neighborhood": "Downtown",
@@ -272,7 +274,7 @@ class RealtorsPalAPITester:
                     {
                         "first_name": "Sarah",
                         "last_name": "Johnson",
-                        "email": "sarah.johnson@example.com",
+                        "email": f"sarah.johnson.{timestamp}@example.com",
                         "phone": "+14155559876",
                         "property_type": "Condo",
                         "neighborhood": "Midtown",
@@ -308,6 +310,8 @@ class RealtorsPalAPITester:
             return False
         
         try:
+            # Use timestamp to ensure unique emails
+            timestamp = int(time.time()) + 1
             payload = {
                 "user_id": self.user_id,
                 "default_stage": "New",
@@ -316,7 +320,7 @@ class RealtorsPalAPITester:
                     {
                         "first_name": "Mike",
                         "last_name": "Davis",
-                        "email": "mike.davis@example.com",
+                        "email": f"mike.davis.{timestamp}@example.com",
                         "phone": "13654578956",  # US number without + prefix
                         "property_type": "Townhouse",
                         "neighborhood": "Suburbs"
@@ -324,7 +328,7 @@ class RealtorsPalAPITester:
                     {
                         "first_name": "Lisa",
                         "last_name": "Wilson",
-                        "email": "lisa.wilson@example.com",
+                        "email": f"lisa.wilson.{timestamp}@example.com",
                         "phone": "4155551111",  # 10-digit US number
                         "property_type": "Apartment",
                         "neighborhood": "City Center"
@@ -368,6 +372,10 @@ class RealtorsPalAPITester:
             return False
         
         try:
+            # Use timestamp to ensure unique test
+            timestamp = int(time.time()) + 2
+            duplicate_email = f"duplicate.test.{timestamp}@example.com"
+            
             # First, import a lead
             payload1 = {
                 "user_id": self.user_id,
@@ -377,7 +385,7 @@ class RealtorsPalAPITester:
                     {
                         "first_name": "Original",
                         "last_name": "User",
-                        "email": "duplicate.test@example.com",
+                        "email": duplicate_email,
                         "phone": "+14155552222",
                         "property_type": "House"
                     }
@@ -398,7 +406,7 @@ class RealtorsPalAPITester:
                     {
                         "first_name": "Duplicate",
                         "last_name": "User",
-                        "email": "duplicate.test@example.com",  # Same email
+                        "email": duplicate_email,  # Same email
                         "phone": "+14155553333",
                         "property_type": "Condo"
                     }
@@ -435,6 +443,8 @@ class RealtorsPalAPITester:
             return False
         
         try:
+            # Use timestamp to ensure unique test
+            timestamp = int(time.time()) + 3
             payload = {
                 "user_id": self.user_id,
                 "default_stage": "New",
@@ -443,7 +453,7 @@ class RealtorsPalAPITester:
                     {
                         "first_name": "Valid",
                         "last_name": "User",
-                        "email": "valid.user@example.com",
+                        "email": f"valid.user.{timestamp}@example.com",
                         "phone": "+14155554444",
                         "property_type": "House"
                     },
