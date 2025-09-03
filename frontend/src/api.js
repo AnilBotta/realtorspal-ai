@@ -8,6 +8,7 @@ const api = axios.create({
   baseURL: API_BASE,
 });
 
+export const demoLogin = () => api.get(`/auth/demo`);
 export const login = (email, password) => api.post(`/auth/login`, { email, password });
 
 export const getSettings = (user_id) => api.get(`/settings`, { params: { user_id } });

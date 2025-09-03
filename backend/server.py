@@ -203,6 +203,18 @@ async def login(payload: LoginRequest):
         "token": "demo-token",
     }
 
+@app.get("/api/auth/demo", response_model=LoginResponse)
+async def demo_session():
+    # No-auth demo session: find or create the demo user and return it
+    demo_email = "demo@realtorspal.ai"
+    user = await get_user_by_email(demo_email)
+    if not user:
+        user = await create_user(demo_email, "Demo123!", name="Demo User")
+    return {
+        "user": {"id": user["id"], "email": user["email"], "name": user.get("name")},
+        "token": "demo-token",
+    }
+
 @app.get("/api/leads", response_model=List[Lead])
 async def list_leads(user_id: str):
     cursor = db.leads.find({"user_id": user_id})
@@ -245,11 +257,15 @@ async def update_lead_stage(lead_id: str, payload: UpdateStageRequest):
     return Lead(**{k: v for k, v in updated.items() if k != "_id"})
 
 @app.put("/api/leads/{lead_id}", response_model=Lead)
-async def update_lead(lead_id: str, payload: UpdateLeadRequest):
+async def update_lead(lead_id: str, payload: Dict[str, Any]):
     doc = await db.leads.find_one({"id": lead_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Lead not found")
-    data = {k: v for k, v in payload.model_dump().items() if v is not None}
+    # Basic server-side E.164 re-validation if phone present
+    phone = payload.get("phone")
+    if phone is not None and not E164_RE.match(phone):
+        raise HTTPException(status_code=422, detail="Phone must be in E.164 format, e.g. +1234567890")
+    data = {k: v for k, v in payload.items() if v is not None}
     if not data:
         return Lead(**{k: v for k, v in doc.items() if k != "_id"})
     try:
