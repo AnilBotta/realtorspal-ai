@@ -37,16 +37,6 @@ app.add_middleware(
 client = AsyncIOMotorClient(MONGO_URL)
 db = client["realtorspal"]
 
-# Try import Emergent integrations client in a resilient way
-EmergentAsyncClient = None
-try:
-    from emergentintegrations import AsyncLLMClient as EmergentAsyncClient  # type: ignore
-except Exception:
-    try:
-        from emergentintegrations.llm import AsyncLLMClient as EmergentAsyncClient  # type: ignore
-    except Exception:
-        EmergentAsyncClient = None
-
 # --- Models ---
 class UserOut(BaseModel):
     id: str
@@ -90,6 +80,23 @@ class CreateLeadRequest(BaseModel):
     last_name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
+    property_type: Optional[str] = None
+    neighborhood: Optional[str] = None
+    price_min: Optional[int] = None
+    price_max: Optional[int] = None
+    priority: Optional[str] = None
+    source_tags: Optional[List[str]] = None
+    notes: Optional[str] = None
+
+class UpdateLeadRequest(BaseModel):
+    # all fields optional for partial update
+    name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    stage: Optional[str] = None
+    notes: Optional[str] = None
     property_type: Optional[str] = None
     neighborhood: Optional[str] = None
     price_min: Optional[int] = None
@@ -143,7 +150,7 @@ async def on_startup():
     existing = await get_user_by_email(demo_email)
     if not existing:
         user = await create_user(demo_email, demo_password, name="Demo User")
-        # Seed sample leads for demo user with expanded fields
+        # Seed sample leads
         sample = [
             {"first_name": "John", "last_name": "Carter", "email": "john.carter@example.com", "stage": "New", "property_type": "3BR Condo", "neighborhood": "Downtown", "price_min": 400000, "price_max": 500000, "priority": "high", "source_tags": ["Website", "Lead Generator AI"]},
             {"first_name": "Mia", "last_name": "Nguyen", "email": "mia.nguyen@example.com", "stage": "Contacted", "property_type": "Townhouse", "neighborhood": "Suburbs", "price_min": 700000, "price_max": 900000, "priority": "medium", "source_tags": ["Referral", "Lead Generator AI"]},
@@ -189,7 +196,6 @@ async def list_leads(user_id: str):
 
 @app.post("/api/leads", response_model=Lead)
 async def create_lead(payload: CreateLeadRequest):
-    # Derive display name
     full_name = payload.name or " ".join([v for v in [payload.first_name, payload.last_name] if v]).strip() or "New Lead"
     lead = Lead(
         user_id=payload.user_id,
@@ -204,6 +210,7 @@ async def create_lead(payload: CreateLeadRequest):
         price_max=payload.price_max,
         priority=payload.priority,
         source_tags=payload.source_tags,
+        notes=payload.notes,
     )
     try:
         await db.leads.insert_one(lead.model_dump())
@@ -219,6 +226,29 @@ async def update_lead_stage(lead_id: str, payload: UpdateStageRequest):
     await db.leads.update_one({"id": lead_id}, {"$set": {"stage": payload.stage}})
     updated = await db.leads.find_one({"id": lead_id})
     return Lead(**{k: v for k, v in updated.items() if k != "_id"})
+
+@app.put("/api/leads/{lead_id}", response_model=Lead)
+async def update_lead(lead_id: str, payload: UpdateLeadRequest):
+    doc = await db.leads.find_one({"id": lead_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    data = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if not data:
+        return Lead(**{k: v for k, v in doc.items() if k != "_id"})
+    try:
+        await db.leads.update_one({"id": lead_id}, {"$set": data})
+    except DuplicateKeyError:
+        raise HTTPException(status_code=409, detail="A lead with this email already exists for this user.")
+    updated = await db.leads.find_one({"id": lead_id})
+    return Lead(**{k: v for k, v in updated.items() if k != "_id"})
+
+@app.delete("/api/leads/{lead_id}")
+async def delete_lead(lead_id: str):
+    doc = await db.leads.find_one({"id": lead_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    await db.leads.delete_one({"id": lead_id})
+    return {"ok": True}
 
 @app.get("/api/analytics/dashboard", response_model=AnalyticsDashboard)
 async def analytics_dashboard(user_id: str):
@@ -263,42 +293,3 @@ async def save_settings(payload: SaveSettingsRequest):
         settings = Settings(**data)
         await db.settings.insert_one(settings.model_dump())
         return settings
-
-# --- AI Chat Endpoint (unified, uses Emergent LLM or user provider keys) ---
-async def _resolve_provider_and_key(user_id: str, provider: Optional[str]) -> Dict[str, Optional[str]]:
-    doc = await db.settings.find_one({"user_id": user_id})
-    openai_key = (doc or {}).get("openai_api_key")
-    anthropic_key = (doc or {}).get("anthropic_api_key")
-    gemini_key = (doc or {}).get("gemini_api_key")
-
-    chosen_provider = (provider or "emergent").lower()
-    provider_key = None
-    if chosen_provider == "openai":
-        provider_key = openai_key
-    elif chosen_provider == "anthropic":
-        provider_key = anthropic_key
-    elif chosen_provider == "gemini":
-        provider_key = gemini_key
-    else:
-        chosen_provider = "emergent"
-        provider_key = EMERGENT_LLM_KEY
-
-    if not provider_key and EMERGENT_LLM_KEY:
-        chosen_provider = "emergent"
-        provider_key = EMERGENT_LLM_KEY
-
-    return {"provider": chosen_provider, "key": provider_key}
-
-@app.post("/api/ai/chat")
-async def ai_chat(req: Dict[str, Any]):
-    # Kept simple to avoid SDK variance issues; returns placeholder if SDK missing
-    resolved = await _resolve_provider_and_key(req.get("user_id"), req.get("provider"))
-    if not resolved.get("key"):
-        raise HTTPException(status_code=400, detail="LLM not configured. Add provider key in Settings or ensure Emergent key is set.")
-    if EmergentAsyncClient is None:
-        raise HTTPException(status_code=501, detail="LLM integration pending: Emergent integrations SDK not available in runtime.")
-    return {"content": "LLM response coming soon", "provider_used": resolved["provider"], "model_used": req.get("model")}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("server:app", host="0.0.0.0", port=8001, reload=True)
