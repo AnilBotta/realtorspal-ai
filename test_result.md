@@ -73,7 +73,24 @@ All lead import functionality tests have been successfully completed and are wor
   - Response structure: Includes `inserted_leads` array required by frontend
   - Data persistence: All leads accessible via GET /api/leads endpoint
 
-#### 6. Frontend Integration Verification ✅
+#### 7. DELETE ALL → IMPORT Workflow Testing ✅
+- **Status**: PASSED
+- **Description**: Comprehensive testing of the complete DELETE ALL → IMPORT workflow that the user experienced
+- **Test Scenario**: 
+  1. **Create Initial Test Leads**: Imported 3 test leads to establish baseline (17 total leads in system)
+  2. **Delete All Leads**: Successfully deleted all 17 leads from the system using individual DELETE /api/leads/{lead_id} calls
+  3. **Import New Leads**: Imported 3 fresh leads with phone numbers in user's Excel format ("13654578956", "14085551234", "4155559999")
+  4. **Verify Import Success**: Confirmed leads are properly inserted and accessible via GET /api/leads
+- **User ID**: "03f82986-51af-460c-a549-1c5077e67fb0" (demo user as requested)
+- **Critical Test Results**:
+  - ✅ Backend handles delete → import sequence perfectly without database constraints or index issues
+  - ✅ Phone normalization works correctly after deletion/import cycle: "13654578956" → "+13654578956"
+  - ✅ Import response includes proper inserted_leads array with all 3 leads
+  - ✅ All imported leads accessible via GET /api/leads endpoint
+  - ✅ No database errors during bulk deletion followed by fresh import
+  - ✅ Import after deletion works exactly the same as fresh import
+- **Verification**: Complete workflow successful: Created 17 initial leads → Deleted 17 leads → Imported 3 fresh leads → Phone normalization working → All 3 leads accessible via API
+
 - **Status**: PASSED
 - **Description**: Verified imported leads are accessible for frontend consumption
 - **Test Results**:
