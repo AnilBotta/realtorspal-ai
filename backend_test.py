@@ -40,26 +40,25 @@ class RealtorsPalAPITester:
             return False
 
     def test_login(self) -> bool:
-        """Test POST /api/auth/login with demo credentials"""
+        """Test GET /api/auth/demo for demo session"""
         try:
-            payload = {"email": "demo@realtorspal.ai", "password": "Demo123!"}
-            response = requests.post(f"{self.base_url}/auth/login", json=payload, timeout=10)
+            response = requests.get(f"{self.base_url}/auth/demo", timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
                 if "user" in data and "token" in data and "id" in data["user"]:
                     self.user_id = data["user"]["id"]
                     self.token = data["token"]
-                    self.log_test("Login", True, f"User ID: {self.user_id}, Token: {self.token}")
+                    self.log_test("Demo Login", True, f"User ID: {self.user_id}, Token: {self.token}")
                     return True
                 else:
-                    self.log_test("Login", False, f"Missing user/token in response: {data}")
+                    self.log_test("Demo Login", False, f"Missing user/token in response: {data}")
                     return False
             else:
-                self.log_test("Login", False, f"Status: {response.status_code}, Response: {response.text}")
+                self.log_test("Demo Login", False, f"Status: {response.status_code}, Response: {response.text}")
                 return False
         except Exception as e:
-            self.log_test("Login", False, f"Exception: {str(e)}")
+            self.log_test("Demo Login", False, f"Exception: {str(e)}")
             return False
 
     def test_get_leads(self) -> bool:
