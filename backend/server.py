@@ -168,6 +168,31 @@ class ImportResult(BaseModel):
     inserted_leads: List[Lead]
 
 # --- Utils ---
+def normalize_phone(phone_str):
+    """Normalize phone number to E.164 format"""
+    if not phone_str:
+        return None
+    
+    # Remove all non-digit characters
+    digits = re.sub(r'\D', '', phone_str)
+    
+    # If already has E.164 format, return as is
+    if phone_str.startswith('+') and E164_RE.match(phone_str):
+        return phone_str
+    
+    # Handle US numbers (10 or 11 digits)
+    if len(digits) == 10:
+        return f"+1{digits}"
+    elif len(digits) == 11 and digits.startswith('1'):
+        return f"+{digits}"
+    
+    # If it looks like it might be international but missing +, try adding it
+    if len(digits) >= 7 and len(digits) <= 15:
+        return f"+{digits}"
+    
+    # Return original if can't normalize
+    return phone_str
+
 async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     return await db.users.find_one({"email": email})
 
