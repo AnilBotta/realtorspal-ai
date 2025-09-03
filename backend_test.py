@@ -583,6 +583,229 @@ class RealtorsPalAPITester:
             self.log_test("Import Leads User Excel Format", False, f"Exception: {str(e)}")
             return False
 
+    def test_delete_all_import_workflow(self) -> bool:
+        """Test the complete DELETE ALL → IMPORT workflow that user experienced"""
+        # Use the specific demo user ID as requested
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            print("\n🔄 Starting DELETE ALL → IMPORT workflow test...")
+            
+            # STEP 1: Create Initial Test Leads (2-3 leads to establish baseline)
+            print("📝 Step 1: Creating initial test leads...")
+            timestamp = int(time.time()) + 10
+            initial_payload = {
+                "user_id": demo_user_id,
+                "default_stage": "New",
+                "in_dashboard": True,
+                "leads": [
+                    {
+                        "first_name": "Initial",
+                        "last_name": "Lead1",
+                        "email": f"initial.lead1.{timestamp}@example.com",
+                        "phone": "14155551001",
+                        "property_type": "House",
+                        "neighborhood": "Test Area 1"
+                    },
+                    {
+                        "first_name": "Initial",
+                        "last_name": "Lead2", 
+                        "email": f"initial.lead2.{timestamp}@example.com",
+                        "phone": "14155551002",
+                        "property_type": "Condo",
+                        "neighborhood": "Test Area 2"
+                    },
+                    {
+                        "first_name": "Initial",
+                        "last_name": "Lead3",
+                        "email": f"initial.lead3.{timestamp}@example.com", 
+                        "phone": "14155551003",
+                        "property_type": "Townhouse",
+                        "neighborhood": "Test Area 3"
+                    }
+                ]
+            }
+            
+            response = requests.post(f"{self.base_url}/leads/import", json=initial_payload, timeout=10)
+            if response.status_code != 200:
+                self.log_test("Delete All Import Workflow", False, f"Failed to create initial leads: {response.text}")
+                return False
+            
+            initial_result = response.json()
+            if initial_result.get("inserted") != 3:
+                self.log_test("Delete All Import Workflow", False, f"Expected 3 initial leads, got: {initial_result}")
+                return False
+            
+            print(f"✅ Created {initial_result['inserted']} initial test leads")
+            
+            # STEP 2: Get all leads to verify baseline and prepare for deletion
+            print("📋 Step 2: Getting all leads for deletion...")
+            response = requests.get(f"{self.base_url}/leads", params={"user_id": demo_user_id}, timeout=10)
+            if response.status_code != 200:
+                self.log_test("Delete All Import Workflow", False, f"Failed to get leads: {response.text}")
+                return False
+            
+            all_leads = response.json()
+            initial_count = len(all_leads)
+            print(f"📊 Found {initial_count} total leads in system")
+            
+            if initial_count < 3:
+                self.log_test("Delete All Import Workflow", False, f"Expected at least 3 leads, found {initial_count}")
+                return False
+            
+            # STEP 3: Delete All Leads (one by one since no bulk delete endpoint)
+            print("🗑️  Step 3: Deleting all leads...")
+            deleted_count = 0
+            failed_deletions = []
+            
+            for lead in all_leads:
+                lead_id = lead.get("id")
+                if lead_id:
+                    delete_response = requests.delete(f"{self.base_url}/leads/{lead_id}", timeout=10)
+                    if delete_response.status_code == 200:
+                        deleted_count += 1
+                    else:
+                        failed_deletions.append(f"Lead {lead_id}: {delete_response.status_code}")
+            
+            print(f"🗑️  Deleted {deleted_count} leads, {len(failed_deletions)} failures")
+            
+            if failed_deletions:
+                self.log_test("Delete All Import Workflow", False, f"Failed to delete some leads: {failed_deletions}")
+                return False
+            
+            # Verify all leads are deleted
+            response = requests.get(f"{self.base_url}/leads", params={"user_id": demo_user_id}, timeout=10)
+            if response.status_code != 200:
+                self.log_test("Delete All Import Workflow", False, f"Failed to verify deletion: {response.text}")
+                return False
+            
+            remaining_leads = response.json()
+            if len(remaining_leads) > 0:
+                self.log_test("Delete All Import Workflow", False, f"Expected 0 leads after deletion, found {len(remaining_leads)}")
+                return False
+            
+            print("✅ All leads successfully deleted")
+            
+            # STEP 4: Import New Leads (with exact phone format from user request)
+            print("📥 Step 4: Importing fresh leads with user's phone format...")
+            timestamp = int(time.time()) + 20
+            import_payload = {
+                "user_id": demo_user_id,
+                "default_stage": "New", 
+                "in_dashboard": True,
+                "leads": [
+                    {
+                        "first_name": "Fresh",
+                        "last_name": "Import1",
+                        "email": f"fresh.import1.{timestamp}@gmail.com",
+                        "phone": "13654578956",  # Exact format from user request
+                        "property_type": "Single Family Home",
+                        "neighborhood": "Fresh Area 1",
+                        "priority": "high"
+                    },
+                    {
+                        "first_name": "Fresh", 
+                        "last_name": "Import2",
+                        "email": f"fresh.import2.{timestamp}@yahoo.com",
+                        "phone": "14085551234",  # Another format to test
+                        "property_type": "Condo",
+                        "neighborhood": "Fresh Area 2", 
+                        "priority": "medium"
+                    },
+                    {
+                        "first_name": "Fresh",
+                        "last_name": "Import3",
+                        "email": f"fresh.import3.{timestamp}@hotmail.com",
+                        "phone": "4155559999",  # 10-digit format
+                        "property_type": "Apartment",
+                        "neighborhood": "Fresh Area 3",
+                        "priority": "low"
+                    }
+                ]
+            }
+            
+            response = requests.post(f"{self.base_url}/leads/import", json=import_payload, timeout=10)
+            if response.status_code != 200:
+                self.log_test("Delete All Import Workflow", False, f"Failed to import fresh leads: {response.text}")
+                return False
+            
+            import_result = response.json()
+            if (import_result.get("inserted") != 3 or 
+                import_result.get("skipped") != 0 or
+                len(import_result.get("inserted_leads", [])) != 3):
+                self.log_test("Delete All Import Workflow", False, f"Unexpected import result: {import_result}")
+                return False
+            
+            print(f"✅ Successfully imported {import_result['inserted']} fresh leads")
+            
+            # STEP 5: Verify Import Success and Phone Normalization
+            print("🔍 Step 5: Verifying import success and phone normalization...")
+            
+            # Check that inserted_leads array is properly returned
+            inserted_leads = import_result.get("inserted_leads", [])
+            if len(inserted_leads) != 3:
+                self.log_test("Delete All Import Workflow", False, f"Expected 3 leads in inserted_leads array, got {len(inserted_leads)}")
+                return False
+            
+            # Verify phone normalization (13654578956 → +13654578956)
+            phone_normalized_correctly = False
+            normalized_phones = []
+            
+            for lead in inserted_leads:
+                phone = lead.get("phone", "")
+                normalized_phones.append(f"{lead.get('first_name', 'Unknown')}: {phone}")
+                
+                # Check if the specific phone number from request was normalized correctly
+                if phone == "+13654578956":
+                    phone_normalized_correctly = True
+            
+            if not phone_normalized_correctly:
+                self.log_test("Delete All Import Workflow", False, f"Phone 13654578956 not normalized to +13654578956. Found: {normalized_phones}")
+                return False
+            
+            print(f"✅ Phone normalization verified: {normalized_phones}")
+            
+            # STEP 6: Final verification via GET /api/leads
+            print("📋 Step 6: Final verification via GET /api/leads...")
+            response = requests.get(f"{self.base_url}/leads", params={"user_id": demo_user_id}, timeout=10)
+            if response.status_code != 200:
+                self.log_test("Delete All Import Workflow", False, f"Failed final verification: {response.text}")
+                return False
+            
+            final_leads = response.json()
+            if len(final_leads) != 3:
+                self.log_test("Delete All Import Workflow", False, f"Expected 3 leads in final check, found {len(final_leads)}")
+                return False
+            
+            # Verify the leads are accessible and have correct data
+            fresh_lead_found = False
+            for lead in final_leads:
+                if (lead.get("first_name") == "Fresh" and 
+                    lead.get("last_name") == "Import1" and
+                    lead.get("phone") == "+13654578956"):
+                    fresh_lead_found = True
+                    break
+            
+            if not fresh_lead_found:
+                self.log_test("Delete All Import Workflow", False, f"Could not find expected fresh lead in final results: {final_leads}")
+                return False
+            
+            print("✅ All imported leads accessible via GET /api/leads")
+            
+            # SUCCESS!
+            self.log_test("Delete All Import Workflow", True, 
+                        f"Complete workflow successful: "
+                        f"Created {initial_count} initial leads → "
+                        f"Deleted {deleted_count} leads → "
+                        f"Imported {import_result['inserted']} fresh leads → "
+                        f"Phone normalization working (13654578956 → +13654578956) → "
+                        f"All {len(final_leads)} leads accessible via API")
+            return True
+            
+        except Exception as e:
+            self.log_test("Delete All Import Workflow", False, f"Exception during workflow: {str(e)}")
+            return False
+
     def run_import_tests_only(self) -> bool:
         """Run only the lead import functionality tests"""
         print("🚀 Starting Lead Import Functionality Tests")
