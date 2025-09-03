@@ -825,6 +825,7 @@ class RealtorsPalAPITester:
             self.test_import_leads_duplicate_emails,
             self.test_import_leads_invalid_data,
             self.test_import_leads_user_excel_format,  # New test for user's Excel format
+            self.test_delete_all_import_workflow,  # NEW: Complete DELETE ALL → IMPORT workflow test
         ]
         
         import_tests_passed = 0
@@ -840,6 +841,29 @@ class RealtorsPalAPITester:
             return True
         else:
             print("⚠️  Some lead import tests FAILED!")
+            return False
+
+    def run_delete_import_workflow_only(self) -> bool:
+        """Run only the DELETE ALL → IMPORT workflow test as requested"""
+        print("🚀 Starting DELETE ALL → IMPORT Workflow Test")
+        print(f"📍 Base URL: {self.base_url}")
+        print("=" * 60)
+        
+        # First get authentication
+        if not self.test_health():
+            return False
+        if not self.test_login():
+            return False
+        
+        # Run the specific workflow test
+        success = self.test_delete_all_import_workflow()
+        
+        print("=" * 60)
+        if success:
+            print("🎉 DELETE ALL → IMPORT workflow test PASSED!")
+            return True
+        else:
+            print("⚠️  DELETE ALL → IMPORT workflow test FAILED!")
             return False
 
     def run_all_tests(self) -> bool:
