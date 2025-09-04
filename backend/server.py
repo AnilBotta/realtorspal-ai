@@ -158,6 +158,9 @@ class Settings(BaseModel):
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
     gemini_api_key: Optional[str] = None
+    webhook_enabled: Optional[bool] = False
+    facebook_webhook_verify_token: Optional[str] = None
+    generic_webhook_enabled: Optional[bool] = False
 
 class AnalyticsDashboard(BaseModel):
     total_leads: int
