@@ -21,10 +21,29 @@ const STAGES = ["New", "Contacted", "Appointment", "Onboarded", "Closed"];
 
 function DroppableColumn({ id, title, count, children }){
   const { setNodeRef, isOver } = useDroppable({ id: `col-${id}`, data: { columnId: id } });
+  
+  // Define colors for each stage to match the design
+  const getColumnColors = (stageId) => {
+    switch(stageId) {
+      case 'New':
+        return 'bg-blue-50 border-blue-200';
+      case 'Contacted': 
+        return 'bg-yellow-50 border-yellow-200';
+      case 'Appointment':
+        return 'bg-purple-50 border-purple-200';
+      case 'Onboarded':
+        return 'bg-green-50 border-green-200';
+      case 'Closed':
+        return 'bg-gray-50 border-gray-200';
+      default:
+        return 'bg-white border-gray-200';
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-xl p-3 border border-dashed ${id==='New'?'bg-rose-50/40':'bg-white'} ${id==='Contacted'?'bg-amber-50/40':''} ${id==='Onboarded'?'bg-emerald-50/40':''} ${isOver?'ring-2 ring-emerald-300':''}`}
+      className={`rounded-xl p-3 border border-dashed ${getColumnColors(id)} ${isOver?'ring-2 ring-emerald-300':''}`}
     >
       <div className="text-sm font-medium mb-2 text-slate-700 flex items-center justify-between">
         <span>{title} <span className="text-slate-400">({count})</span></span>
