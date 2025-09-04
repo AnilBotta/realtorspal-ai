@@ -438,6 +438,9 @@ class SaveSettingsRequest(BaseModel):
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
     gemini_api_key: Optional[str] = None
+    webhook_enabled: Optional[bool] = None
+    facebook_webhook_verify_token: Optional[str] = None
+    generic_webhook_enabled: Optional[bool] = None
 
 @app.post("/api/settings", response_model=Settings)
 async def save_settings(payload: SaveSettingsRequest):
