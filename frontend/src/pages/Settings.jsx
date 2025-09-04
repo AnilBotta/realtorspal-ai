@@ -189,6 +189,52 @@ export default function Settings({ user }){
                 </div>
                 <div className="text-xs text-blue-600 mt-1">Use this token in Facebook App webhook configuration</div>
               </div>
+
+              {/* Facebook Webhook Activity Status */}
+              <div className="bg-white border rounded-lg p-3 mt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Activity size={16} className="text-blue-600" />
+                    <span className="text-sm font-medium text-blue-900">Webhook Activity</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {webhookStats.facebook.status === 'active' ? (
+                      <CheckCircle size={16} className="text-green-500" />
+                    ) : (
+                      <AlertCircle size={16} className="text-gray-400" />
+                    )}
+                    <span className={`text-xs font-medium ${
+                      webhookStats.facebook.status === 'active' ? 'text-green-700' : 'text-gray-500'
+                    }`}>
+                      {webhookStats.facebook.status === 'active' ? 'Receiving Data' : 'No Recent Activity'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="bg-blue-50 rounded-lg p-2">
+                    <div className="text-lg font-semibold text-blue-900">{webhookStats.facebook.total}</div>
+                    <div className="text-xs text-blue-700">Total Leads</div>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-2">
+                    <div className="text-lg font-semibold text-green-700">{webhookStats.facebook.last_24h}</div>
+                    <div className="text-xs text-green-600">Last 24h</div>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-2">
+                    <div className="text-lg font-semibold text-emerald-700">
+                      {webhookStats.facebook.status === 'active' ? '✓' : '—'}
+                    </div>
+                    <div className="text-xs text-emerald-600">Status</div>
+                  </div>
+                </div>
+
+                {webhookStats.facebook.last_activity && (
+                  <div className="flex items-center gap-1 mt-2 text-xs text-blue-500">
+                    <Clock size={12} />
+                    <span>Last activity: {new Date(webhookStats.facebook.last_activity).toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
