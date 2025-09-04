@@ -481,12 +481,16 @@ class FacebookLeadWebhook(BaseModel):
 class GenericLeadWebhook(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    full_name: Optional[str] = None  # Added for compatibility
     email: Optional[str] = None
     phone: Optional[str] = None
     property_type: Optional[str] = None
     neighborhood: Optional[str] = None
-    budget: Optional[str] = None
+    location: Optional[str] = None  # Added for compatibility
+    budget: Optional[Union[str, int, float]] = None  # Accept string, int, or float
     source: Optional[str] = None
+    lead_source: Optional[str] = None  # Added for compatibility
+    timestamp: Optional[str] = None  # Added for compatibility
     custom_fields: Optional[Dict[str, Any]] = None
 
 @app.get("/api/webhooks/facebook-leads/{user_id}")
