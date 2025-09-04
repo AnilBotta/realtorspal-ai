@@ -277,11 +277,24 @@ No critical issues found. The system handles the user's exact DELETE ALL → IMP
 - **Priority**: "high"
 - **Needs Retesting**: false
 
+#### 10. Webhook Activity Indicators Real-time Monitoring
+- **Task**: Test new webhook activity indicators in Settings page for real-time monitoring functionality
+- **Implemented**: true
+- **Working**: true
+- **File**: "/app/frontend/src/pages/Settings.jsx"
+- **Priority**: "high"
+- **Needs Retesting**: false
+
 ### Status History
 
 #### Lead Generation Webhooks Settings Implementation
 - **Working**: true
 - **Agent**: testing
 - **Comment**: "✅ COMPREHENSIVE LEAD GENERATION WEBHOOKS TESTING COMPLETED SUCCESSFULLY. Tested complete webhook functionality implementation in Settings page. Key results: 1) ✅ AI Configuration Section: Found with Bot icon, all 3 API key fields (OpenAI sk-..., Anthropic sk-ant-..., Gemini AI...) with password type security, 2) ✅ Lead Generation Webhooks Section: Found with Share2 icon and proper description, 3) ✅ Facebook & Instagram Lead Ads Webhook: Blue theme (bg-blue-50), toggle functionality working, webhook URL generation with correct format (https://realtor-lead-hub.preview.emergentagent.com/api/webhooks/facebook-leads/{user_id}), verify token field with copy functionality, 4) ✅ Generic Webhook: Gray theme (bg-gray-50), toggle functionality working, webhook URL generation with correct format (https://realtor-lead-hub.preview.emergentagent.com/api/webhooks/generic-leads/{user_id}), 5) ✅ AI Agent Integration Info: Green theme (bg-emerald-50) with Zap icon and explanatory text about automatic AI processing, 6) ✅ Copy Button Functionality: All 6 copy buttons working correctly with visual feedback, 7) ✅ Save Settings Button: Emerald styling, functional with success confirmation, 8) ✅ UI Themes: Blue/Gray/Green color schemes properly implemented, 9) ✅ Webhook Toggle States: Both Facebook and Generic webhooks can be enabled/disabled with proper URL field visibility. CRITICAL SUCCESS: Complete webhook solution ready for social media lead collection with proper AI integration messaging and professional UI design."
+
+#### Webhook Activity Indicators Real-time Monitoring
+- **Working**: true
+- **Agent**: testing
+- **Comment**: "✅ COMPREHENSIVE WEBHOOK ACTIVITY INDICATORS TESTING COMPLETED SUCCESSFULLY. Tested new real-time monitoring functionality in Settings page. Key verification results: 1) ✅ Settings Page Navigation: Successfully accessed Settings page with all webhook sections visible, 2) ✅ AI Configuration Section: Found with Bot icon and all 3 API key fields properly secured, 3) ✅ Lead Generation Webhooks Section: Found with Share2 icon and proper description, 4) ✅ Facebook Webhook Activity Indicator: Blue theme implementation showing INACTIVE status as expected - webhook disabled, no recent activity, proper AlertCircle icon for inactive state, 5) ✅ Generic Webhook Activity Indicator: Gray theme implementation showing ACTIVE status as expected - 'Receiving Data' with green CheckCircle icon, Total Leads: 2, Last 24h: 2, Status: ✓ checkmark, Last activity timestamp: 9/4/2025 9:42:48 PM, 6) ✅ Real-time Polling: 30-second polling mechanism implemented and functional, 7) ✅ Visual Design Elements: Proper color coding (green for active, gray for inactive), Activity icons, Clock icons, CheckCircle/AlertCircle status icons all present, 8) ✅ Statistics Grid Layout: Professional 3-column grid with colored backgrounds (blue, green, emerald themes), 9) ✅ Responsive Design: All webhook sections visible and functional on mobile view, 10) ✅ Integration Integrity: All existing webhook functionality (copy buttons, URLs, toggles) remains intact. CRITICAL SUCCESS: Webhook activity indicators provide clear, real-time monitoring of webhook performance exactly as intended, with accurate status differentiation between active (Generic: 2 leads) and inactive (Facebook: 0 leads) webhooks."
 
 - **Agent**: testing
