@@ -660,3 +660,82 @@ async def get_webhook_stats(user_id: str):
             "generic": {"total": 0, "last_24h": 0, "last_activity": None, "status": "inactive"},
             "facebook": {"total": 0, "last_24h": 0, "last_activity": None, "status": "inactive"}
         }
+
+@app.post("/api/webhooks/generic-leads/{user_id}")
+async def generic_webhook_handler(user_id: str, lead_data: GenericLeadWebhook):
+    """Handle generic webhook for lead collection"""
+    try:
+        print(f"Generic webhook received for user {user_id}: {lead_data}")
+        
+        # Verify user has generic webhook enabled
+        settings_doc = await db.settings.find_one({"user_id": user_id})
+        if not settings_doc or not settings_doc.get('generic_webhook_enabled'):
+            print(f"Generic webhook not enabled for user {user_id}")
+            raise HTTPException(status_code=404, detail="Generic webhook not enabled")
+        
+        # Handle name fields - prioritize full_name, then first_name/last_name
+        first_name = lead_data.first_name
+        last_name = lead_data.last_name
+        
+        if lead_data.full_name and not first_name and not last_name:
+            # Split full name if provided and individual names are missing
+            name_parts = lead_data.full_name.split(' ', 1)
+            first_name = name_parts[0] if len(name_parts) > 0 else None
+            last_name = name_parts[1] if len(name_parts) > 1 else None
+        
+        # Handle location fields - prioritize location, then neighborhood
+        location = lead_data.neighborhood or lead_data.location
+        
+        # Handle source fields - prioritize lead_source, then source
+        source = lead_data.lead_source or lead_data.source or "Generic Webhook"
+        
+        # Normalize phone number  
+        normalized_phone = normalize_phone(lead_data.phone)
+        print(f"Phone normalized from '{lead_data.phone}' to '{normalized_phone}'")
+        
+        # Parse budget if provided - handle both string and numeric formats
+        price_min = None
+        price_max = None
+        if lead_data.budget:
+            if isinstance(lead_data.budget, (int, float)):
+                # If budget is a number, use it as max price
+                price_max = int(lead_data.budget)
+                print(f"Budget {lead_data.budget} set as max price: {price_max}")
+            else:
+                # If budget is a string, parse it for ranges
+                budget_str = str(lead_data.budget).replace(',', '').replace('$', '').replace('k', '000').replace('K', '000')
+                price_match = re.findall(r'\d+', budget_str)
+                if len(price_match) >= 2:
+                    price_min = int(price_match[0])
+                    price_max = int(price_match[1])
+                elif len(price_match) == 1:
+                    price_max = int(price_match[0])
+                print(f"Budget parsed: min={price_min}, max={price_max}")
+        
+        lead = Lead(
+            user_id=user_id,
+            name=f"{first_name or ''} {last_name or ''}".strip() or "Generic Lead",
+            first_name=first_name,
+            last_name=last_name,
+            email=lead_data.email,
+            phone=normalized_phone,
+            property_type=lead_data.property_type,
+            neighborhood=location,
+            price_min=price_min,
+            price_max=price_max,
+            source_tags=[source],
+            stage="New",
+            in_dashboard=True,  # Auto-add to dashboard
+            priority="medium",
+            notes=f"Timestamp: {lead_data.timestamp}, Custom fields: {lead_data.custom_fields}" if lead_data.timestamp or lead_data.custom_fields else None
+        )
+        
+        print(f"Creating lead: {lead.name} - {lead.email} - {lead.phone}")
+        await db.leads.insert_one(lead.model_dump(exclude_none=True))
+        print(f"Lead created successfully with ID: {lead.id}")
+        
+        return {"status": "success", "lead_id": lead.id, "message": "Lead created successfully"}
+        
+    except Exception as e:
+        print(f"Generic webhook error: {e}")
+        return {"status": "error", "message": str(e)}
