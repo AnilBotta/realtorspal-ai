@@ -102,7 +102,22 @@ export default function ImportLeadsModal({ open, onClose, onImported, onImportAp
       const hdrs = (json[0] || []).map(String);
       const dataRows = (json.slice(1) || []).map((arr) => {
         const obj = {};
-        hdrs.forEach((h, i) => { obj[h] = arr[i]; });
+        hdrs.forEach((h, i) => { 
+          // Convert all values to strings to avoid type issues, especially for phone numbers
+          let value = arr[i];
+          if (value !== null && value !== undefined) {
+            // Convert to string and handle Excel number formatting
+            value = String(value).trim();
+            // If it looks like a phone number (all digits, 7-15 chars), keep as string
+            if (/^\d{7,15}$/.test(value)) {
+              obj[h] = value;
+            } else {
+              obj[h] = value;
+            }
+          } else {
+            obj[h] = '';
+          }
+        });
         return obj;
       });
       setHeaders(hdrs);
