@@ -451,3 +451,182 @@ async def save_settings(payload: SaveSettingsRequest):
         settings = Settings(**data)
         await db.settings.insert_one(settings.model_dump())
         return settings
+
+@app.post("/api/ai/chat")
+async def chat(payload: dict):
+    try:
+        from emergentintegrations import EmergentLLM
+        llm = EmergentLLM(api_key=os.environ.get('EMERGENT_LLM_KEY'))
+        
+        messages = payload.get('messages', [])
+        stream = payload.get('stream', False)
+        
+        if stream:
+            return StreamingResponse(
+                llm.stream_chat(messages=messages),
+                media_type="text/plain"
+            )
+        else:
+            response = await llm.chat(messages=messages)
+            return {"response": response}
+    except Exception as e:
+        return {"error": str(e), "fallback": "Chat service temporarily unavailable"}
+
+# --- Webhook Endpoints ---
+
+class FacebookLeadWebhook(BaseModel):
+    object: str
+    entry: List[Dict[str, Any]]
+
+class GenericLeadWebhook(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    property_type: Optional[str] = None
+    neighborhood: Optional[str] = None
+    budget: Optional[str] = None
+    source: Optional[str] = None
+    custom_fields: Optional[Dict[str, Any]] = None
+
+@app.get("/api/webhooks/facebook-leads/{user_id}")
+async def facebook_webhook_verification(user_id: str, request: Request):
+    """Facebook webhook verification endpoint"""
+    query_params = dict(request.query_params)
+    mode = query_params.get('hub.mode')
+    token = query_params.get('hub.verify_token')
+    challenge = query_params.get('hub.challenge')
+    
+    # Get user's verify token from settings
+    settings_doc = await db.settings.find_one({"user_id": user_id})
+    if not settings_doc or not settings_doc.get('webhook_enabled'):
+        raise HTTPException(status_code=404, detail="Webhook not enabled for this user")
+    
+    expected_token = settings_doc.get('facebook_webhook_verify_token')
+    
+    if mode == 'subscribe' and token == expected_token:
+        return int(challenge)
+    else:
+        raise HTTPException(status_code=403, detail="Verification failed")
+
+@app.post("/api/webhooks/facebook-leads/{user_id}")
+async def facebook_webhook_handler(user_id: str, webhook_data: FacebookLeadWebhook):
+    """Handle Facebook Lead Ads webhook"""
+    try:
+        # Verify user has webhook enabled
+        settings_doc = await db.settings.find_one({"user_id": user_id})
+        if not settings_doc or not settings_doc.get('webhook_enabled'):
+            raise HTTPException(status_code=404, detail="Webhook not enabled")
+        
+        leads_created = []
+        
+        for entry in webhook_data.entry:
+            if 'changes' in entry:
+                for change in entry['changes']:
+                    if change.get('field') == 'leadgen':
+                        lead_data = change.get('value', {})
+                        
+                        # Extract lead information from Facebook webhook
+                        form_data = {}
+                        if 'form' in lead_data and 'leadgen_id' in lead_data:
+                            # In a real implementation, you'd call Facebook API to get full lead details
+                            # For now, we'll use the basic data structure
+                            field_data = lead_data.get('field_data', [])
+                            
+                            for field in field_data:
+                                field_name = field.get('name', '').lower()
+                                field_value = field.get('values', [''])[0]
+                                
+                                if field_name in ['first_name', 'full_name']:
+                                    form_data['first_name'] = field_value
+                                elif field_name == 'last_name':
+                                    form_data['last_name'] = field_value  
+                                elif field_name in ['email', 'email_address']:
+                                    form_data['email'] = field_value
+                                elif field_name in ['phone', 'phone_number']:
+                                    form_data['phone'] = field_value
+                                elif field_name in ['property_type', 'looking_for']:
+                                    form_data['property_type'] = field_value
+                                elif field_name in ['location', 'city', 'area']:
+                                    form_data['neighborhood'] = field_value
+                        
+                        # Create lead
+                        if form_data:
+                            # Normalize phone number
+                            normalized_phone = normalize_phone(form_data.get('phone'))
+                            
+                            lead = Lead(
+                                user_id=user_id,
+                                name=f"{form_data.get('first_name', '')} {form_data.get('last_name', '')}".strip() or "Facebook Lead",
+                                first_name=form_data.get('first_name'),
+                                last_name=form_data.get('last_name'),
+                                email=form_data.get('email'),
+                                phone=normalized_phone,
+                                property_type=form_data.get('property_type'),
+                                neighborhood=form_data.get('neighborhood'),
+                                source_tags=["Facebook Lead Ads"],
+                                stage="New",
+                                in_dashboard=True,  # Auto-add to dashboard for immediate attention
+                                priority="medium"
+                            )
+                            
+                            await db.leads.insert_one(lead.model_dump(exclude_none=True))
+                            leads_created.append(lead)
+        
+        return {"status": "success", "leads_created": len(leads_created)}
+        
+    except Exception as e:
+        print(f"Facebook webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/webhooks/generic-leads/{user_id}")
+async def generic_webhook_handler(user_id: str, lead_data: GenericLeadWebhook):
+    """Handle generic webhook for lead collection"""
+    try:
+        # Verify user has generic webhook enabled
+        settings_doc = await db.settings.find_one({"user_id": user_id})
+        if not settings_doc or not settings_doc.get('generic_webhook_enabled'):
+            raise HTTPException(status_code=404, detail="Generic webhook not enabled")
+        
+        # Normalize phone number
+        normalized_phone = normalize_phone(lead_data.phone)
+        
+        # Parse budget if provided
+        price_min = None
+        price_max = None
+        if lead_data.budget:
+            # Extract price range from budget string (e.g., "$100k-$200k")
+            import re
+            budget_str = str(lead_data.budget).replace(',', '').replace('$', '').replace('k', '000').replace('K', '000')
+            price_match = re.findall(r'\d+', budget_str)
+            if len(price_match) >= 2:
+                price_min = int(price_match[0])
+                price_max = int(price_match[1])
+            elif len(price_match) == 1:
+                price_max = int(price_match[0])
+        
+        lead = Lead(
+            user_id=user_id,
+            name=f"{lead_data.first_name or ''} {lead_data.last_name or ''}".strip() or "Generic Lead",
+            first_name=lead_data.first_name,
+            last_name=lead_data.last_name,
+            email=lead_data.email,
+            phone=normalized_phone,
+            property_type=lead_data.property_type,
+            neighborhood=lead_data.neighborhood,
+            price_min=price_min,
+            price_max=price_max,
+            source_tags=[lead_data.source or "Generic Webhook"],
+            stage="New",
+            in_dashboard=True,  # Auto-add to dashboard
+            priority="medium",
+            notes=f"Custom fields: {lead_data.custom_fields}" if lead_data.custom_fields else None
+        )
+        
+        await db.leads.insert_one(lead.model_dump(exclude_none=True))
+        
+        return {"status": "success", "lead_id": lead.id, "message": "Lead created successfully"}
+        
+    except Exception as e:
+        print(f"Generic webhook error: {e}")
+        return {"status": "error", "message": str(e)}
