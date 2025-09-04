@@ -2,7 +2,7 @@ import os
 import re
 import uuid
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from email_validator import validate_email, EmailNotValidError
 
 from fastapi import FastAPI, HTTPException, Request
