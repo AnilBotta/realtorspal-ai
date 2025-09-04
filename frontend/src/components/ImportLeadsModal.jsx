@@ -86,6 +86,13 @@ export default function ImportLeadsModal({ open, onClose, onImported, onImportAp
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
+        transform: (value, field) => {
+          // Ensure all values are strings, especially phone numbers
+          if (value !== null && value !== undefined) {
+            return String(value).trim();
+          }
+          return '';
+        },
         complete: (res) => {
           const hdrs = res.meta.fields || [];
           setHeaders(hdrs);
