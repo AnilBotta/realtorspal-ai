@@ -37,10 +37,21 @@ export default function Layout({ children, user, onLogout }) {
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4">
-          <nav className="flex items-center gap-4 overflow-x-auto">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <nav className="flex items-center gap-3 overflow-x-auto">
             {tabs.map(t => (
-              <NavLink key={t.to} to={t.to} end className={({isActive}) => `py-3 border-b-2 -mb-px ${isActive ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-emerald-700'}`}>
+              <NavLink 
+                key={t.to} 
+                to={t.to} 
+                end 
+                className={({isActive}) => 
+                  `px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm whitespace-nowrap ${
+                    isActive 
+                      ? `${t.color} shadow-md transform scale-105` 
+                      : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 hover:border-slate-300'
+                  }`
+                }
+              >
                 {t.label}
               </NavLink>
             ))}
