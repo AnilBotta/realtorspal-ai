@@ -40,13 +40,31 @@ function DroppableColumn({ id, title, count, children }){
     }
   };
 
+  // Map stage names to better display names
+  const getDisplayTitle = (stageId) => {
+    switch(stageId) {
+      case 'New':
+        return 'New Leads';
+      case 'Contacted':
+        return 'Contacted';
+      case 'Appointment':
+        return 'Appointment Booked';
+      case 'Onboarded':
+        return 'Onboarded';
+      case 'Closed':
+        return 'Closed';
+      default:
+        return stageId;
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
       className={`rounded-xl p-3 border border-dashed ${getColumnColors(id)} ${isOver?'ring-2 ring-emerald-300':''}`}
     >
       <div className="text-sm font-medium mb-2 text-slate-700 flex items-center justify-between">
-        <span>{title} <span className="text-slate-400">({count})</span></span>
+        <span>{getDisplayTitle(id)} <span className="text-slate-400">({count})</span></span>
       </div>
       <div className="space-y-3 min-h-[96px]">
         {children}
