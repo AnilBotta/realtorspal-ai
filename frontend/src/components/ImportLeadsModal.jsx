@@ -163,13 +163,23 @@ export default function ImportLeadsModal({ open, onClose, onImported, onImportAp
         Object.entries(mapping).forEach(([src, dest]) => {
           if (!dest) return;
           let val = r[src];
+          
+          // Convert all values to strings first to avoid type issues
+          if (val !== null && val !== undefined) {
+            val = String(val).trim();
+          }
+          
           if (dest === 'price_min' || dest === 'price_max') {
             const n = parseInt(String(val||'').replace(/[^0-9]/g,''), 10);
             if (!isNaN(n)) val = n; else val = undefined;
           } else if (dest === 'source_tags' && typeof val === 'string') {
             val = val.split(',').map(s=>s.trim()).filter(Boolean);
+          } else if (dest === 'phone' && val) {
+            // Ensure phone numbers are always strings
+            val = String(val).trim();
           }
-          if (val !== undefined) o[dest] = val;
+          
+          if (val !== undefined && val !== '') o[dest] = val;
         });
         console.log(`Processed lead ${index}:`, o);
         return o;
