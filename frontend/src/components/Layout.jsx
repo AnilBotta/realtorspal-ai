@@ -4,13 +4,13 @@ import { CircleCheck, Bell, Search, Filter, User2 } from "lucide-react";
 
 export default function Layout({ children, user, onLogout }) {
   const tabs = [
-    { to: "/", label: "Dashboard" },
-    { to: "/leads", label: "Leads" },
-    { to: "/agents", label: "AI Agents" },
-    { to: "/analytics", label: "Analytics" },
-    { to: "/data", label: "Data" },
-    { to: "/agent-config", label: "Agent Config" },
-    { to: "/settings", label: "Settings" },
+    { to: "/", label: "Dashboard", color: "bg-blue-500 hover:bg-blue-600 text-white" },
+    { to: "/leads", label: "Leads", color: "bg-green-500 hover:bg-green-600 text-white" },
+    { to: "/agents", label: "AI Agents", color: "bg-purple-500 hover:bg-purple-600 text-white" },
+    { to: "/analytics", label: "Analytics", color: "bg-orange-500 hover:bg-orange-600 text-white" },
+    { to: "/data", label: "Data", color: "bg-teal-500 hover:bg-teal-600 text-white" },
+    { to: "/agent-config", label: "Agent Config", color: "bg-indigo-500 hover:bg-indigo-600 text-white" },
+    { to: "/settings", label: "Settings", color: "bg-gray-500 hover:bg-gray-600 text-white" },
   ];
 
   return (
