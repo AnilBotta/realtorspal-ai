@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getSettings, saveSettings } from "../api";
-import { Copy, Check, Globe, Share2, Zap, Bot } from "lucide-react";
+import { Copy, Check, Globe, Share2, Zap, Bot, Activity, CheckCircle, AlertCircle, Clock } from "lucide-react";
 
 export default function Settings({ user }){
   const [form, setForm] = useState({ 
@@ -12,6 +12,10 @@ export default function Settings({ user }){
     generic_webhook_enabled: false 
   });
   const [copiedWebhook, setCopiedWebhook] = useState(null);
+  const [webhookStats, setWebhookStats] = useState({
+    generic: { total: 0, last_24h: 0, last_activity: null, status: 'inactive' },
+    facebook: { total: 0, last_24h: 0, last_activity: null, status: 'inactive' }
+  });
 
   // Generate webhook URLs
   const baseUrl = process.env.REACT_APP_BACKEND_URL || 'https://realtor-lead-hub.preview.emergentagent.com';
@@ -19,7 +23,16 @@ export default function Settings({ user }){
   const genericWebhookUrl = `${baseUrl}/api/webhooks/generic-leads/${user?.id}`;
 
   useEffect(() => {
-    async function load(){
+    loadSettings();
+    loadWebhookStats();
+    
+    // Poll webhook stats every 30 seconds
+    const interval = setInterval(loadWebhookStats, 30000);
+    return () => clearInterval(interval);
+  }, [user.id]);
+
+  const loadSettings = async () => {
+    try {
       const { data } = await getSettings(user.id);
       setForm({
         openai_api_key: data.openai_api_key || "",
@@ -29,9 +42,22 @@ export default function Settings({ user }){
         facebook_webhook_verify_token: data.facebook_webhook_verify_token || generateVerifyToken(),
         generic_webhook_enabled: data.generic_webhook_enabled || false,
       });
+    } catch (err) {
+      console.error('Failed to load settings:', err);
     }
-    load();
-  }, [user.id]);
+  };
+
+  const loadWebhookStats = async () => {
+    try {
+      const response = await fetch(`${baseUrl}/api/webhooks/stats/${user.id}`);
+      if (response.ok) {
+        const stats = await response.json();
+        setWebhookStats(stats);
+      }
+    } catch (err) {
+      console.error('Failed to load webhook stats:', err);
+    }
+  };
 
   const generateVerifyToken = () => {
     return 'verify_' + Math.random().toString(36).substring(2) + '_' + Date.now();
