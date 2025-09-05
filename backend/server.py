@@ -225,7 +225,7 @@ class CreateLeadExternalRequest(BaseModel):
     stage: Optional[str] = "New"
     in_dashboard: Optional[bool] = True
 
-class UpdateLeadRequest(BaseModel):
+class UpdateLeadExternalRequest(BaseModel):
     name: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
