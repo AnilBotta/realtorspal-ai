@@ -209,7 +209,7 @@ def generate_api_key() -> str:
 
 # --- External API Endpoints for Crew.AI Integration ---
 
-class CreateLeadRequest(BaseModel):
+class CreateLeadExternalRequest(BaseModel):
     name: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
