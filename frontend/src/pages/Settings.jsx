@@ -443,7 +443,7 @@ export default function Settings({ user }){
             </div>
             <div className="text-sm text-slate-600 mb-2">Update an existing lead record</div>
             <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
-              PUT {baseUrl}/api/external/leads/{'{'}{'{'}lead_id{'}'}{'}'}
+              PUT {baseUrl}/api/external/leads/{"{lead_id}"}
             </div>
             <div className="text-xs text-slate-600 mb-2">Headers: X-API-Key: your_api_key</div>
             <details className="text-sm">
