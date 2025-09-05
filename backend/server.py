@@ -161,6 +161,7 @@ class Settings(BaseModel):
     webhook_enabled: Optional[bool] = False
     facebook_webhook_verify_token: Optional[str] = None
     generic_webhook_enabled: Optional[bool] = False
+    api_key: Optional[str] = None  # API key for external integrations
 
 class AnalyticsDashboard(BaseModel):
     total_leads: int
