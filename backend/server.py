@@ -404,9 +404,9 @@ async def update_lead_status_external(lead_id: str, status_data: UpdateLeadStatu
             # Append notes to existing notes
             existing_notes = existing_lead.get("notes", "")
             if existing_notes:
-                update_data["notes"] = f"{existing_notes}\n\n[Crew.AI Update] {status_data.notes}"
+                update_data["notes"] = f"{existing_notes}\n\n[API Update] {status_data.notes}"
             else:
-                update_data["notes"] = f"[Crew.AI Update] {status_data.notes}"
+                update_data["notes"] = f"[API Update] {status_data.notes}"
         
         # Update lead
         await db.leads.update_one({"id": lead_id}, {"$set": update_data})
