@@ -5,7 +5,7 @@ Test script for the new external API endpoints
 import requests
 import json
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:8001"
 
 def test_external_api():
     print("Testing External API Endpoints...")
