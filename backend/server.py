@@ -420,7 +420,7 @@ async def update_lead_status_external(lead_id: str, status_data: UpdateLeadStatu
 
 @app.get("/api/external/leads/{lead_id}", response_model=Lead)
 async def get_lead_external(lead_id: str, api_key: str = Header(..., alias="X-API-Key")):
-    """Get a specific lead via external API (Crew.AI integration)"""
+    """Get a specific lead via external API (Third-party app integration)"""
     try:
         # Authenticate API key
         user_id = await authenticate_api_key(api_key)
