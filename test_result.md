@@ -135,9 +135,9 @@ No critical issues found. The system handles the user's exact DELETE ALL → IMP
 ## Lead Import Functionality Testing
 
 ### Test Plan
-- **Current Focus**: Webhook Activity Indicators Real-time Monitoring testing completed successfully
+- **Current Focus**: Crew.AI API Integration Settings Implementation testing completed successfully
 - **Priority**: High
-- **Test Sequence**: 4
+- **Test Sequence**: 5
 
 ### Frontend Tasks to Test
 
