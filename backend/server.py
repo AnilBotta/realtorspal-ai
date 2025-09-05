@@ -220,7 +220,7 @@ class CreateLeadExternalRequest(BaseModel):
     price_min: Optional[int] = None
     price_max: Optional[int] = None
     priority: Optional[str] = "medium"
-    source_tags: Optional[List[str]] = ["Crew.AI"]
+    source_tags: Optional[List[str]] = ["API"]
     notes: Optional[str] = None
     stage: Optional[str] = "New"
     in_dashboard: Optional[bool] = True
