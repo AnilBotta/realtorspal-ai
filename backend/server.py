@@ -195,6 +195,248 @@ class ImportResult(BaseModel):
     errors: List[Dict[str, Any]]
     inserted_leads: List[Lead]
 
+# --- API Authentication ---
+async def authenticate_api_key(api_key: str) -> Optional[str]:
+    """Authenticate API key and return user_id"""
+    settings_doc = await db.settings.find_one({"api_key": api_key})
+    if settings_doc:
+        return settings_doc.get("user_id")
+    return None
+
+def generate_api_key() -> str:
+    """Generate a secure API key"""
+    return f"crm_{uuid.uuid4().hex[:16]}_{uuid.uuid4().hex[:16]}"
+
+# --- External API Endpoints for Crew.AI Integration ---
+
+class CreateLeadRequest(BaseModel):
+    name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    property_type: Optional[str] = None
+    neighborhood: Optional[str] = None
+    price_min: Optional[int] = None
+    price_max: Optional[int] = None
+    priority: Optional[str] = "medium"
+    source_tags: Optional[List[str]] = ["Crew.AI"]
+    notes: Optional[str] = None
+    stage: Optional[str] = "New"
+    in_dashboard: Optional[bool] = True
+
+class UpdateLeadRequest(BaseModel):
+    name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    property_type: Optional[str] = None
+    neighborhood: Optional[str] = None
+    price_min: Optional[int] = None
+    price_max: Optional[int] = None
+    priority: Optional[str] = None
+    source_tags: Optional[List[str]] = None
+    notes: Optional[str] = None
+    stage: Optional[str] = None
+    in_dashboard: Optional[bool] = None
+
+class UpdateLeadStatusRequest(BaseModel):
+    stage: str
+    notes: Optional[str] = None
+
+class SearchLeadsRequest(BaseModel):
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    name: Optional[str] = None
+    stage: Optional[str] = None
+    limit: Optional[int] = 10
+
+@app.post("/api/external/leads", response_model=Lead)
+async def create_lead_external(lead_data: CreateLeadRequest, api_key: str = Header(..., alias="X-API-Key")):
+    """Create a new lead via external API (Crew.AI integration)"""
+    try:
+        # Authenticate API key
+        user_id = await authenticate_api_key(api_key)
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        
+        # Validate and normalize email
+        validated_email = None
+        if lead_data.email and lead_data.email.strip():
+            try:
+                validation = validate_email(lead_data.email.strip())
+                validated_email = validation.email
+            except EmailNotValidError:
+                validated_email = None
+        
+        # Normalize phone number
+        normalized_phone = normalize_phone(lead_data.phone)
+        
+        # Create lead name if not provided
+        name = lead_data.name
+        if not name:
+            name = f"{lead_data.first_name or ''} {lead_data.last_name or ''}".strip() or "New Lead"
+        
+        lead = Lead(
+            user_id=user_id,
+            name=name,
+            first_name=lead_data.first_name,
+            last_name=lead_data.last_name,
+            email=validated_email,
+            phone=normalized_phone,
+            property_type=lead_data.property_type,
+            neighborhood=lead_data.neighborhood,
+            price_min=lead_data.price_min,
+            price_max=lead_data.price_max,
+            priority=lead_data.priority,
+            source_tags=lead_data.source_tags,
+            notes=lead_data.notes,
+            stage=lead_data.stage,
+            in_dashboard=lead_data.in_dashboard
+        )
+        
+        await db.leads.insert_one(lead.model_dump(exclude_none=True))
+        return lead
+        
+    except DuplicateKeyError:
+        raise HTTPException(status_code=409, detail="Lead with this email already exists")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/external/leads/{lead_id}", response_model=Lead)
+async def update_lead_external(lead_id: str, lead_data: UpdateLeadRequest, api_key: str = Header(..., alias="X-API-Key")):
+    """Update an existing lead via external API (Crew.AI integration)"""
+    try:
+        # Authenticate API key
+        user_id = await authenticate_api_key(api_key)
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        
+        # Check if lead exists and belongs to user
+        existing_lead = await db.leads.find_one({"id": lead_id, "user_id": user_id})
+        if not existing_lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Prepare update data
+        update_data = {}
+        for field, value in lead_data.model_dump(exclude_none=True).items():
+            if field == "email" and value:
+                # Validate email
+                try:
+                    validation = validate_email(value.strip())
+                    update_data[field] = validation.email
+                except EmailNotValidError:
+                    pass  # Skip invalid email
+            elif field == "phone" and value:
+                # Normalize phone
+                update_data[field] = normalize_phone(value)
+            else:
+                update_data[field] = value
+        
+        # Update name if first_name or last_name changed
+        if "first_name" in update_data or "last_name" in update_data:
+            first_name = update_data.get("first_name", existing_lead.get("first_name", ""))
+            last_name = update_data.get("last_name", existing_lead.get("last_name", ""))
+            update_data["name"] = f"{first_name or ''} {last_name or ''}".strip() or existing_lead.get("name")
+        
+        # Update lead
+        await db.leads.update_one({"id": lead_id}, {"$set": update_data})
+        
+        # Return updated lead
+        updated_lead = await db.leads.find_one({"id": lead_id})
+        return Lead(**{k: v for k, v in updated_lead.items() if k != "_id"})
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/external/leads/search")
+async def search_leads_external(search_data: SearchLeadsRequest, api_key: str = Header(..., alias="X-API-Key")):
+    """Search leads via external API (Crew.AI integration)"""
+    try:
+        # Authenticate API key
+        user_id = await authenticate_api_key(api_key)
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        
+        # Build search query
+        query = {"user_id": user_id}
+        
+        if search_data.email:
+            query["email"] = {"$regex": search_data.email, "$options": "i"}
+        if search_data.phone:
+            # Normalize phone for search
+            normalized_phone = normalize_phone(search_data.phone)
+            query["phone"] = normalized_phone
+        if search_data.name:
+            query["$or"] = [
+                {"name": {"$regex": search_data.name, "$options": "i"}},
+                {"first_name": {"$regex": search_data.name, "$options": "i"}},
+                {"last_name": {"$regex": search_data.name, "$options": "i"}}
+            ]
+        if search_data.stage:
+            query["stage"] = search_data.stage
+        
+        # Search leads
+        leads = await db.leads.find(query).limit(search_data.limit or 10).to_list(length=None)
+        return [Lead(**{k: v for k, v in lead.items() if k != "_id"}) for lead in leads]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/external/leads/{lead_id}/status", response_model=Lead)
+async def update_lead_status_external(lead_id: str, status_data: UpdateLeadStatusRequest, api_key: str = Header(..., alias="X-API-Key")):
+    """Update lead status/stage via external API (Crew.AI integration)"""
+    try:
+        # Authenticate API key
+        user_id = await authenticate_api_key(api_key)
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        
+        # Check if lead exists and belongs to user
+        existing_lead = await db.leads.find_one({"id": lead_id, "user_id": user_id})
+        if not existing_lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Prepare update data
+        update_data = {"stage": status_data.stage}
+        if status_data.notes:
+            # Append notes to existing notes
+            existing_notes = existing_lead.get("notes", "")
+            if existing_notes:
+                update_data["notes"] = f"{existing_notes}\n\n[Crew.AI Update] {status_data.notes}"
+            else:
+                update_data["notes"] = f"[Crew.AI Update] {status_data.notes}"
+        
+        # Update lead
+        await db.leads.update_one({"id": lead_id}, {"$set": update_data})
+        
+        # Return updated lead
+        updated_lead = await db.leads.find_one({"id": lead_id})
+        return Lead(**{k: v for k, v in updated_lead.items() if k != "_id"})
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/external/leads/{lead_id}", response_model=Lead)
+async def get_lead_external(lead_id: str, api_key: str = Header(..., alias="X-API-Key")):
+    """Get a specific lead via external API (Crew.AI integration)"""
+    try:
+        # Authenticate API key
+        user_id = await authenticate_api_key(api_key)
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        
+        # Get lead
+        lead = await db.leads.find_one({"id": lead_id, "user_id": user_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        return Lead(**{k: v for k, v in lead.items() if k != "_id"})
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # --- Utils ---
 def normalize_phone(phone_str):
     """Normalize phone number to E.164 format"""
