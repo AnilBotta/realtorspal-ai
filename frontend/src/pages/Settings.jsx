@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getSettings, saveSettings } from "../api";
-import { Copy, Check, Globe, Share2, Zap, Bot, Activity, CheckCircle, AlertCircle, Clock } from "lucide-react";
+import { Copy, Check, Globe, Share2, Zap, Bot, Activity, CheckCircle, AlertCircle, Clock, Code, Key, Database } from "lucide-react";
 
 export default function Settings({ user }){
   const [form, setForm] = useState({ 
@@ -9,7 +9,8 @@ export default function Settings({ user }){
     gemini_api_key: "",
     webhook_enabled: false,
     facebook_webhook_verify_token: "",
-    generic_webhook_enabled: false 
+    generic_webhook_enabled: false,
+    api_key: ""
   });
   const [copiedWebhook, setCopiedWebhook] = useState(null);
   const [webhookStats, setWebhookStats] = useState({
@@ -41,6 +42,7 @@ export default function Settings({ user }){
         webhook_enabled: data.webhook_enabled || false,
         facebook_webhook_verify_token: data.facebook_webhook_verify_token || generateVerifyToken(),
         generic_webhook_enabled: data.generic_webhook_enabled || false,
+        api_key: data.api_key || generateApiKey(),
       });
     } catch (err) {
       console.error('Failed to load settings:', err);
@@ -61,6 +63,10 @@ export default function Settings({ user }){
 
   const generateVerifyToken = () => {
     return 'verify_' + Math.random().toString(36).substring(2) + '_' + Date.now();
+  };
+
+  const generateApiKey = () => {
+    return 'crm_' + Math.random().toString(36).substring(2, 18) + '_' + Math.random().toString(36).substring(2, 18);
   };
 
   const copyToClipboard = async (text, type) => {
