@@ -510,7 +510,6 @@ export default function Settings({ user }){
             <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
               GET {baseUrl}/api/external/leads/{"{lead_id}"}
             </div>
-            </div>
             <div className="text-xs text-slate-600">Headers: X-API-Key: your_api_key</div>
           </div>
         </div>
