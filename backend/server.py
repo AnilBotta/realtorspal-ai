@@ -305,7 +305,7 @@ async def create_lead_external(lead_data: CreateLeadExternalRequest, api_key: st
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.put("/api/external/leads/{lead_id}", response_model=Lead)
-async def update_lead_external(lead_id: str, lead_data: UpdateLeadRequest, api_key: str = Header(..., alias="X-API-Key")):
+async def update_lead_external(lead_id: str, lead_data: UpdateLeadExternalRequest, api_key: str = Header(..., alias="X-API-Key")):
     """Update an existing lead via external API (Crew.AI integration)"""
     try:
         # Authenticate API key
