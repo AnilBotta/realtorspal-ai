@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getSettings, saveSettings } from "../api";
-import { Copy, Check, Globe, Share2, Zap, Bot, Activity, CheckCircle, AlertCircle, Clock, Code, Key, Database } from "lucide-react";
+import { Copy, Check, Globe, Share2, Zap, Bot, Activity, CheckCircle, AlertCircle, Clock, Code, Key, Database, X } from "lucide-react";
 
 export default function Settings({ user }){
   const [form, setForm] = useState({ 
@@ -13,6 +13,7 @@ export default function Settings({ user }){
     api_key: ""
   });
   const [copiedWebhook, setCopiedWebhook] = useState(null);
+  const [showApiModal, setShowApiModal] = useState(false);
   const [webhookStats, setWebhookStats] = useState({
     generic: { total: 0, last_24h: 0, last_activity: null, status: 'inactive' },
     facebook: { total: 0, last_24h: 0, last_activity: null, status: 'inactive' }
