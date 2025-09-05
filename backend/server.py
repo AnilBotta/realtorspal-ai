@@ -253,7 +253,7 @@ class SearchLeadsRequest(BaseModel):
     limit: Optional[int] = 10
 
 @app.post("/api/external/leads", response_model=Lead)
-async def create_lead_external(lead_data: CreateLeadRequest, api_key: str = Header(..., alias="X-API-Key")):
+async def create_lead_external(lead_data: CreateLeadExternalRequest, api_key: str = Header(..., alias="X-API-Key")):
     """Create a new lead via external API (Crew.AI integration)"""
     try:
         # Authenticate API key
