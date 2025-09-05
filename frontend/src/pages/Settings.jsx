@@ -488,7 +488,7 @@ export default function Settings({ user }){
             </div>
             <div className="text-sm text-slate-600 mb-2">Track lead progress through pipeline</div>
             <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
-              PUT {baseUrl}/api/external/leads/{'{'}{'{'}lead_id{'}'}{'}'}}/status
+              PUT {baseUrl}/api/external/leads/{`{lead_id}`}/status
             </div>
             <div className="text-xs text-slate-600 mb-2">Headers: X-API-Key: your_api_key</div>
             <details className="text-sm">
@@ -508,7 +508,8 @@ export default function Settings({ user }){
             </div>
             <div className="text-sm text-slate-600 mb-2">Retrieve a specific lead by ID</div>
             <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
-              GET {baseUrl}/api/external/leads/{'{'}{'{'}lead_id{'}'}{'}'}
+              GET {baseUrl}/api/external/leads/{`{lead_id}`}
+            </div>
             </div>
             <div className="text-xs text-slate-600">Headers: X-API-Key: your_api_key</div>
           </div>
