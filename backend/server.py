@@ -352,7 +352,7 @@ async def update_lead_external(lead_id: str, lead_data: UpdateLeadExternalReques
 
 @app.post("/api/external/leads/search")
 async def search_leads_external(search_data: SearchLeadsRequest, api_key: str = Header(..., alias="X-API-Key")):
-    """Search leads via external API (Crew.AI integration)"""
+    """Search leads via external API (Third-party app integration)"""
     try:
         # Authenticate API key
         user_id = await authenticate_api_key(api_key)
