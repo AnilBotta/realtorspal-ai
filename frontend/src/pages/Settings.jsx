@@ -351,74 +351,113 @@ export default function Settings({ user }){
         </div>
       </div>
 
-      {/* Crew.AI API Integration Section */}
+      {/* API Key Integration Button */}
       <div className="bg-white rounded-xl border p-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Database className="text-purple-600" size={20} />
-          <div className="text-lg font-semibold">Crew.AI API Integration</div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+              <Key className="text-white" size={20} />
+            </div>
+            <div>
+              <div className="text-lg font-semibold">API Key Integration</div>
+              <div className="text-sm text-slate-500">Connect external apps and services to your CRM</div>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowApiModal(true)}
+            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium flex items-center gap-2 transition-colors"
+          >
+            <Database size={18} />
+            API KEY
+          </button>
         </div>
-        <div className="text-sm text-slate-500 mb-6">External API endpoints for Crew.AI agents to manage leads programmatically</div>
+      </div>
 
-        {/* API Key Section */}
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Key className="text-purple-600" size={16} />
-            <div className="font-medium text-purple-900">API Authentication</div>
-          </div>
-          <div className="mb-3">
-            <label className="text-sm text-slate-600 font-medium">Your API Key</label>
-            <div className="flex items-center gap-2 mt-1">
-              <input 
-                type="password" 
-                value={form.api_key}
-                onChange={(e) => setForm({...form, api_key: e.target.value})}
-                className="flex-1 px-3 py-2 rounded-lg border bg-white text-sm font-mono"
-                placeholder="crm_xxxxxxxxxxxxxxxx_xxxxxxxxxxxxxxxx"
-              />
+      {/* API Key Modal */}
+      {showApiModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                  <Database className="text-white" size={16} />
+                </div>
+                <div>
+                  <div className="text-lg font-semibold">API Key Integration</div>
+                  <div className="text-sm text-slate-500">External API endpoints for apps and services</div>
+                </div>
+              </div>
               <button
-                onClick={() => copyToClipboard(form.api_key, 'api_key')}
-                className="px-3 py-2 rounded-lg border hover:bg-gray-50 flex items-center gap-1"
+                onClick={() => setShowApiModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                {copiedWebhook === 'api_key' ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
-              </button>
-              <button
-                onClick={() => setForm({...form, api_key: generateApiKey()})}
-                className="px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 text-sm"
-              >
-                Regenerate
+                <X size={20} />
               </button>
             </div>
-            <div className="text-xs text-purple-600 mt-1">Use this key in the X-API-Key header for all API requests</div>
-          </div>
-        </div>
 
-        {/* API Documentation */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Code className="text-slate-600" size={16} />
-            <div className="font-medium text-slate-900">API Endpoints</div>
-          </div>
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* API Key Section */}
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Key className="text-purple-600" size={16} />
+                  <div className="font-medium text-purple-900">API Authentication</div>
+                </div>
+                <div className="mb-3">
+                  <label className="text-sm text-slate-600 font-medium">Your API Key</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input 
+                      type="password" 
+                      value={form.api_key}
+                      onChange={(e) => setForm({...form, api_key: e.target.value})}
+                      className="flex-1 px-3 py-2 rounded-lg border bg-white text-sm font-mono"
+                      placeholder="crm_xxxxxxxxxxxxxxxx_xxxxxxxxxxxxxxxx"
+                    />
+                    <button
+                      onClick={() => copyToClipboard(form.api_key, 'api_key')}
+                      className="px-3 py-2 rounded-lg border hover:bg-gray-50 flex items-center gap-1"
+                    >
+                      {copiedWebhook === 'api_key' ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                    </button>
+                    <button
+                      onClick={() => setForm({...form, api_key: generateApiKey()})}
+                      className="px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 text-sm"
+                    >
+                      Regenerate
+                    </button>
+                  </div>
+                  <div className="text-xs text-purple-600 mt-1">Use this key in the X-API-Key header for all API requests</div>
+                </div>
+              </div>
 
-          {/* Base URL */}
-          <div className="bg-slate-50 rounded-lg p-3">
-            <div className="text-sm font-medium text-slate-700 mb-1">Base URL:</div>
-            <div className="font-mono text-sm text-slate-900">{baseUrl}</div>
-          </div>
+              {/* API Documentation */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Code className="text-slate-600" size={16} />
+                  <div className="font-medium text-slate-900">API Endpoints</div>
+                </div>
 
-          {/* Create Lead API */}
-          <div className="border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-medium text-slate-900">1. Create Lead</div>
-              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded font-mono">POST</span>
-            </div>
-            <div className="text-sm text-slate-600 mb-2">Create a new lead in your CRM</div>
-            <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
-              POST {baseUrl}/api/external/leads
-            </div>
-            <div className="text-xs text-slate-600 mb-2">Headers: X-API-Key: your_api_key</div>
-            <details className="text-sm">
-              <summary className="cursor-pointer text-slate-600 hover:text-slate-900">JSON Payload Example</summary>
-              <pre className="bg-slate-100 p-2 mt-2 rounded text-xs overflow-x-auto">{`{
+                {/* Base URL */}
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <div className="text-sm font-medium text-slate-700 mb-1">Base URL:</div>
+                  <div className="font-mono text-sm text-slate-900">{baseUrl}</div>
+                </div>
+
+                {/* Create Lead API */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium text-slate-900">1. Create Lead</div>
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded font-mono">POST</span>
+                  </div>
+                  <div className="text-sm text-slate-600 mb-2">Create a new lead in your CRM</div>
+                  <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
+                    POST {baseUrl}/api/external/leads
+                  </div>
+                  <div className="text-xs text-slate-600 mb-2">Headers: X-API-Key: your_api_key</div>
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-slate-600 hover:text-slate-900">JSON Payload Example</summary>
+                    <pre className="bg-slate-100 p-2 mt-2 rounded text-xs overflow-x-auto">{`{
   "first_name": "John",
   "last_name": "Doe", 
   "email": "john.doe@example.com",
@@ -428,103 +467,138 @@ export default function Settings({ user }){
   "price_min": 300000,
   "price_max": 500000,
   "priority": "high",
-  "source_tags": ["Crew.AI", "Website"],
+  "source_tags": ["API", "Website"],
   "notes": "Interested in modern homes",
   "stage": "New",
   "in_dashboard": true
 }`}</pre>
-            </details>
-          </div>
+                  </details>
+                </div>
 
-          {/* Update Lead API */}
-          <div className="border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-medium text-slate-900">2. Update Lead</div>
-              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded font-mono">PUT</span>
-            </div>
-            <div className="text-sm text-slate-600 mb-2">Update an existing lead record</div>
-            <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
-              PUT {baseUrl}/api/external/leads/{"{lead_id}"}
-            </div>
-            <div className="text-xs text-slate-600 mb-2">Headers: X-API-Key: your_api_key</div>
-            <details className="text-sm">
-              <summary className="cursor-pointer text-slate-600 hover:text-slate-900">JSON Payload Example</summary>
-              <pre className="bg-slate-100 p-2 mt-2 rounded text-xs overflow-x-auto">{`{
+                {/* Update Lead API */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium text-slate-900">2. Update Lead</div>
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded font-mono">PUT</span>
+                  </div>
+                  <div className="text-sm text-slate-600 mb-2">Update an existing lead record</div>
+                  <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
+                    PUT {baseUrl}/api/external/leads/{"{lead_id}"}
+                  </div>
+                  <div className="text-xs text-slate-600 mb-2">Headers: X-API-Key: your_api_key</div>
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-slate-600 hover:text-slate-900">JSON Payload Example</summary>
+                    <pre className="bg-slate-100 p-2 mt-2 rounded text-xs overflow-x-auto">{`{
   "email": "updated.email@example.com",
   "phone": "9876543210", 
   "priority": "medium",
   "notes": "Updated contact information"
 }`}</pre>
-            </details>
-          </div>
+                  </details>
+                </div>
 
-          {/* Search Leads API */}
-          <div className="border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-medium text-slate-900">3. Search Leads</div>
-              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded font-mono">POST</span>
-            </div>
-            <div className="text-sm text-slate-600 mb-2">Search for leads to check duplicates</div>
-            <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
-              POST {baseUrl}/api/external/leads/search
-            </div>
-            <div className="text-xs text-slate-600 mb-2">Headers: X-API-Key: your_api_key</div>
-            <details className="text-sm">
-              <summary className="cursor-pointer text-slate-600 hover:text-slate-900">JSON Payload Example</summary>
-              <pre className="bg-slate-100 p-2 mt-2 rounded text-xs overflow-x-auto">{`{
+                {/* Search Leads API */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium text-slate-900">3. Search Leads</div>
+                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded font-mono">POST</span>
+                  </div>
+                  <div className="text-sm text-slate-600 mb-2">Search for leads to check duplicates</div>
+                  <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
+                    POST {baseUrl}/api/external/leads/search
+                  </div>
+                  <div className="text-xs text-slate-600 mb-2">Headers: X-API-Key: your_api_key</div>
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-slate-600 hover:text-slate-900">JSON Payload Example</summary>
+                    <pre className="bg-slate-100 p-2 mt-2 rounded text-xs overflow-x-auto">{`{
   "email": "john.doe@example.com",
   "phone": "1234567890",
   "name": "John",
   "stage": "New",
   "limit": 10
 }`}</pre>
-            </details>
-          </div>
+                  </details>
+                </div>
 
-          {/* Update Lead Status API */}
-          <div className="border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-medium text-slate-900">4. Update Lead Status</div>
-              <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded font-mono">PUT</span>
-            </div>
-            <div className="text-sm text-slate-600 mb-2">Track lead progress through pipeline</div>
-            <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
-              PUT {baseUrl}/api/external/leads/{"{lead_id}"}/status
-            </div>
-            <div className="text-xs text-slate-600 mb-2">Headers: X-API-Key: your_api_key</div>
-            <details className="text-sm">
-              <summary className="cursor-pointer text-slate-600 hover:text-slate-900">JSON Payload Example</summary>
-              <pre className="bg-slate-100 p-2 mt-2 rounded text-xs overflow-x-auto">{`{
+                {/* Update Lead Status API */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium text-slate-900">4. Update Lead Status</div>
+                    <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded font-mono">PUT</span>
+                  </div>
+                  <div className="text-sm text-slate-600 mb-2">Track lead progress through pipeline</div>
+                  <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
+                    PUT {baseUrl}/api/external/leads/{"{lead_id}"}/status
+                  </div>
+                  <div className="text-xs text-slate-600 mb-2">Headers: X-API-Key: your_api_key</div>
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-slate-600 hover:text-slate-900">JSON Payload Example</summary>
+                    <pre className="bg-slate-100 p-2 mt-2 rounded text-xs overflow-x-auto">{`{
   "stage": "Contacted",
   "notes": "Called client, interested in viewing properties"
 }`}</pre>
-            </details>
-          </div>
+                  </details>
+                </div>
 
-          {/* Get Lead API */}
-          <div className="border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-medium text-slate-900">5. Get Lead</div>
-              <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded font-mono">GET</span>
+                {/* Get Lead API */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium text-slate-900">5. Get Lead</div>
+                    <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded font-mono">GET</span>
+                  </div>
+                  <div className="text-sm text-slate-600 mb-2">Retrieve a specific lead by ID</div>
+                  <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
+                    GET {baseUrl}/api/external/leads/{"{lead_id}"}
+                  </div>
+                  <div className="text-xs text-slate-600">Headers: X-API-Key: your_api_key</div>
+                </div>
+              </div>
+
+              {/* Available Stages */}
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <div className="text-sm font-medium text-blue-900 mb-2">Available Lead Stages:</div>
+                <div className="flex flex-wrap gap-2">
+                  {["New", "Contacted", "Appointment", "Onboarded", "Closed"].map(stage => (
+                    <span key={stage} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">{stage}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Integration Examples */}
+              <div className="p-3 bg-green-50 rounded-lg">
+                <div className="text-sm font-medium text-green-900 mb-2">Popular Integrations:</div>
+                <div className="text-xs text-green-700">
+                  Perfect for: Crew.AI agents, Zapier workflows, Make.com automations, custom applications, chatbots, and any external service that needs to manage leads.
+                </div>
+              </div>
             </div>
-            <div className="text-sm text-slate-600 mb-2">Retrieve a specific lead by ID</div>
-            <div className="bg-slate-900 text-green-400 rounded p-3 text-sm font-mono mb-2">
-              GET {baseUrl}/api/external/leads/{"{lead_id}"}
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex items-center justify-between">
+              <div className="text-sm text-slate-500">
+                Save your settings to activate the API key
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowApiModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    save();
+                    setShowApiModal(false);
+                  }}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                >
+                  Save & Close
+                </button>
+              </div>
             </div>
-            <div className="text-xs text-slate-600">Headers: X-API-Key: your_api_key</div>
           </div>
         </div>
-
-        {/* Available Stages */}
-        <div className="mt-6 p-3 bg-blue-50 rounded-lg">
-          <div className="text-sm font-medium text-blue-900 mb-2">Available Lead Stages:</div>
-          <div className="flex flex-wrap gap-2">
-            {["New", "Contacted", "Appointment", "Onboarded", "Closed"].map(stage => (
-              <span key={stage} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">{stage}</span>
-            ))}
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Save Button */}
       <div className="flex items-center justify-end">
