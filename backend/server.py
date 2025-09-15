@@ -531,13 +531,17 @@ async def initiate_call(call_data: TwilioCallRequest):
         if not lead.get("phone"):
             raise HTTPException(status_code=400, detail="Lead has no phone number")
         
-        # Clean phone numbers (remove + if present for URL params)
+        # Clean phone numbers and encode message for URL
         clean_twilio_phone = twilio_phone.replace('+', '')
         clean_lead_phone = lead["phone"].replace('+', '')
         
+        # URL encode the message
+        from urllib.parse import quote
+        encoded_message = quote(call_data.message)
+        
         # Create voice webhook URL with parameters
         base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://realtor-lead-hub.preview.emergentagent.com')
-        voice_webhook_url = f"{base_url}/api/twilio/voice?agent_phone={clean_twilio_phone}&lead_phone={clean_lead_phone}&message={call_data.message}"
+        voice_webhook_url = f"{base_url}/api/twilio/voice?agent_phone={clean_twilio_phone}&lead_phone={clean_lead_phone}&message={encoded_message}"
         
         print(f"Initiating call from {twilio_phone} to {lead['phone']} with webhook: {voice_webhook_url}")
         
