@@ -490,8 +490,22 @@ async def generate_access_token(token_request: AccessTokenRequest):
         account_sid = settings.get("twilio_account_sid")
         auth_token = settings.get("twilio_auth_token")
         
+        # If no Twilio credentials configured, provide demo/test mode
         if not account_sid or not auth_token:
-            raise HTTPException(status_code=400, detail="Twilio credentials not configured. Please add your Twilio Account SID and Auth Token in Settings.")
+            # Return a demo response indicating WebRTC demo mode
+            return {
+                "status": "demo_mode",
+                "message": "Twilio credentials not configured. Please add your Twilio Account SID and Auth Token in Settings to enable WebRTC calling.",
+                "demo_token": "demo_webrtc_token_placeholder",
+                "identity": f"demo_agent_{token_request.user_id}",
+                "expires_in": 3600,
+                "setup_instructions": {
+                    "step1": "Sign up for a Twilio account at https://www.twilio.com/console",
+                    "step2": "Find your Account SID and Auth Token in the Twilio Console",
+                    "step3": "Add these credentials in Settings > Twilio Communication",
+                    "step4": "Purchase a Twilio phone number for outbound calls"
+                }
+            }
         
         # Import Twilio components for access token
         from twilio.jwt.access_token import AccessToken
