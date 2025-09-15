@@ -266,8 +266,10 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
         return `Connected - ${formatDuration(callDuration)}`;
       case 'error':
         return 'Error';
-      case 'demo_mode':
+      case 'setup_required':
         return 'Setup Required';
+      case 'waiting':
+        return 'Waiting for connection...';
       case 'idle':
       default:
         return 'Ready to call';
