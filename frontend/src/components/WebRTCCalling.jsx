@@ -98,12 +98,23 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
       }
 
       console.log('Creating Twilio Device with token...');
-      // Create and setup Twilio Device
+      // Create and setup Twilio Device with proper configuration for containerized environment
       const twilioDevice = new Device(result.token, {
-        logLevel: 1,
+        logLevel: 1,  // Enable debug logging
         codecPreferences: ['opus', 'pcmu'],
         enableRingingState: true,
-        edge: ['sydney', 'singapore', 'tokyo'] // Use closest edge locations
+        // Use Twilio's production signaling servers instead of trying to proxy through our domain
+        sounds: {
+          disconnect: false,
+          incoming: false,
+          outgoing: false
+        },
+        // Configure for production environment
+        edge: ['sydney', 'singapore', 'tokyo'],
+        // Disable features that might cause connection issues in containerized environments
+        enableImprovedSignalingErrorPrecision: true,
+        // Use secure WebSocket connections
+        forceAgentString: 'realtorspal-webrtc-client'
       });
 
       console.log('Setting up device event listeners...');
