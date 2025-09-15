@@ -131,30 +131,13 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
       setCallStatus('connecting');
       setError(null);
       
-      // Get call data from backend
-      const response = await fetch(`${baseUrl}/api/twilio/webrtc-call`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          lead_id: lead.id,
-          message: `Hello ${lead.first_name || 'there'}, this is your real estate agent calling about your property inquiry.`
-        }),
-      });
-
-      const result = await response.json();
-      
-      if (result.status !== 'success') {
-        throw new Error(result.message || 'Failed to prepare call');
-      }
-
-      // Make the call using Twilio Device
+      // For outbound calls, we can call directly to the phone number
+      // Twilio will use the default From number configured in your account
       const params = {
-        To: result.call_data.to,
-        From: result.call_data.from,
+        To: lead.phone,
       };
 
+      console.log('Making WebRTC call to:', lead.phone);
       const outgoingCall = await device.connect({ params });
       setCall(outgoingCall);
 
@@ -188,13 +171,34 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
 
       outgoingCall.on('error', (error) => {
         console.error('Call error:', error);
-        setError(error.message);
+        let errorMessage = error.message;
+        if (error.code === 31486) {
+          errorMessage = 'Call was busy or not answered.';
+        } else if (error.code === 31480) {
+          errorMessage = 'Invalid phone number or call could not be completed.';
+        }
+        setError(errorMessage);
         setCallStatus('error');
         setCall(null);
         onCallEnd?.();
       });
 
       setCallStatus('ringing');
+
+      // Log the call activity in the lead notes
+      try {
+        await fetch(`${baseUrl}/api/leads/${lead.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            notes: `${lead.notes || ''}\n\n[WebRTC Call] Initiated browser call to ${lead.phone} - ${new Date().toISOString()}`
+          }),
+        });
+      } catch (logError) {
+        console.warn('Failed to log call activity:', logError);
+      }
 
     } catch (err) {
       console.error('Call initiation error:', err);
