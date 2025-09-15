@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any, Union
 from email_validator import validate_email, EmailNotValidError
+from twilio.rest import Client as TwilioClient
 
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
