@@ -631,51 +631,86 @@ async def generate_access_token(token_request: AccessTokenRequest):
 
 @app.post("/api/twilio/webrtc-call")
 async def initiate_webrtc_call(call_data: TwilioWebRTCCallRequest):
-    """Initiate a WebRTC call from browser to lead's phone"""
+    """Initiate a WebRTC call using Twilio REST API - Direct connection between agent browser and lead phone"""
     try:
         # Get lead details
         lead = await db.leads.find_one({"id": call_data.lead_id})
         if not lead:
             raise HTTPException(status_code=404, detail="Lead not found")
         
-        # Get Twilio client
-        client = await get_twilio_client(lead["user_id"])
-        if not client:
-            return {
-                "status": "error", 
-                "message": "Twilio not configured. Please add your Twilio credentials in Settings to enable calling.",
-                "setup_instructions": {
-                    "step1": "Go to Settings > Twilio Communication",
-                    "step2": "Add your Twilio Account SID and Auth Token",
-                    "step3": "Add your Twilio phone number",
-                    "step4": "Save settings and try calling again"
-                }
-            }
-        
         # Get user's Twilio settings
         settings = await db.settings.find_one({"user_id": lead["user_id"]})
-        twilio_phone = settings.get("twilio_phone_number")
+        if not settings:
+            return {"status": "error", "message": "User settings not found"}
         
-        if not twilio_phone:
-            raise HTTPException(status_code=400, detail="Twilio phone number not configured. Please add your Twilio phone number in Settings.")
+        account_sid = settings.get("twilio_account_sid")
+        auth_token = settings.get("twilio_auth_token")
+        twilio_phone = settings.get("twilio_phone_number")
+        api_key = settings.get("twilio_api_key")
+        api_secret = settings.get("twilio_api_secret")
+        
+        # Check required credentials
+        if not all([account_sid, auth_token, twilio_phone, api_key, api_secret]):
+            missing = []
+            if not account_sid: missing.append("Account SID")
+            if not auth_token: missing.append("Auth Token")
+            if not twilio_phone: missing.append("Phone Number")
+            if not api_key: missing.append("API Key SID")
+            if not api_secret: missing.append("API Key Secret")
+            
+            return {
+                "status": "error",
+                "message": f"Missing Twilio credentials: {', '.join(missing)}",
+                "setup_required": True
+            }
         
         if not lead.get("phone"):
-            raise HTTPException(status_code=400, detail="Lead has no phone number")
+            return {"status": "error", "message": "Lead has no phone number"}
         
-        # For WebRTC calls, we return the lead's phone number for the frontend to dial directly
+        # Get Twilio client for REST API calls
+        client = await get_twilio_client(lead["user_id"])
+        if not client:
+            return {"status": "error", "message": "Failed to initialize Twilio client"}
+        
+        # Create TwiML URL with parameters for WebRTC connection
+        base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://ai-agent-comm.preview.emergentagent.com')
+        agent_identity = f"agent_{lead['user_id']}"
+        
+        # URL encode parameters for TwiML endpoint
+        from urllib.parse import quote
+        twiml_url = f"{base_url}/api/twiml/outbound-call?agent_identity={quote(agent_identity)}&lead_phone={quote(lead['phone'])}"
+        
+        print(f"Initiating WebRTC call: {twilio_phone} → {lead['phone']} → WebRTC client {agent_identity}")
+        print(f"TwiML URL: {twiml_url}")
+        
+        # Use Twilio REST API to create outbound call
+        call = client.calls.create(
+            from_=twilio_phone,           # Your Twilio phone number
+            to=lead["phone"],             # Lead's phone number  
+            url=twiml_url,                # Our TwiML endpoint that connects to WebRTC client
+            method='GET'
+        )
+        
+        # Log the WebRTC call activity
+        current_notes = lead.get('notes', '')
+        new_note = f"\n\n[WebRTC Call] Browser call initiated - Twilio: {twilio_phone} → Lead: {lead['phone']} → Agent Browser - {datetime.now().isoformat()}"
+        await db.leads.update_one(
+            {"id": call_data.lead_id},
+            {"$set": {"notes": current_notes + new_note}}
+        )
+        
         return {
             "status": "success",
-            "message": "WebRTC call data prepared",
-            "call_data": {
-                "to": lead["phone"],
-                "from": twilio_phone,
-                "lead_name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
-            }
+            "call_sid": call.sid,
+            "message": "WebRTC call initiated successfully. The lead will receive a call and be connected to your browser.",
+            "call_flow": f"Twilio calls {lead['phone']} → Lead answers → Connected to your browser microphone/speakers",
+            "agent_identity": agent_identity,
+            "lead_phone": lead["phone"]
         }
         
     except Exception as e:
-        print(f"WebRTC call preparation error: {e}")
-        return {"status": "error", "message": str(e)}
+        print(f"WebRTC call initiation error: {e}")
+        return {"status": "error", "message": f"Call failed: {str(e)}"}
 
 @app.get("/api/twilio/voice")
 @app.post("/api/twilio/voice")
