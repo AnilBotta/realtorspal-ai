@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getSettings, saveSettings } from "../api";
-import { Copy, Check, Globe, Share2, Zap, Bot, Activity, CheckCircle, AlertCircle, Clock, Code, Key, Database, X } from "lucide-react";
+import { Copy, Check, Globe, Share2, Zap, Bot, Activity, CheckCircle, AlertCircle, Clock, Code, Key, Database, X, Phone } from "lucide-react";
 
 export default function Settings({ user }){
   const [form, setForm] = useState({ 
@@ -10,7 +10,11 @@ export default function Settings({ user }){
     webhook_enabled: false,
     facebook_webhook_verify_token: "",
     generic_webhook_enabled: false,
-    api_key: ""
+    api_key: "",
+    twilio_account_sid: "",
+    twilio_auth_token: "",
+    twilio_phone_number: "",
+    twilio_whatsapp_number: ""
   });
   const [copiedWebhook, setCopiedWebhook] = useState(null);
   const [showApiModal, setShowApiModal] = useState(false);
