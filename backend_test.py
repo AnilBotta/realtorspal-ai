@@ -1493,6 +1493,9 @@ def main():
         elif sys.argv[1] == "--webrtc-only":
             tester = RealtorsPalAPITester()
             success = tester.run_webrtc_tests_only()
+        elif sys.argv[1] == "--webrtc-review":
+            tester = RealtorsPalAPITester()
+            success = tester.run_webrtc_review_tests()
         else:
             tester = RealtorsPalAPITester()
             success = tester.run_all_tests()
