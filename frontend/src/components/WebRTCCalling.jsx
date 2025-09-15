@@ -459,13 +459,22 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
       {callStatus === 'error' && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
           <div className="text-xs text-yellow-800">
-            <strong>WebRTC Requirements:</strong>
-            <ul className="mt-1 space-y-1">
-              <li>• Chrome, Firefox, or Safari browser</li>
-              <li>• Allow microphone access when prompted</li>
-              <li>• Stable internet connection</li>
-              <li>• Twilio credentials configured in Settings</li>
-            </ul>
+            <strong>WebRTC Issue:</strong>
+            <div className="mt-1 whitespace-pre-line text-xs">
+              {error}
+            </div>
+            <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
+              <strong>Alternative:</strong> Try using "Voice Bridge" calling method instead, which works with basic Twilio credentials.
+            </div>
+            <div className="mt-2">
+              <strong>WebRTC Requirements:</strong>
+              <ul className="mt-1 space-y-1">
+                <li>• Chrome, Firefox, or Safari browser</li>
+                <li>• Allow microphone access when prompted</li>
+                <li>• Stable internet connection</li>
+                <li>• Twilio API Keys (advanced setup required)</li>
+              </ul>
+            </div>
           </div>
         </div>
       )}
