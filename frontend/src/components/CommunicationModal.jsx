@@ -37,7 +37,7 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
   const getTitle = () => {
     switch (type) {
       case 'call':
-        return 'Make Call';
+        return callMode === 'webrtc' ? 'WebRTC Call' : 'Make Call';
       case 'sms':
         return 'Send SMS';
       case 'whatsapp':
@@ -50,7 +50,9 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
   const getIcon = () => {
     switch (type) {
       case 'call':
-        return <Phone size={20} className="text-blue-600" />;
+        return callMode === 'webrtc' ? 
+          <Headphones size={20} className="text-purple-600" /> : 
+          <Phone size={20} className="text-blue-600" />;
       case 'sms':
         return <MessageSquare size={20} className="text-green-600" />;
       case 'whatsapp':
