@@ -366,7 +366,27 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
             <span className="text-orange-600">🟡 Initializing WebRTC...</span>
           )}
         </div>
+        {callStatus === 'idle' && device && (
+          <div className="text-xs text-gray-400 mt-1">
+            Make sure your microphone is working and speakers are on
+          </div>
+        )}
       </div>
+
+      {/* WebRTC Requirements Info */}
+      {callStatus === 'error' && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <div className="text-xs text-yellow-800">
+            <strong>WebRTC Requirements:</strong>
+            <ul className="mt-1 space-y-1">
+              <li>• Chrome, Firefox, or Safari browser</li>
+              <li>• Allow microphone access when prompted</li>
+              <li>• Stable internet connection</li>
+              <li>• Twilio credentials configured in Settings</li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
