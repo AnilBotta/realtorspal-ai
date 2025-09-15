@@ -391,6 +391,27 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
         )}
       </div>
 
+      {/* Twilio Setup Instructions */}
+      {callStatus === 'demo_mode' && (
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <div className="text-sm font-medium text-orange-800 mb-2">
+            🔧 Twilio Setup Required
+          </div>
+          <div className="text-xs text-orange-700 space-y-1">
+            <div><strong>1.</strong> Sign up at <a href="https://www.twilio.com/console" target="_blank" rel="noopener noreferrer" className="underline">Twilio Console</a></div>
+            <div><strong>2.</strong> Get your Account SID and Auth Token</div>
+            <div><strong>3.</strong> Purchase a Twilio phone number</div>
+            <div><strong>4.</strong> Add credentials in Settings → Twilio Communication</div>
+          </div>
+          <button
+            onClick={() => window.open('/settings', '_blank')}
+            className="mt-2 px-3 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 transition-colors"
+          >
+            Open Settings
+          </button>
+        </div>
+      )}
+
       {/* WebRTC Requirements Info */}
       {callStatus === 'error' && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
