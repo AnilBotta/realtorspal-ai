@@ -478,6 +478,85 @@ async def get_twilio_client(user_id: str) -> Optional[TwilioClient]:
         
     return TwilioClient(account_sid, auth_token)
 
+@app.post("/api/twilio/access-token")
+async def generate_access_token(token_request: AccessTokenRequest):
+    """Generate Twilio access token for WebRTC calling"""
+    try:
+        # Get user settings
+        settings = await db.settings.find_one({"user_id": token_request.user_id})
+        if not settings:
+            raise HTTPException(status_code=400, detail="User settings not found")
+        
+        account_sid = settings.get("twilio_account_sid")
+        auth_token = settings.get("twilio_auth_token")
+        
+        if not account_sid or not auth_token:
+            raise HTTPException(status_code=400, detail="Twilio credentials not configured")
+        
+        # Import Twilio components for access token
+        from twilio.jwt.access_token import AccessToken
+        from twilio.jwt.access_token.grants import VoiceGrant
+        
+        # Create access token
+        token = AccessToken(account_sid, settings.get("twilio_api_key", account_sid), auth_token)
+        token.identity = f"agent_{token_request.user_id}"
+        
+        # Create voice grant
+        voice_grant = VoiceGrant(
+            outgoing_application_sid=settings.get("twilio_app_sid"),  # We'll need to create a TwiML app
+            incoming_allow=True
+        )
+        token.add_grant(voice_grant)
+        
+        return {
+            "status": "success", 
+            "token": token.to_jwt(),
+            "identity": token.identity
+        }
+        
+    except Exception as e:
+        print(f"Access token generation error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/twilio/webrtc-call")
+async def initiate_webrtc_call(call_data: TwilioWebRTCCallRequest):
+    """Initiate a WebRTC call from browser to lead's phone"""
+    try:
+        # Get lead details
+        lead = await db.leads.find_one({"id": call_data.lead_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Get Twilio client
+        client = await get_twilio_client(lead["user_id"])
+        if not client:
+            raise HTTPException(status_code=400, detail="Twilio not configured. Please add your Twilio credentials in Settings.")
+        
+        # Get user's Twilio settings
+        settings = await db.settings.find_one({"user_id": lead["user_id"]})
+        twilio_phone = settings.get("twilio_phone_number")
+        
+        if not twilio_phone:
+            raise HTTPException(status_code=400, detail="Twilio phone number not configured. Please add your Twilio phone number in Settings.")
+        
+        if not lead.get("phone"):
+            raise HTTPException(status_code=400, detail="Lead has no phone number")
+        
+        # For WebRTC calls, we return the lead's phone number for the frontend to dial directly
+        return {
+            "status": "success",
+            "message": "WebRTC call data prepared",
+            "call_data": {
+                "to": lead["phone"],
+                "from": twilio_phone,
+                "lead_name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+            }
+        }
+        
+    except Exception as e:
+        print(f"WebRTC call preparation error: {e}")
+        return {"status": "error", "message": str(e)}
+
 @app.get("/api/twilio/voice")
 @app.post("/api/twilio/voice")
 async def voice_webhook(request: Request):
