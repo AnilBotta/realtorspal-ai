@@ -137,9 +137,56 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
         setCallStatus('error');
       });
 
-      twilioDevice.on('incoming', (call) => {
-        console.log('Incoming call received:', call);
-        // Handle incoming calls if needed
+      twilioDevice.on('incoming', (incomingCall) => {
+        console.log('Incoming WebRTC call received:', incomingCall);
+        
+        // This is the call from the lead (routed through our TwiML)
+        setCall(incomingCall);
+        setCallStatus('ringing');
+        
+        // Auto-accept the incoming call since we initiated it
+        incomingCall.accept();
+        
+        // Set up call event listeners
+        incomingCall.on('accept', () => {
+          console.log('WebRTC call connected');
+          setCallStatus('connected');
+          onCallStart?.();
+        });
+
+        incomingCall.on('disconnect', () => {
+          console.log('WebRTC call disconnected');
+          setCallStatus('idle');
+          setCall(null);
+          onCallEnd?.();
+        });
+
+        incomingCall.on('cancel', () => {
+          console.log('WebRTC call cancelled');
+          setCallStatus('idle');
+          setCall(null);
+          onCallEnd?.();
+        });
+
+        incomingCall.on('error', (error) => {
+          console.error('WebRTC call error:', error);
+          let errorMessage = 'Call failed';
+          
+          if (error && typeof error === 'object') {
+            if (error.message) {
+              errorMessage = error.message;
+            } else if (error.description) {
+              errorMessage = error.description;
+            }
+          } else if (typeof error === 'string') {
+            errorMessage = error;
+          }
+          
+          setError(errorMessage);
+          setCallStatus('error');
+          setCall(null);
+          onCallEnd?.();
+        });
       });
 
       // Register the device
