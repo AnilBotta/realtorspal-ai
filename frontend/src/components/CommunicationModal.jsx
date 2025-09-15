@@ -217,17 +217,26 @@ export default function CommunicationModal({ open, lead, type, onClose }) {
                 {!callResult && (
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {type === 'call' ? 'Call Message' : 'Message'}
+                      {type === 'call' ? 'Bridge Message' : 'Message'}
                     </label>
                     <textarea
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       rows={type === 'call' ? 2 : 4}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                      placeholder={type === 'call' ? 'Message to play during call...' : 'Type your message...'}
+                      placeholder={type === 'call' ? 'Message to play before connecting to agent...' : 'Type your message...'}
                     />
                     <div className="text-xs text-gray-500 mt-1">
-                      {message.length}/160 characters
+                      {type === 'call' ? 'This message will play to the lead before connecting them to you' : `${message.length}/160 characters`}
+                    </div>
+                  </div>
+                )}
+
+                {/* Call Flow Info */}
+                {type === 'call' && !callResult && (
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <div className="text-xs text-blue-700">
+                      📞 <strong>Voice Bridge:</strong> The lead will receive a call, hear your message, then be connected directly to you for a live conversation.
                     </div>
                   </div>
                 )}
