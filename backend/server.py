@@ -481,17 +481,21 @@ async def voice_webhook(request: Request):
         
         # Get the agent phone and message from the webhook parameters
         agent_phone = params.get('agent_phone')
-        message = params.get('message', 'Connecting you to your real estate agent now.')
+        encoded_message = params.get('message', 'Connecting you to your real estate agent now.')
         lead_phone = params.get('lead_phone')
         
-        print(f"Voice webhook called: agent_phone={agent_phone}, lead_phone={lead_phone}")
+        # URL decode the message
+        from urllib.parse import unquote
+        message = unquote(encoded_message)
+        
+        print(f"Voice webhook called: agent_phone={agent_phone}, lead_phone={lead_phone}, message={message}")
         
         # Generate TwiML response
         twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="alice">{message}</Say>
     <Dial callerId="+{agent_phone if agent_phone else '12894012412'}" timeout="30" timeLimit="3600">
-        {agent_phone if agent_phone else '+12894012412'}
+        +{agent_phone if agent_phone else '12894012412'}
     </Dial>
     <Say voice="alice">The call could not be connected. Please try again later.</Say>
 </Response>"""
