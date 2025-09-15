@@ -1098,6 +1098,42 @@ class RealtorsPalAPITester:
             self.log_test("Twilio WebRTC Call Invalid Lead", False, f"Exception: {str(e)}")
             return False
 
+    def run_webrtc_tests_only(self) -> bool:
+        """Run only the WebRTC calling functionality tests"""
+        print("🚀 Starting WebRTC Calling Functionality Tests")
+        print(f"📍 Base URL: {self.base_url}")
+        print("=" * 60)
+        
+        # First get authentication
+        if not self.test_health():
+            return False
+        if not self.test_login():
+            return False
+        
+        # Run WebRTC-specific tests
+        webrtc_tests = [
+            self.test_twilio_access_token_with_valid_credentials,
+            self.test_twilio_access_token_missing_credentials,
+            self.test_twilio_webrtc_call_preparation,
+            self.test_twilio_webrtc_call_missing_credentials,
+            self.test_twilio_webrtc_call_invalid_lead,
+        ]
+        
+        webrtc_tests_passed = 0
+        for test in webrtc_tests:
+            if test():
+                webrtc_tests_passed += 1
+        
+        print("=" * 60)
+        print(f"📊 WebRTC Tests Results: {webrtc_tests_passed}/{len(webrtc_tests)} tests passed")
+        
+        if webrtc_tests_passed == len(webrtc_tests):
+            print("🎉 All WebRTC calling tests PASSED!")
+            return True
+        else:
+            print("⚠️  Some WebRTC calling tests FAILED!")
+            return False
+
     def run_import_tests_only(self) -> bool:
         """Run only the lead import functionality tests"""
         print("🚀 Starting Lead Import Functionality Tests")
