@@ -81,6 +81,15 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
         return;
       }
       
+      if (result.status === 'error') {
+        // Handle API error response
+        let errorMsg = result.message || 'Failed to get access token';
+        if (result.troubleshooting) {
+          errorMsg += '\n\nSuggestion: Try using Voice Bridge calling instead.';
+        }
+        throw new Error(errorMsg);
+      }
+      
       if (result.status !== 'success') {
         throw new Error(result.message || 'Failed to get access token');
       }
