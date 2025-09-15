@@ -89,7 +89,7 @@ function displayName(lead){
   return composed || lead.name || 'Lead';
 }
 
-function LeadCard({ lead, onOpen, dragHandle }){
+function LeadCard({ lead, onOpen, onCommunicate, dragHandle }){
   const nameToShow = displayName(lead);
   const stage = lead.stage || 'New';
   const propertyType = lead.property_type || (stage === 'Contacted' ? 'Townhouse' : '3BR Condo');
@@ -119,21 +119,38 @@ function LeadCard({ lead, onOpen, dragHandle }){
       </div>
 
       <div className="mt-3 space-y-1.5 text-xs text-slate-600">
-        <div className="flex items-center gap-2"><DollarSign size={14} className="text-slate-400"/> {`$ ${Math.round(priceMin/1000)}K - $ ${Math.round(priceMax/1000)}K`}</div>
-        <div className="flex items-center gap-2"><MapPin size={14} className="text-slate-400"/> {neighborhood}</div>
-        <div className="flex items-center gap-2"><Calendar size={14} className="text-slate-400"/> Created: {createdAt}</div>
+        <div className="flex items-center gap-1"><DollarSign size={12}/> ${priceMin?.toLocaleString()} - ${priceMax?.toLocaleString()}</div>
+        <div className="flex items-center gap-1"><MapPin size={12}/> {neighborhood}</div>
+        <div className="flex items-center gap-1"><Calendar size={12}/> {createdAt}</div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        {tags.map(t => (
-          <span key={t} className="text-[11px] px-2 py-1 rounded-md border bg-slate-50 text-slate-700">{t}</span>
-        ))}
+      <div className="mt-3 flex items-center justify-between">
+        <div className="flex flex-wrap gap-1">
+          {tags.slice(0,2).map((tag,idx) => (
+            <span key={idx} className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">{tag}</span>
+          ))}
+        </div>
       </div>
 
       <div className="mt-3 flex items-center gap-2 text-xs">
-        <button className="px-2 py-1 rounded border flex items-center gap-1" onClick={() => onOpen(lead)}><Phone size={14}/> Call</button>
-        <button className="px-2 py-1 rounded border flex items-center gap-1" onClick={() => onOpen(lead)}><Mail size={14}/> Email</button>
-        <button className="px-2 py-1 rounded border flex items-center gap-1" onClick={() => onOpen(lead)}><MessageSquare size={14}/> SMS</button>
+        <button 
+          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-blue-50 hover:border-blue-200" 
+          onClick={(e) => { e.stopPropagation(); onCommunicate(lead, 'call'); }}
+        >
+          <Phone size={14}/> Call
+        </button>
+        <button 
+          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-gray-50" 
+          onClick={() => onOpen(lead)}
+        >
+          <Mail size={14}/> Email
+        </button>
+        <button 
+          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-green-50 hover:border-green-200" 
+          onClick={(e) => { e.stopPropagation(); onCommunicate(lead, 'sms'); }}
+        >
+          <MessageSquare size={14}/> SMS
+        </button>
       </div>
     </div>
   );
