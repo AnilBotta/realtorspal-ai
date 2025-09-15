@@ -352,7 +352,7 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
         ) : null}
 
         {/* Mute Button */}
-        {(callStatus === 'connected' || callStatus === 'ringing') && (
+        {callStatus === 'connected' && (
           <button
             onClick={toggleMute}
             className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
@@ -366,7 +366,7 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
         )}
 
         {/* Speaker Button */}
-        {(callStatus === 'connected' || callStatus === 'ringing') && (
+        {callStatus === 'connected' && (
           <button
             onClick={toggleSpeaker}
             className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
