@@ -51,6 +51,18 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
       setCallStatus('connecting');
       setError(null);
 
+      // Check if browser supports WebRTC
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('WebRTC is not supported in this browser. Please use Chrome, Firefox, or Safari.');
+      }
+
+      // Request microphone permission
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (permissionError) {
+        throw new Error('Microphone permission is required for WebRTC calls. Please allow microphone access and try again.');
+      }
+
       // Get access token from backend
       const response = await fetch(`${baseUrl}/api/twilio/access-token`, {
         method: 'POST',
@@ -70,6 +82,8 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
       const twilioDevice = new Device(result.token, {
         logLevel: 1,
         codecPreferences: ['opus', 'pcmu'],
+        enableRingingState: true,
+        edge: ['sydney', 'singapore', 'tokyo'] // Use closest edge locations
       });
 
       // Device event listeners
@@ -82,7 +96,13 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
 
       twilioDevice.on('error', (error) => {
         console.error('Twilio Device error:', error);
-        setError(error.message);
+        let errorMessage = error.message;
+        if (error.code === 31208) {
+          errorMessage = 'Unable to connect to Twilio. Please check your internet connection.';
+        } else if (error.code === 31400) {
+          errorMessage = 'Invalid access token. Please check your Twilio configuration in Settings.';
+        }
+        setError(errorMessage);
         setCallStatus('error');
       });
 
