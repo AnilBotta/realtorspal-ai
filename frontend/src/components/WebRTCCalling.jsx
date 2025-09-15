@@ -196,12 +196,28 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
 
       outgoingCall.on('error', (error) => {
         console.error('Call error:', error);
-        let errorMessage = error.message;
-        if (error.code === 31486) {
+        let errorMessage = 'Call failed';
+        
+        // Handle error object properly
+        if (error && typeof error === 'object') {
+          if (error.message) {
+            errorMessage = error.message;
+          } else if (error.description) {
+            errorMessage = error.description;
+          } else if (error.toString) {
+            errorMessage = error.toString();
+          }
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+        
+        // Provide specific error messages for common call issues
+        if (errorMessage.includes('31486')) {
           errorMessage = 'Call was busy or not answered.';
-        } else if (error.code === 31480) {
+        } else if (errorMessage.includes('31480')) {
           errorMessage = 'Invalid phone number or call could not be completed.';
         }
+        
         setError(errorMessage);
         setCallStatus('error');
         setCall(null);
