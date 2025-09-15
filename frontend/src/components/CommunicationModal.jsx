@@ -311,7 +311,7 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
                     {callResult ? 'Close' : 'Cancel'}
                   </button>
                   
-                  {!callResult && (
+                  {!callResult && ((type === 'call' && callMode === 'bridge') || type !== 'call') && (
                     <button
                       onClick={handleCommunication}
                       disabled={sending || !message.trim()}
@@ -328,7 +328,7 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
                       )}
                       {sending 
                         ? (type === 'call' ? 'Calling...' : 'Sending...') 
-                        : (type === 'call' ? 'Start Call' : 'Send Message')
+                        : (type === 'call' ? 'Start Bridge Call' : 'Send Message')
                       }
                     </button>
                   )}
