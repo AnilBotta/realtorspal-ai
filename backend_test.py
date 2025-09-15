@@ -1098,6 +1098,211 @@ class RealtorsPalAPITester:
             self.log_test("Twilio WebRTC Call Invalid Lead", False, f"Exception: {str(e)}")
             return False
 
+    def test_webrtc_access_token_demo_user(self) -> bool:
+        """Test /api/twilio/access-token with demo user ID to check setup_required response"""
+        # Use the specific demo user ID from the review request
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, clear any existing Twilio credentials to simulate unconfigured state
+            settings_payload = {
+                "user_id": demo_user_id,
+                "twilio_account_sid": None,
+                "twilio_auth_token": None,
+                "twilio_phone_number": None,
+                "twilio_api_key": None,
+                "twilio_api_secret": None
+            }
+            settings_response = requests.post(f"{self.base_url}/settings", json=settings_payload, timeout=10)
+            
+            if settings_response.status_code != 200:
+                self.log_test("WebRTC Access Token Demo User", False, f"Failed to clear Twilio settings: {settings_response.text}")
+                return False
+            
+            # Test access token generation with demo user
+            payload = {"user_id": demo_user_id}
+            response = requests.post(f"{self.base_url}/twilio/access-token", json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                # Should show setup_required since API keys aren't configured
+                if data.get("status") == "setup_required":
+                    missing_fields = data.get("message", "")
+                    setup_instructions = data.get("setup_instructions", {})
+                    
+                    self.log_test("WebRTC Access Token Demo User", True, 
+                                f"Setup required response received as expected. Missing: {missing_fields}. "
+                                f"Instructions provided: {len(setup_instructions)} steps")
+                    return True
+                elif data.get("status") == "error":
+                    # Also acceptable - error response for missing credentials
+                    self.log_test("WebRTC Access Token Demo User", True, 
+                                f"Error response for missing credentials: {data.get('message', '')}")
+                    return True
+                else:
+                    self.log_test("WebRTC Access Token Demo User", False, 
+                                f"Expected setup_required or error status, got: {data}")
+                    return False
+            else:
+                self.log_test("WebRTC Access Token Demo User", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("WebRTC Access Token Demo User", False, f"Exception: {str(e)}")
+            return False
+
+    def test_webrtc_call_initiation_missing_credentials(self) -> bool:
+        """Test /api/twilio/webrtc-call with lead ID to check missing credentials handling"""
+        # Use the specific demo user ID from the review request
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, ensure Twilio credentials are cleared
+            settings_payload = {
+                "user_id": demo_user_id,
+                "twilio_account_sid": None,
+                "twilio_auth_token": None,
+                "twilio_phone_number": None,
+                "twilio_api_key": None,
+                "twilio_api_secret": None
+            }
+            settings_response = requests.post(f"{self.base_url}/settings", json=settings_payload, timeout=10)
+            
+            if settings_response.status_code != 200:
+                self.log_test("WebRTC Call Initiation Missing Credentials", False, f"Failed to clear Twilio settings: {settings_response.text}")
+                return False
+            
+            # Create a test lead for the demo user
+            timestamp = int(time.time()) + 200
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "WebRTC",
+                "last_name": "InitTest",
+                "email": f"webrtc.init.{timestamp}@example.com",
+                "phone": "+14155557777",
+                "property_type": "House"
+            }
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            
+            if lead_response.status_code != 200:
+                self.log_test("WebRTC Call Initiation Missing Credentials", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            lead_id = lead_data.get("id")
+            
+            # Test WebRTC call initiation with missing credentials
+            webrtc_payload = {
+                "lead_id": lead_id,
+                "message": "Test WebRTC call initiation"
+            }
+            response = requests.post(f"{self.base_url}/twilio/webrtc-call", json=webrtc_payload, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "error" and 
+                    ("Missing Twilio credentials" in data.get("message", "") or 
+                     "Twilio not configured" in data.get("message", "") or
+                     data.get("setup_required") == True)):
+                    
+                    self.log_test("WebRTC Call Initiation Missing Credentials", True, 
+                                f"Proper error handling for missing credentials: {data.get('message', '')}")
+                    return True
+                else:
+                    self.log_test("WebRTC Call Initiation Missing Credentials", False, 
+                                f"Unexpected response for missing credentials: {data}")
+                    return False
+            else:
+                self.log_test("WebRTC Call Initiation Missing Credentials", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("WebRTC Call Initiation Missing Credentials", False, f"Exception: {str(e)}")
+            return False
+
+    def test_twiml_outbound_call_endpoint(self) -> bool:
+        """Test GET /api/twiml/outbound-call with test parameters"""
+        try:
+            # Test GET request with query parameters
+            params = {
+                "agent_identity": "agent_03f82986-51af-460c-a549-1c5077e67fb0",
+                "lead_phone": "+14155551234"
+            }
+            response = requests.get(f"{self.base_url}/twiml/outbound-call", params=params, timeout=10)
+            
+            if response.status_code == 200:
+                content = response.text
+                content_type = response.headers.get('content-type', '')
+                
+                # Should return XML TwiML response
+                if ('application/xml' in content_type or 'text/xml' in content_type) and '<?xml' in content:
+                    # Check for expected TwiML elements
+                    if ('<Response>' in content and 
+                        '<Say' in content and 
+                        '<Dial' in content and 
+                        '<Client>' in content and
+                        'agent_03f82986-51af-460c-a549-1c5077e67fb0' in content):
+                        
+                        self.log_test("TwiML Outbound Call Endpoint", True, 
+                                    f"Valid TwiML response received. Content-Type: {content_type}")
+                        return True
+                    else:
+                        self.log_test("TwiML Outbound Call Endpoint", False, 
+                                    f"TwiML missing expected elements. Content: {content[:200]}...")
+                        return False
+                else:
+                    self.log_test("TwiML Outbound Call Endpoint", False, 
+                                f"Expected XML response, got: {content_type}. Content: {content[:200]}...")
+                    return False
+            else:
+                self.log_test("TwiML Outbound Call Endpoint", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("TwiML Outbound Call Endpoint", False, f"Exception: {str(e)}")
+            return False
+
+    def test_twiml_client_incoming_endpoint(self) -> bool:
+        """Test GET /api/twiml/client-incoming with test parameters"""
+        try:
+            # Test GET request with query parameters
+            params = {
+                "From": "+14155559999"
+            }
+            response = requests.get(f"{self.base_url}/twiml/client-incoming", params=params, timeout=10)
+            
+            if response.status_code == 200:
+                content = response.text
+                content_type = response.headers.get('content-type', '')
+                
+                # Should return XML TwiML response
+                if ('application/xml' in content_type or 'text/xml' in content_type) and '<?xml' in content:
+                    # Check for expected TwiML elements
+                    if ('<Response>' in content and 
+                        '<Say' in content and 
+                        '<Dial' in content and 
+                        '<Number>' in content and
+                        '+14155559999' in content):
+                        
+                        self.log_test("TwiML Client Incoming Endpoint", True, 
+                                    f"Valid TwiML response received. Content-Type: {content_type}")
+                        return True
+                    else:
+                        self.log_test("TwiML Client Incoming Endpoint", False, 
+                                    f"TwiML missing expected elements. Content: {content[:200]}...")
+                        return False
+                else:
+                    self.log_test("TwiML Client Incoming Endpoint", False, 
+                                f"Expected XML response, got: {content_type}. Content: {content[:200]}...")
+                    return False
+            else:
+                self.log_test("TwiML Client Incoming Endpoint", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("TwiML Client Incoming Endpoint", False, f"Exception: {str(e)}")
+            return False
+
     def run_webrtc_tests_only(self) -> bool:
         """Run only the WebRTC calling functionality tests"""
         print("🚀 Starting WebRTC Calling Functionality Tests")
