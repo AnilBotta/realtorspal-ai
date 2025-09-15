@@ -251,6 +251,17 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
                         Voice Bridge
                       </button>
                       <button
+                        onClick={() => setCallMode('simple')}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          callMode === 'simple' 
+                            ? 'bg-green-100 text-green-700 border-2 border-green-300' 
+                            : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                        }`}
+                      >
+                        <Zap size={16} className="inline mr-1" />
+                        WebRTC (Simple)
+                      </button>
+                      <button
                         onClick={() => setCallMode('webrtc')}
                         className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                           callMode === 'webrtc' 
@@ -259,19 +270,41 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
                         }`}
                       >
                         <Headphones size={16} className="inline mr-1" />
-                        WebRTC Call
+                        WebRTC (Full)
                       </button>
                     </div>
                     <div className="text-xs text-gray-500 mt-2">
                       {callMode === 'bridge' 
                         ? 'Lead receives call, hears message, then connected to your phone'
-                        : 'Call directly from your browser with microphone and speakers'
+                        : callMode === 'simple'
+                        ? 'REST API call - Lead receives call and is connected to your browser (simpler setup)'
+                        : 'Full WebRTC - Call directly from browser with microphone and speakers (requires API keys)'
                       }
                     </div>
                   </div>
                 )}
 
-                {/* WebRTC Calling Interface */}
+                {/* Simple WebRTC Interface */}
+                {type === 'call' && callMode === 'simple' && !callResult && (
+                  <div className="mb-4">
+                    <SimpleWebRTCCall 
+                      user={user} 
+                      lead={lead}
+                      onCallStart={() => {
+                        setCallResult({
+                          status: 'success',
+                          message: 'Simple WebRTC call initiated successfully',
+                          type: 'simple_webrtc'
+                        });
+                      }}
+                      onCallEnd={() => {
+                        // Keep modal open for call summary if needed
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Full WebRTC Calling Interface */}
                 {type === 'call' && callMode === 'webrtc' && !callResult && (
                   <div className="mb-4">
                     <WebRTCCalling 
