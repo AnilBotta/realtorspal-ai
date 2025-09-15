@@ -689,6 +689,10 @@ class SaveSettingsRequest(BaseModel):
     facebook_webhook_verify_token: Optional[str] = None
     generic_webhook_enabled: Optional[bool] = None
     api_key: Optional[str] = None
+    twilio_account_sid: Optional[str] = None
+    twilio_auth_token: Optional[str] = None
+    twilio_phone_number: Optional[str] = None
+    twilio_whatsapp_number: Optional[str] = None
 
 @app.post("/api/settings", response_model=Settings)
 async def save_settings(payload: SaveSettingsRequest):
