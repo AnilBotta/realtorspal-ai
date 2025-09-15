@@ -162,6 +162,10 @@ class Settings(BaseModel):
     facebook_webhook_verify_token: Optional[str] = None
     generic_webhook_enabled: Optional[bool] = False
     api_key: Optional[str] = None  # API key for external integrations
+    twilio_account_sid: Optional[str] = None
+    twilio_auth_token: Optional[str] = None
+    twilio_phone_number: Optional[str] = None
+    twilio_whatsapp_number: Optional[str] = None
 
 class AnalyticsDashboard(BaseModel):
     total_leads: int
