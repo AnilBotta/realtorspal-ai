@@ -5,7 +5,7 @@ import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2 } from 'lucide-
 const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
   const [device, setDevice] = useState(null);
   const [call, setCall] = useState(null);
-  const [callStatus, setCallStatus] = useState('idle'); // idle, connecting, ringing, connected, error, demo_mode
+  const [callStatus, setCallStatus] = useState('idle'); // idle, connecting, ringing, connected, error, setup_required
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const [error, setError] = useState(null);
