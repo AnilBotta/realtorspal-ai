@@ -8,7 +8,7 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [callResult, setCallResult] = useState(null);
-  const [callMode, setCallMode] = useState('bridge'); // 'bridge' or 'webrtc'
+  const [callMode, setCallMode] = useState('simple'); // 'bridge', 'webrtc', 'simple'
 
   const baseUrl = process.env.REACT_APP_BACKEND_URL || 'https://ai-agent-comm.preview.emergentagent.com';
 
