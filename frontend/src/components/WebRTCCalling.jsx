@@ -74,6 +74,13 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
 
       const result = await response.json();
       
+      if (result.status === 'demo_mode') {
+        // Handle demo mode - show setup instructions instead of initializing device
+        setError(null);
+        setCallStatus('demo_mode');
+        return;
+      }
+      
       if (result.status !== 'success') {
         throw new Error(result.message || 'Failed to get access token');
       }
