@@ -449,6 +449,10 @@ class TwilioCallRequest(BaseModel):
     agent_phone: Optional[str] = None  # Agent's phone number to connect to
     message: Optional[str] = "Connecting you to your real estate agent now."
 
+class TwilioWebRTCCallRequest(BaseModel):
+    lead_id: str
+    message: Optional[str] = "Hello, this is your real estate agent calling about your property inquiry."
+
 class TwilioSMSRequest(BaseModel):
     lead_id: str
     message: str
@@ -456,6 +460,9 @@ class TwilioSMSRequest(BaseModel):
 class TwilioWhatsAppRequest(BaseModel):
     lead_id: str
     message: str
+
+class AccessTokenRequest(BaseModel):
+    user_id: str
 
 async def get_twilio_client(user_id: str) -> Optional[TwilioClient]:
     """Get configured Twilio client for user"""
