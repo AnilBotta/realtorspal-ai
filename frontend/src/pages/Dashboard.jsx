@@ -274,6 +274,7 @@ export default function Dashboard({ user }){
 
       <AddLeadModal open={openAdd} onClose={()=>setOpenAdd(false)} onCreate={onCreate} />
       <LeadDrawer open={openDrawer} lead={activeLead} onClose={()=>setOpenDrawer(false)} onSave={()=>{}} onDelete={()=>{}} />
+      <CommunicationModal open={openComm} lead={commLead} type={commType} onClose={closeCommunication} />
     </div>
   );
 }
