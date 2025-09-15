@@ -446,7 +446,8 @@ async def get_lead_external(lead_id: str, api_key: str = Header(..., alias="X-AP
 
 class TwilioCallRequest(BaseModel):
     lead_id: str
-    message: Optional[str] = "Hello, this is a call from your real estate agent."
+    agent_phone: Optional[str] = None  # Agent's phone number to connect to
+    message: Optional[str] = "Connecting you to your real estate agent now."
 
 class TwilioSMSRequest(BaseModel):
     lead_id: str
@@ -470,9 +471,45 @@ async def get_twilio_client(user_id: str) -> Optional[TwilioClient]:
         
     return TwilioClient(account_sid, auth_token)
 
+@app.get("/api/twilio/voice")
+@app.post("/api/twilio/voice")
+async def voice_webhook(request: Request):
+    """Twilio voice webhook that handles incoming calls and creates bridge"""
+    try:
+        # Get query parameters from Twilio
+        params = dict(request.query_params)
+        
+        # Get the agent phone and message from the webhook parameters
+        agent_phone = params.get('agent_phone')
+        message = params.get('message', 'Connecting you to your real estate agent now.')
+        lead_phone = params.get('lead_phone')
+        
+        print(f"Voice webhook called: agent_phone={agent_phone}, lead_phone={lead_phone}")
+        
+        # Generate TwiML response
+        twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">{message}</Say>
+    <Dial callerId="+{agent_phone if agent_phone else '12894012412'}" timeout="30" timeLimit="3600">
+        {agent_phone if agent_phone else '+12894012412'}
+    </Dial>
+    <Say voice="alice">The call could not be connected. Please try again later.</Say>
+</Response>"""
+        
+        return Response(content=twiml_response, media_type="application/xml")
+        
+    except Exception as e:
+        print(f"Voice webhook error: {e}")
+        # Fallback TwiML
+        fallback_twiml = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Sorry, there was an error connecting your call. Please try again later.</Say>
+</Response>"""
+        return Response(content=fallback_twiml, media_type="application/xml")
+
 @app.post("/api/twilio/call")
 async def initiate_call(call_data: TwilioCallRequest):
-    """Initiate a call via Twilio"""
+    """Initiate a call via Twilio with voice bridge"""
     try:
         # Get lead details
         lead = await db.leads.find_one({"id": call_data.lead_id})
@@ -482,41 +519,53 @@ async def initiate_call(call_data: TwilioCallRequest):
         # Get Twilio client
         client = await get_twilio_client(lead["user_id"])
         if not client:
-            raise HTTPException(status_code=400, detail="Twilio not configured")
+            raise HTTPException(status_code=400, detail="Twilio not configured. Please add your Twilio credentials in Settings.")
         
         # Get user's Twilio settings
         settings = await db.settings.find_one({"user_id": lead["user_id"]})
         twilio_phone = settings.get("twilio_phone_number")
         
         if not twilio_phone:
-            raise HTTPException(status_code=400, detail="Twilio phone number not configured")
+            raise HTTPException(status_code=400, detail="Twilio phone number not configured. Please add your Twilio phone number in Settings.")
         
         if not lead.get("phone"):
             raise HTTPException(status_code=400, detail="Lead has no phone number")
         
-        # Create TwiML for the call - simple message
-        from urllib.parse import quote
-        encoded_message = quote(call_data.message)
-        twiml_url = f"http://twimlets.com/message?Message={encoded_message}"
+        # Clean phone numbers (remove + if present for URL params)
+        clean_twilio_phone = twilio_phone.replace('+', '')
+        clean_lead_phone = lead["phone"].replace('+', '')
         
-        # Initiate call using synchronous client
+        # Create voice webhook URL with parameters
+        base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://realtor-lead-hub.preview.emergentagent.com')
+        voice_webhook_url = f"{base_url}/api/twilio/voice?agent_phone={clean_twilio_phone}&lead_phone={clean_lead_phone}&message={call_data.message}"
+        
+        print(f"Initiating call from {twilio_phone} to {lead['phone']} with webhook: {voice_webhook_url}")
+        
+        # Initiate call to the LEAD first, which will then connect to agent
         call = client.calls.create(
             to=lead["phone"],
             from_=twilio_phone,
-            url=twiml_url,
+            url=voice_webhook_url,
             method='GET'
         )
         
         # Log the call activity
+        current_notes = lead.get('notes', '')
+        new_note = f"\n\n[Call] Initiated voice bridge call - Agent: {twilio_phone} → Lead: {lead['phone']} - {datetime.now().isoformat()}"
         await db.leads.update_one(
             {"id": call_data.lead_id},
-            {"$set": {"notes": f"{lead.get('notes', '')}\n\n[Call] Initiated call via Twilio - {datetime.now().isoformat()}"}}
+            {"$set": {"notes": current_notes + new_note}}
         )
         
         return {
             "status": "success",
             "call_sid": call.sid,
-            "message": f"Call initiated to {lead['phone']}"
+            "message": f"Voice bridge call initiated. The lead will receive a call and then be connected to you.",
+            "details": {
+                "lead_phone": lead["phone"],
+                "agent_phone": twilio_phone,
+                "call_flow": "Lead receives call → Hears message → Connected to agent"
+            }
         }
         
     except Exception as e:
