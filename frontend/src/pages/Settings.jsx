@@ -14,7 +14,9 @@ export default function Settings({ user }){
     twilio_account_sid: "",
     twilio_auth_token: "",
     twilio_phone_number: "",
-    twilio_whatsapp_number: ""
+    twilio_whatsapp_number: "",
+    twilio_api_key: "",
+    twilio_api_secret: ""
   });
   const [copiedWebhook, setCopiedWebhook] = useState(null);
   const [showApiModal, setShowApiModal] = useState(false);
