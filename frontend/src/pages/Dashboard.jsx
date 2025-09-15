@@ -189,6 +189,24 @@ export default function Dashboard({ user }){
     }catch(err){ alert(err?.response?.data?.detail || 'Failed to create lead'); }
   };
 
+  const onImported = (inserted) => {
+    if (Array.isArray(inserted) && inserted.length) {
+      setLeads(prev => [...inserted, ...prev]);
+    }
+  };
+
+  const handleCommunication = (lead, type) => {
+    setCommLead(lead);
+    setCommType(type);
+    setOpenComm(true);
+  };
+
+  const closeCommunication = () => {
+    setOpenComm(false);
+    setCommLead(null);
+    setCommType('call');
+  };
+
   const openDetails = (lead) => { setActiveLead(lead); setOpenDrawer(true); };
 
   const moveLeadTo = async (leadId, targetStage) => {
