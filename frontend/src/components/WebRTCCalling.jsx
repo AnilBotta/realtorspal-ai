@@ -335,14 +335,14 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
               <Phone size={24} />
             )}
           </button>
-        ) : callStatus === 'demo_mode' ? (
+        ) : callStatus === 'setup_required' ? (
           <button
             disabled
             className="w-16 h-16 bg-orange-300 rounded-full flex items-center justify-center text-white"
           >
             <Phone size={24} />
           </button>
-        ) : ['ringing', 'connected'].includes(callStatus) ? (
+        ) : ['ringing', 'connected', 'waiting'].includes(callStatus) ? (
           <button
             onClick={hangUp}
             className="w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-colors"
