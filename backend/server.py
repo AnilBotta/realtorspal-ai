@@ -638,7 +638,16 @@ async def initiate_call(call_data: TwilioCallRequest):
         # Get Twilio client
         client = await get_twilio_client(lead["user_id"])
         if not client:
-            raise HTTPException(status_code=400, detail="Twilio not configured. Please add your Twilio credentials in Settings.")
+            return {
+                "status": "error", 
+                "message": "Twilio not configured. Please add your Twilio credentials in Settings to enable calling.",
+                "setup_instructions": {
+                    "step1": "Go to Settings > Twilio Communication",
+                    "step2": "Add your Twilio Account SID and Auth Token",
+                    "step3": "Add your Twilio phone number",
+                    "step4": "Save settings and try calling again"
+                }
+            }
         
         # Get user's Twilio settings
         settings = await db.settings.find_one({"user_id": lead["user_id"]})
