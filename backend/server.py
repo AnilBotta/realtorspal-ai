@@ -491,32 +491,38 @@ async def generate_access_token(token_request: AccessTokenRequest):
         auth_token = settings.get("twilio_auth_token")
         
         if not account_sid or not auth_token:
-            raise HTTPException(status_code=400, detail="Twilio credentials not configured")
+            raise HTTPException(status_code=400, detail="Twilio credentials not configured. Please add your Twilio Account SID and Auth Token in Settings.")
         
         # Import Twilio components for access token
         from twilio.jwt.access_token import AccessToken
         from twilio.jwt.access_token.grants import VoiceGrant
         
+        # For WebRTC calls, we need to use the Account SID as the API Key for simplicity
+        # In production, you'd want to create separate API Keys
+        api_key = account_sid
+        api_secret = auth_token
+        
         # Create access token
-        token = AccessToken(account_sid, settings.get("twilio_api_key", account_sid), auth_token)
+        token = AccessToken(account_sid, api_key, api_secret)
         token.identity = f"agent_{token_request.user_id}"
         
-        # Create voice grant
+        # Create voice grant - for outbound calls we don't need an application SID
         voice_grant = VoiceGrant(
-            outgoing_application_sid=settings.get("twilio_app_sid"),  # We'll need to create a TwiML app
-            incoming_allow=True
+            incoming_allow=False,  # We only need outbound calls for now
+            outgoing_application_sid=None  # None means use default TwiML
         )
         token.add_grant(voice_grant)
         
         return {
             "status": "success", 
             "token": token.to_jwt(),
-            "identity": token.identity
+            "identity": token.identity,
+            "expires_in": 3600  # 1 hour
         }
         
     except Exception as e:
         print(f"Access token generation error: {e}")
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": f"Failed to generate access token: {str(e)}"}
 
 @app.post("/api/twilio/webrtc-call")
 async def initiate_webrtc_call(call_data: TwilioWebRTCCallRequest):
