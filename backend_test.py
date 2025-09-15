@@ -820,6 +820,284 @@ class RealtorsPalAPITester:
             self.log_test("Delete All Import Workflow", False, f"Exception during workflow: {str(e)}")
             return False
 
+    def test_twilio_access_token_with_valid_credentials(self) -> bool:
+        """Test POST /api/twilio/access-token with valid Twilio credentials"""
+        # Use the specific demo user ID as requested
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, save valid Twilio credentials to settings
+            settings_payload = {
+                "user_id": demo_user_id,
+                "twilio_account_sid": "ACtest123456789abcdef123456789abcdef",
+                "twilio_auth_token": "test_auth_token_123456789abcdef",
+                "twilio_phone_number": "+15551234567"
+            }
+            settings_response = requests.post(f"{self.base_url}/settings", json=settings_payload, timeout=10)
+            
+            if settings_response.status_code != 200:
+                self.log_test("Twilio Access Token Valid Credentials", False, f"Failed to save Twilio settings: {settings_response.text}")
+                return False
+            
+            # Now test the access token generation
+            payload = {"user_id": demo_user_id}
+            response = requests.post(f"{self.base_url}/twilio/access-token", json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "success" and 
+                    "token" in data and 
+                    "identity" in data and 
+                    data.get("expires_in") == 3600):
+                    # Verify identity format
+                    expected_identity = f"agent_{demo_user_id}"
+                    if data.get("identity") == expected_identity:
+                        self.log_test("Twilio Access Token Valid Credentials", True, 
+                                    f"Access token generated successfully. Identity: {data['identity']}, Expires: {data['expires_in']}s")
+                        return True
+                    else:
+                        self.log_test("Twilio Access Token Valid Credentials", False, 
+                                    f"Invalid identity format. Expected: {expected_identity}, Got: {data.get('identity')}")
+                        return False
+                else:
+                    self.log_test("Twilio Access Token Valid Credentials", False, f"Invalid access token response structure: {data}")
+                    return False
+            else:
+                self.log_test("Twilio Access Token Valid Credentials", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Twilio Access Token Valid Credentials", False, f"Exception: {str(e)}")
+            return False
+
+    def test_twilio_access_token_missing_credentials(self) -> bool:
+        """Test POST /api/twilio/access-token with missing Twilio credentials"""
+        # Use the specific demo user ID as requested
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, clear Twilio credentials from settings
+            settings_payload = {
+                "user_id": demo_user_id,
+                "twilio_account_sid": None,
+                "twilio_auth_token": None,
+                "twilio_phone_number": None
+            }
+            settings_response = requests.post(f"{self.base_url}/settings", json=settings_payload, timeout=10)
+            
+            if settings_response.status_code != 200:
+                self.log_test("Twilio Access Token Missing Credentials", False, f"Failed to clear Twilio settings: {settings_response.text}")
+                return False
+            
+            # Now test the access token generation with missing credentials
+            payload = {"user_id": demo_user_id}
+            response = requests.post(f"{self.base_url}/twilio/access-token", json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "error" and 
+                    "Twilio credentials not configured" in data.get("message", "")):
+                    self.log_test("Twilio Access Token Missing Credentials", True, 
+                                f"Proper error handling for missing credentials: {data['message']}")
+                    return True
+                else:
+                    self.log_test("Twilio Access Token Missing Credentials", False, f"Unexpected response for missing credentials: {data}")
+                    return False
+            elif response.status_code == 400:
+                data = response.json()
+                if "Twilio credentials not configured" in data.get("detail", ""):
+                    self.log_test("Twilio Access Token Missing Credentials", True, 
+                                f"Proper 400 error for missing credentials: {data['detail']}")
+                    return True
+                else:
+                    self.log_test("Twilio Access Token Missing Credentials", False, f"Wrong 400 error message: {data}")
+                    return False
+            else:
+                self.log_test("Twilio Access Token Missing Credentials", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Twilio Access Token Missing Credentials", False, f"Exception: {str(e)}")
+            return False
+
+    def test_twilio_webrtc_call_preparation(self) -> bool:
+        """Test POST /api/twilio/webrtc-call with valid lead and credentials"""
+        # Use the specific demo user ID as requested
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, ensure we have valid Twilio credentials
+            settings_payload = {
+                "user_id": demo_user_id,
+                "twilio_account_sid": "ACtest123456789abcdef123456789abcdef",
+                "twilio_auth_token": "test_auth_token_123456789abcdef",
+                "twilio_phone_number": "+15551234567"
+            }
+            settings_response = requests.post(f"{self.base_url}/settings", json=settings_payload, timeout=10)
+            
+            if settings_response.status_code != 200:
+                self.log_test("Twilio WebRTC Call Preparation", False, f"Failed to save Twilio settings: {settings_response.text}")
+                return False
+            
+            # Create a test lead with phone number
+            timestamp = int(time.time()) + 100
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "WebRTC",
+                "last_name": "TestLead",
+                "email": f"webrtc.testlead.{timestamp}@example.com",
+                "phone": "+14155559999",
+                "property_type": "House",
+                "neighborhood": "Test Area"
+            }
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            
+            if lead_response.status_code != 200:
+                self.log_test("Twilio WebRTC Call Preparation", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            lead_id = lead_data.get("id")
+            
+            if not lead_id:
+                self.log_test("Twilio WebRTC Call Preparation", False, f"No lead ID in response: {lead_data}")
+                return False
+            
+            # Now test the WebRTC call preparation
+            webrtc_payload = {
+                "lead_id": lead_id,
+                "message": "Hello, this is your real estate agent calling about your property inquiry."
+            }
+            response = requests.post(f"{self.base_url}/twilio/webrtc-call", json=webrtc_payload, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "success" and 
+                    "call_data" in data and 
+                    data.get("message") == "WebRTC call data prepared"):
+                    
+                    call_data = data.get("call_data", {})
+                    if (call_data.get("to") == "+14155559999" and 
+                        call_data.get("from") == "+15551234567" and
+                        "WebRTC TestLead" in call_data.get("lead_name", "")):
+                        self.log_test("Twilio WebRTC Call Preparation", True, 
+                                    f"WebRTC call data prepared successfully. To: {call_data['to']}, From: {call_data['from']}, Lead: {call_data['lead_name']}")
+                        return True
+                    else:
+                        self.log_test("Twilio WebRTC Call Preparation", False, f"Invalid call data structure: {call_data}")
+                        return False
+                else:
+                    self.log_test("Twilio WebRTC Call Preparation", False, f"Invalid WebRTC response structure: {data}")
+                    return False
+            else:
+                self.log_test("Twilio WebRTC Call Preparation", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Twilio WebRTC Call Preparation", False, f"Exception: {str(e)}")
+            return False
+
+    def test_twilio_webrtc_call_missing_credentials(self) -> bool:
+        """Test POST /api/twilio/webrtc-call with missing Twilio credentials"""
+        # Use the specific demo user ID as requested
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, clear Twilio credentials from settings
+            settings_payload = {
+                "user_id": demo_user_id,
+                "twilio_account_sid": None,
+                "twilio_auth_token": None,
+                "twilio_phone_number": None
+            }
+            settings_response = requests.post(f"{self.base_url}/settings", json=settings_payload, timeout=10)
+            
+            if settings_response.status_code != 200:
+                self.log_test("Twilio WebRTC Call Missing Credentials", False, f"Failed to clear Twilio settings: {settings_response.text}")
+                return False
+            
+            # Create a test lead with phone number
+            timestamp = int(time.time()) + 101
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "WebRTC",
+                "last_name": "NoCredentials",
+                "email": f"webrtc.nocreds.{timestamp}@example.com",
+                "phone": "+14155558888",
+                "property_type": "Condo"
+            }
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            
+            if lead_response.status_code != 200:
+                self.log_test("Twilio WebRTC Call Missing Credentials", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            lead_id = lead_data.get("id")
+            
+            # Now test the WebRTC call preparation with missing credentials
+            webrtc_payload = {"lead_id": lead_id}
+            response = requests.post(f"{self.base_url}/twilio/webrtc-call", json=webrtc_payload, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "error" and 
+                    "Twilio not configured" in data.get("message", "")):
+                    self.log_test("Twilio WebRTC Call Missing Credentials", True, 
+                                f"Proper error handling for missing credentials: {data['message']}")
+                    return True
+                else:
+                    self.log_test("Twilio WebRTC Call Missing Credentials", False, f"Unexpected response for missing credentials: {data}")
+                    return False
+            elif response.status_code == 400:
+                data = response.json()
+                if "Twilio not configured" in data.get("detail", ""):
+                    self.log_test("Twilio WebRTC Call Missing Credentials", True, 
+                                f"Proper 400 error for missing credentials: {data['detail']}")
+                    return True
+                else:
+                    self.log_test("Twilio WebRTC Call Missing Credentials", False, f"Wrong 400 error message: {data}")
+                    return False
+            else:
+                self.log_test("Twilio WebRTC Call Missing Credentials", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Twilio WebRTC Call Missing Credentials", False, f"Exception: {str(e)}")
+            return False
+
+    def test_twilio_webrtc_call_invalid_lead(self) -> bool:
+        """Test POST /api/twilio/webrtc-call with invalid lead ID"""
+        try:
+            # Test with non-existent lead ID
+            webrtc_payload = {
+                "lead_id": "non-existent-lead-id-12345",
+                "message": "Test message"
+            }
+            response = requests.post(f"{self.base_url}/twilio/webrtc-call", json=webrtc_payload, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "error" and 
+                    "Lead not found" in data.get("message", "")):
+                    self.log_test("Twilio WebRTC Call Invalid Lead", True, 
+                                f"Proper error handling for invalid lead: {data['message']}")
+                    return True
+                else:
+                    self.log_test("Twilio WebRTC Call Invalid Lead", False, f"Unexpected response for invalid lead: {data}")
+                    return False
+            elif response.status_code == 404:
+                data = response.json()
+                if "Lead not found" in data.get("detail", ""):
+                    self.log_test("Twilio WebRTC Call Invalid Lead", True, 
+                                f"Proper 404 error for invalid lead: {data['detail']}")
+                    return True
+                else:
+                    self.log_test("Twilio WebRTC Call Invalid Lead", False, f"Wrong 404 error message: {data}")
+                    return False
+            else:
+                self.log_test("Twilio WebRTC Call Invalid Lead", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Twilio WebRTC Call Invalid Lead", False, f"Exception: {str(e)}")
+            return False
+
     def run_import_tests_only(self) -> bool:
         """Run only the lead import functionality tests"""
         print("🚀 Starting Lead Import Functionality Tests")
