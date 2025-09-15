@@ -442,6 +442,176 @@ async def get_lead_external(lead_id: str, api_key: str = Header(..., alias="X-AP
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- Twilio Communication Endpoints ---
+
+class TwilioCallRequest(BaseModel):
+    lead_id: str
+    message: Optional[str] = "Hello, this is a call from your real estate agent."
+
+class TwilioSMSRequest(BaseModel):
+    lead_id: str
+    message: str
+
+class TwilioWhatsAppRequest(BaseModel):
+    lead_id: str
+    message: str
+
+async def get_twilio_client(user_id: str) -> Optional[TwilioClient]:
+    """Get configured Twilio client for user"""
+    settings_doc = await db.settings.find_one({"user_id": user_id})
+    if not settings_doc:
+        return None
+        
+    account_sid = settings_doc.get("twilio_account_sid")
+    auth_token = settings_doc.get("twilio_auth_token")
+    
+    if not account_sid or not auth_token:
+        return None
+        
+    return TwilioClient(account_sid, auth_token)
+
+@app.post("/api/twilio/call")
+async def initiate_call(call_data: TwilioCallRequest):
+    """Initiate a call via Twilio"""
+    try:
+        # Get lead details
+        lead = await db.leads.find_one({"id": call_data.lead_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Get Twilio client
+        client = await get_twilio_client(lead["user_id"])
+        if not client:
+            raise HTTPException(status_code=400, detail="Twilio not configured")
+        
+        # Get user's Twilio settings
+        settings = await db.settings.find_one({"user_id": lead["user_id"]})
+        twilio_phone = settings.get("twilio_phone_number")
+        
+        if not twilio_phone:
+            raise HTTPException(status_code=400, detail="Twilio phone number not configured")
+        
+        if not lead.get("phone"):
+            raise HTTPException(status_code=400, detail="Lead has no phone number")
+        
+        # Create TwiML for the call
+        twiml_url = f"https://handler.twilio.com/twiml/EH84cc4511b0b9efdb7d5d5fe5b5e3c5bb?message={call_data.message}"
+        
+        # Initiate call
+        call = await client.calls.create_async(
+            to=lead["phone"],
+            from_=twilio_phone,
+            url=twiml_url,
+            method='GET'
+        )
+        
+        # Log the call activity
+        await db.leads.update_one(
+            {"id": call_data.lead_id},
+            {"$set": {"notes": f"{lead.get('notes', '')}\n\n[Call] Initiated call via Twilio - {datetime.now().isoformat()}"}}
+        )
+        
+        return {
+            "status": "success",
+            "call_sid": call.sid,
+            "message": f"Call initiated to {lead['phone']}"
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/twilio/sms")
+async def send_sms(sms_data: TwilioSMSRequest):
+    """Send SMS via Twilio"""
+    try:
+        # Get lead details
+        lead = await db.leads.find_one({"id": sms_data.lead_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Get Twilio client
+        client = await get_twilio_client(lead["user_id"])
+        if not client:
+            raise HTTPException(status_code=400, detail="Twilio not configured")
+        
+        # Get user's Twilio settings
+        settings = await db.settings.find_one({"user_id": lead["user_id"]})
+        twilio_phone = settings.get("twilio_phone_number")
+        
+        if not twilio_phone:
+            raise HTTPException(status_code=400, detail="Twilio phone number not configured")
+        
+        if not lead.get("phone"):
+            raise HTTPException(status_code=400, detail="Lead has no phone number")
+        
+        # Send SMS
+        message = await client.messages.create_async(
+            body=sms_data.message,
+            from_=twilio_phone,
+            to=lead["phone"]
+        )
+        
+        # Log the SMS activity
+        await db.leads.update_one(
+            {"id": sms_data.lead_id},
+            {"$set": {"notes": f"{lead.get('notes', '')}\n\n[SMS] Sent: '{sms_data.message}' - {datetime.now().isoformat()}"}}
+        )
+        
+        return {
+            "status": "success",
+            "message_sid": message.sid,
+            "message": f"SMS sent to {lead['phone']}"
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/twilio/whatsapp")
+async def send_whatsapp(whatsapp_data: TwilioWhatsAppRequest):
+    """Send WhatsApp message via Twilio"""
+    try:
+        # Get lead details
+        lead = await db.leads.find_one({"id": whatsapp_data.lead_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Get Twilio client
+        client = await get_twilio_client(lead["user_id"])
+        if not client:
+            raise HTTPException(status_code=400, detail="Twilio not configured")
+        
+        # Get user's Twilio settings
+        settings = await db.settings.find_one({"user_id": lead["user_id"]})
+        twilio_whatsapp = settings.get("twilio_whatsapp_number")
+        
+        if not twilio_whatsapp:
+            raise HTTPException(status_code=400, detail="Twilio WhatsApp number not configured")
+        
+        if not lead.get("phone"):
+            raise HTTPException(status_code=400, detail="Lead has no phone number")
+        
+        # Send WhatsApp message
+        message = await client.messages.create_async(
+            body=whatsapp_data.message,
+            from_=f"whatsapp:{twilio_whatsapp}",
+            to=f"whatsapp:{lead['phone']}"
+        )
+        
+        # Log the WhatsApp activity
+        await db.leads.update_one(
+            {"id": whatsapp_data.lead_id},
+            {"$set": {"notes": f"{lead.get('notes', '')}\n\n[WhatsApp] Sent: '{whatsapp_data.message}' - {datetime.now().isoformat()}"}}
+        )
+        
+        return {
+            "status": "success",
+            "message_sid": message.sid,
+            "message": f"WhatsApp sent to {lead['phone']}"
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 # --- Utils ---
 def normalize_phone(phone_str):
     """Normalize phone number to E.164 format"""
