@@ -318,7 +318,7 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
       {/* Call Controls */}
       <div className="flex justify-center space-x-4">
         {/* Main Call Button */}
-        {callStatus === 'idle' || callStatus === 'error' ? (
+        {(callStatus === 'idle' || callStatus === 'error') && device ? (
           <button
             onClick={makeCall}
             disabled={!device || callStatus === 'connecting'}
@@ -330,14 +330,21 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
               <Phone size={24} />
             )}
           </button>
-        ) : (
+        ) : callStatus === 'demo_mode' ? (
+          <button
+            disabled
+            className="w-16 h-16 bg-orange-300 rounded-full flex items-center justify-center text-white"
+          >
+            <Phone size={24} />
+          </button>
+        ) : ['ringing', 'connected'].includes(callStatus) ? (
           <button
             onClick={hangUp}
             className="w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-colors"
           >
             <PhoneOff size={24} />
           </button>
-        )}
+        ) : null}
 
         {/* Mute Button */}
         {(callStatus === 'connected' || callStatus === 'ringing') && (
