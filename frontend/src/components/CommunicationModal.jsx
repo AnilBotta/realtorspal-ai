@@ -114,7 +114,8 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
         setCallResult({
           status: 'error',
           message: result.message || 'Communication failed',
-          type: type
+          type: type,
+          setup_instructions: result.setup_instructions // Include setup instructions if available
         });
       }
     } catch (error) {
