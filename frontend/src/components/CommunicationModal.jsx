@@ -293,8 +293,8 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
                   </div>
                 )}
 
-                {/* Call Flow Info */}
-                {type === 'call' && !callResult && (
+                {/* Call Flow Info - only for bridge calls */}
+                {type === 'call' && callMode === 'bridge' && !callResult && (
                   <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                     <div className="text-xs text-blue-700">
                       📞 <strong>Voice Bridge:</strong> The lead will receive a call, hear your message, then be connected directly to you for a live conversation.
