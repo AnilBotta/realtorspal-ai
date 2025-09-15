@@ -1250,6 +1250,9 @@ def main():
         elif sys.argv[1] == "--delete-import-workflow":
             tester = RealtorsPalAPITester()
             success = tester.run_delete_import_workflow_only()
+        elif sys.argv[1] == "--webrtc-only":
+            tester = RealtorsPalAPITester()
+            success = tester.run_webrtc_tests_only()
         else:
             tester = RealtorsPalAPITester()
             success = tester.run_all_tests()
