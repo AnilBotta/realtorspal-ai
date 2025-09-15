@@ -263,7 +263,7 @@ export default function Dashboard({ user }){
             {STAGES.map(col => (
               <DroppableColumn key={col} id={col} title={col} count={grouped[col].length}>
                 {grouped[col].map(l => (
-                  <DraggableLeadCard key={l.id} lead={l} onOpen={openDetails} />
+                  <DraggableLeadCard key={l.id} lead={l} onOpen={openDetails} onCommunicate={handleCommunication} />
                 ))}
                 <button onClick={addLead} className="w-full mt-3 text-xs px-2 py-1 rounded-lg border border-dashed text-slate-500 hover:bg-slate-50">+ Add Lead</button>
               </DroppableColumn>
