@@ -392,6 +392,28 @@ export default function Settings({ user }){
             />
           </div>
           <div>
+            <label className="text-sm text-slate-600 font-medium">API Key SID</label>
+            <input 
+              type="password"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="SK..." 
+              value={form.twilio_api_key} 
+              onChange={(e)=>setForm({...form, twilio_api_key:e.target.value})} 
+            />
+            <div className="text-xs text-slate-500 mt-1">Required for WebRTC browser calling</div>
+          </div>
+          <div>
+            <label className="text-sm text-slate-600 font-medium">API Key Secret</label>
+            <input 
+              type="password"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="Your API key secret..." 
+              value={form.twilio_api_secret} 
+              onChange={(e)=>setForm({...form, twilio_api_secret:e.target.value})} 
+            />
+            <div className="text-xs text-slate-500 mt-1">Required for WebRTC browser calling</div>
+          </div>
+          <div>
             <label className="text-sm text-slate-600 font-medium">Phone Number</label>
             <input 
               type="text"
@@ -416,8 +438,10 @@ export default function Settings({ user }){
         </div>
         <div className="mt-3 p-3 bg-blue-50 rounded-lg">
           <div className="text-xs text-blue-700">
-            <strong>Setup Instructions:</strong> Get your credentials from <a href="https://www.twilio.com/console" target="_blank" rel="noopener noreferrer" className="underline">Twilio Console</a>. 
-            For WhatsApp, you'll need to set up a WhatsApp Business Profile in your Twilio account.
+            <strong>Setup Instructions:</strong> Get your credentials from <a href="https://www.twilio.com/console" target="_blank" rel="noopener noreferrer" className="underline">Twilio Console</a>.
+            <br />• <strong>Account SID & Auth Token:</strong> Found on your Twilio Console dashboard
+            <br />• <strong>API Keys:</strong> Go to Account → API Keys & Tokens → Create new API Key (required for WebRTC calling)
+            <br />• <strong>Phone Number:</strong> Purchase from Twilio Console → Phone Numbers
           </div>
         </div>
       </div>
