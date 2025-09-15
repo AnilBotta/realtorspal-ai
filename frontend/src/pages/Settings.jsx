@@ -48,6 +48,10 @@ export default function Settings({ user }){
         facebook_webhook_verify_token: data.facebook_webhook_verify_token || generateVerifyToken(),
         generic_webhook_enabled: data.generic_webhook_enabled || false,
         api_key: data.api_key || generateApiKey(),
+        twilio_account_sid: data.twilio_account_sid || "",
+        twilio_auth_token: data.twilio_auth_token || "",
+        twilio_phone_number: data.twilio_phone_number || "",
+        twilio_whatsapp_number: data.twilio_whatsapp_number || "",
       });
     } catch (err) {
       console.error('Failed to load settings:', err);
