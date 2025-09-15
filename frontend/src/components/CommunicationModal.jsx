@@ -7,7 +7,7 @@ export default function CommunicationModal({ open, lead, type, onClose }) {
   const [sending, setSending] = useState(false);
   const [callResult, setCallResult] = useState(null);
 
-  const baseUrl = process.env.REACT_APP_BACKEND_URL || 'https://realtor-lead-hub.preview.emergentagent.com';
+  const baseUrl = process.env.REACT_APP_BACKEND_URL || 'https://ai-agent-comm.preview.emergentagent.com';
 
   // Reset state when modal opens/closes
   React.useEffect(() => {

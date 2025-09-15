@@ -544,7 +544,7 @@ async def initiate_call(call_data: TwilioCallRequest):
         encoded_message = quote(call_data.message)
         
         # Create voice webhook URL with parameters
-        base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://realtor-lead-hub.preview.emergentagent.com')
+        base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://ai-agent-comm.preview.emergentagent.com')
         voice_webhook_url = f"{base_url}/api/twilio/voice?agent_phone={clean_twilio_phone}&lead_phone={clean_lead_phone}&message={encoded_message}"
         
         print(f"Initiating call from {twilio_phone} to {lead['phone']} with webhook: {voice_webhook_url}")
