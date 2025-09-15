@@ -25,7 +25,8 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "papaparse": "^5.4.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "@twilio/voice-sdk": "^2.11.0"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.17",
