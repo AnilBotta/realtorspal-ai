@@ -103,12 +103,30 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
 
       twilioDevice.on('error', (error) => {
         console.error('Twilio Device error:', error);
-        let errorMessage = error.message;
-        if (error.code === 31208) {
-          errorMessage = 'Unable to connect to Twilio. Please check your internet connection.';
-        } else if (error.code === 31400) {
-          errorMessage = 'Invalid access token. Please check your Twilio configuration in Settings.';
+        let errorMessage = 'Device error occurred';
+        
+        // Handle error object properly
+        if (error && typeof error === 'object') {
+          if (error.message) {
+            errorMessage = error.message;
+          } else if (error.description) {
+            errorMessage = error.description;
+          } else if (error.toString) {
+            errorMessage = error.toString();
+          }
+        } else if (typeof error === 'string') {
+          errorMessage = error;
         }
+        
+        // Provide specific error messages for common issues
+        if (errorMessage.includes('31208')) {
+          errorMessage = 'Unable to connect to Twilio. Please check your internet connection.';
+        } else if (errorMessage.includes('31400') || errorMessage.includes('20101')) {
+          errorMessage = 'Invalid Twilio credentials. Please check your Account SID and Auth Token in Settings.';
+        } else if (errorMessage.includes('AccessTokenInvalid')) {
+          errorMessage = 'Twilio access token is invalid. Please verify your Twilio credentials in Settings and ensure you have API Keys configured.';
+        }
+        
         setError(errorMessage);
         setCallStatus('error');
       });
