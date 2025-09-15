@@ -494,11 +494,13 @@ async def initiate_call(call_data: TwilioCallRequest):
         if not lead.get("phone"):
             raise HTTPException(status_code=400, detail="Lead has no phone number")
         
-        # Create TwiML for the call
-        twiml_url = f"https://handler.twilio.com/twiml/EH84cc4511b0b9efdb7d5d5fe5b5e3c5bb?message={call_data.message}"
+        # Create TwiML for the call - simple message
+        from urllib.parse import quote
+        encoded_message = quote(call_data.message)
+        twiml_url = f"http://twimlets.com/message?Message={encoded_message}"
         
-        # Initiate call
-        call = await client.calls.create_async(
+        # Initiate call using synchronous client
+        call = client.calls.create(
             to=lead["phone"],
             from_=twilio_phone,
             url=twiml_url,
@@ -518,6 +520,7 @@ async def initiate_call(call_data: TwilioCallRequest):
         }
         
     except Exception as e:
+        print(f"Call initiation error: {e}")
         return {"status": "error", "message": str(e)}
 
 @app.post("/api/twilio/sms")
@@ -544,8 +547,8 @@ async def send_sms(sms_data: TwilioSMSRequest):
         if not lead.get("phone"):
             raise HTTPException(status_code=400, detail="Lead has no phone number")
         
-        # Send SMS
-        message = await client.messages.create_async(
+        # Send SMS using synchronous client
+        message = client.messages.create(
             body=sms_data.message,
             from_=twilio_phone,
             to=lead["phone"]
@@ -564,6 +567,7 @@ async def send_sms(sms_data: TwilioSMSRequest):
         }
         
     except Exception as e:
+        print(f"SMS sending error: {e}")
         return {"status": "error", "message": str(e)}
 
 @app.post("/api/twilio/whatsapp")
@@ -590,8 +594,8 @@ async def send_whatsapp(whatsapp_data: TwilioWhatsAppRequest):
         if not lead.get("phone"):
             raise HTTPException(status_code=400, detail="Lead has no phone number")
         
-        # Send WhatsApp message
-        message = await client.messages.create_async(
+        # Send WhatsApp message using synchronous client
+        message = client.messages.create(
             body=whatsapp_data.message,
             from_=f"whatsapp:{twilio_whatsapp}",
             to=f"whatsapp:{lead['phone']}"
@@ -610,6 +614,7 @@ async def send_whatsapp(whatsapp_data: TwilioWhatsAppRequest):
         }
         
     except Exception as e:
+        print(f"WhatsApp sending error: {e}")
         return {"status": "error", "message": str(e)}
 
 # --- Utils ---
