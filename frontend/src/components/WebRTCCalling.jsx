@@ -397,23 +397,31 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
       </div>
 
       {/* Twilio Setup Instructions */}
-      {callStatus === 'demo_mode' && (
+      {callStatus === 'setup_required' && (
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
           <div className="text-sm font-medium text-orange-800 mb-2">
-            🔧 Twilio Setup Required
+            🔧 Twilio API Keys Required for WebRTC
           </div>
           <div className="text-xs text-orange-700 space-y-1">
-            <div><strong>1.</strong> Sign up at <a href="https://www.twilio.com/console" target="_blank" rel="noopener noreferrer" className="underline">Twilio Console</a></div>
-            <div><strong>2.</strong> Get your Account SID and Auth Token</div>
-            <div><strong>3.</strong> Purchase a Twilio phone number</div>
-            <div><strong>4.</strong> Add credentials in Settings → Twilio Communication</div>
+            <div><strong>1.</strong> Go to <a href="https://console.twilio.com/us1/develop/api-keys" target="_blank" rel="noopener noreferrer" className="underline">Twilio Console → API Keys</a></div>
+            <div><strong>2.</strong> Create new API Key with Voice grants enabled</div>
+            <div><strong>3.</strong> Copy API Key SID and Secret to Settings</div>
+            <div><strong>4.</strong> Make sure Account SID is also configured</div>
           </div>
-          <button
-            onClick={() => window.open('/settings', '_blank')}
-            className="mt-2 px-3 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 transition-colors"
-          >
-            Open Settings
-          </button>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => window.open('/settings', '_blank')}
+              className="px-3 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 transition-colors"
+            >
+              Open Settings
+            </button>
+            <button
+              onClick={() => window.open('https://console.twilio.com/us1/develop/api-keys', '_blank')}
+              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+            >
+              Create API Keys
+            </button>
+          </div>
         </div>
       )}
 
