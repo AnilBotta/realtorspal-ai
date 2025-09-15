@@ -212,13 +212,16 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
 
   const makeCall = async () => {
     if (!device || !lead?.phone) {
-      setError('Device not ready or no phone number');
+      const errorMsg = `Device not ready (${!!device}) or no phone number (${!!lead?.phone})`;
+      console.error('❌ Cannot make call:', errorMsg);
+      setError(errorMsg);
       return;
     }
 
     try {
       setCallStatus('connecting');
       setError(null);
+      console.log('🚀 Initiating WebRTC call to:', lead.phone);
       
       // Use REST API to initiate WebRTC call
       const response = await fetch(`${baseUrl}/api/twilio/webrtc-call`, {
@@ -233,23 +236,34 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
       });
 
       const result = await response.json();
+      console.log('📡 WebRTC call API response:', result);
       
       if (result.status !== 'success') {
+        console.error('❌ Call initiation failed:', result);
         throw new Error(result.message || 'Failed to initiate call');
       }
 
-      console.log('WebRTC call initiated via REST API:', result);
+      console.log('✅ WebRTC call initiated via REST API:', result);
+      console.log('📞 Call flow: Twilio calls', lead.phone, '→ Lead answers → Connected to your browser');
       
       // The call is now initiated via Twilio REST API
       // The lead will receive a call and be connected to our WebRTC client
       setCallStatus('ringing');
       
-      // Set up a timeout to change status if call doesn't connect
-      setTimeout(() => {
+      // Set up a timeout to change status if call doesn't connect within 30 seconds
+      const callTimeout = setTimeout(() => {
         if (callStatus === 'ringing') {
+          console.warn('⚠️ Call timeout - no connection after 30 seconds');
           setCallStatus('waiting');
+          setError('Call initiated but no connection yet. The lead may not have answered.');
         }
-      }, 10000);
+      }, 30000);
+
+      // Store timeout reference to clear it if call connects
+      if (callTimerRef.current) {
+        clearTimeout(callTimerRef.current);
+      }
+      callTimerRef.current = callTimeout;
 
       // Log the call activity in the lead notes
       try {
@@ -262,12 +276,13 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
             notes: `${lead.notes || ''}\n\n[WebRTC Call] Initiated REST API call to ${lead.phone} - Call SID: ${result.call_sid} - ${new Date().toISOString()}`
           }),
         });
+        console.log('📝 Call activity logged in lead notes');
       } catch (logError) {
-        console.warn('Failed to log call activity:', logError);
+        console.warn('⚠️ Failed to log call activity:', logError);
       }
 
     } catch (err) {
-      console.error('Call initiation error:', err);
+      console.error('❌ Call initiation error:', err);
       setError(err.message);
       setCallStatus('error');
     }
