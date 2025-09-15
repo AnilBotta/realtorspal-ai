@@ -217,8 +217,65 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
                   </div>
                 )}
 
-                {/* Message Input */}
-                {!callResult && (
+                {/* Call Mode Selection for Call Type */}
+                {type === 'call' && !callResult && (
+                  <div className="mb-4">
+                    <div className="text-sm font-medium text-gray-700 mb-2">Call Method</div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setCallMode('bridge')}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          callMode === 'bridge' 
+                            ? 'bg-blue-100 text-blue-700 border-2 border-blue-300' 
+                            : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                        }`}
+                      >
+                        <Phone size={16} className="inline mr-1" />
+                        Voice Bridge
+                      </button>
+                      <button
+                        onClick={() => setCallMode('webrtc')}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          callMode === 'webrtc' 
+                            ? 'bg-purple-100 text-purple-700 border-2 border-purple-300' 
+                            : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                        }`}
+                      >
+                        <Headphones size={16} className="inline mr-1" />
+                        WebRTC Call
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2">
+                      {callMode === 'bridge' 
+                        ? 'Lead receives call, hears message, then connected to your phone'
+                        : 'Call directly from your browser with microphone and speakers'
+                      }
+                    </div>
+                  </div>
+                )}
+
+                {/* WebRTC Calling Interface */}
+                {type === 'call' && callMode === 'webrtc' && !callResult && (
+                  <div className="mb-4">
+                    <WebRTCCalling 
+                      user={user} 
+                      lead={lead}
+                      onCallStart={() => {
+                        setCallResult({
+                          status: 'success',
+                          message: 'WebRTC call started successfully',
+                          type: 'webrtc'
+                        });
+                      }}
+                      onCallEnd={() => {
+                        // Keep modal open for call summary if needed
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Message Input - only for bridge calls, SMS, WhatsApp */}
+                {!callResult && ((type === 'call' && callMode === 'bridge') || type !== 'call') && (
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       {type === 'call' ? 'Bridge Message' : 'Message'}
