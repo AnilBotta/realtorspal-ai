@@ -1339,6 +1339,41 @@ class RealtorsPalAPITester:
             print("⚠️  Some WebRTC calling tests FAILED!")
             return False
 
+    def run_webrtc_review_tests(self) -> bool:
+        """Run focused WebRTC tests as requested in the review"""
+        print("🚀 Starting WebRTC Review Tests (Access Token & TwiML Endpoints)")
+        print(f"📍 Base URL: {self.base_url}")
+        print("=" * 60)
+        
+        # First get authentication
+        if not self.test_health():
+            return False
+        if not self.test_login():
+            return False
+        
+        # Run the specific tests requested in the review
+        review_tests = [
+            self.test_webrtc_access_token_demo_user,
+            self.test_webrtc_call_initiation_missing_credentials,
+            self.test_twiml_outbound_call_endpoint,
+            self.test_twiml_client_incoming_endpoint,
+        ]
+        
+        review_tests_passed = 0
+        for test in review_tests:
+            if test():
+                review_tests_passed += 1
+        
+        print("=" * 60)
+        print(f"📊 WebRTC Review Tests Results: {review_tests_passed}/{len(review_tests)} tests passed")
+        
+        if review_tests_passed == len(review_tests):
+            print("🎉 All WebRTC review tests PASSED!")
+            return True
+        else:
+            print("⚠️  Some WebRTC review tests FAILED!")
+            return False
+
     def run_import_tests_only(self) -> bool:
         """Run only the lead import functionality tests"""
         print("🚀 Starting Lead Import Functionality Tests")
