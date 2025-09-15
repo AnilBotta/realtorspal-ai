@@ -9,7 +9,7 @@ from twilio.rest import Client as TwilioClient
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, Response
 from pydantic import BaseModel, Field, EmailStr, field_validator, ValidationError
 from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorClient
