@@ -444,7 +444,74 @@ async def get_lead_external(lead_id: str, api_key: str = Header(..., alias="X-AP
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- Twilio Communication Endpoints ---
+# --- TwiML Endpoints for WebRTC Calling ---
+
+@app.get("/api/twiml/outbound-call")
+@app.post("/api/twiml/outbound-call")
+async def outbound_call_twiml(request: Request):
+    """TwiML endpoint for WebRTC outbound calls - connects lead to agent's browser"""
+    try:
+        # Get query parameters from Twilio call
+        params = dict(request.query_params)
+        
+        # Extract parameters (these will be passed from our WebRTC call initiation)
+        agent_identity = params.get('agent_identity', 'agent_unknown')
+        lead_phone = params.get('lead_phone', '')
+        
+        print(f"Outbound call TwiML: connecting {lead_phone} to WebRTC client {agent_identity}")
+        
+        # TwiML to connect the lead to the agent's WebRTC client (browser)
+        twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Please hold while we connect you to your real estate agent.</Say>
+    <Dial timeout="30" timeLimit="3600">
+        <Client>{agent_identity}</Client>
+    </Dial>
+    <Say voice="alice">Sorry, the agent is not available right now. Please try again later.</Say>
+</Response>"""
+        
+        return Response(content=twiml_response, media_type="application/xml")
+        
+    except Exception as e:
+        print(f"TwiML outbound call error: {e}")
+        # Fallback TwiML
+        fallback_twiml = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Sorry, there was an error connecting your call. Please try again later.</Say>
+</Response>"""
+        return Response(content=fallback_twiml, media_type="application/xml")
+
+@app.get("/api/twiml/client-incoming")
+@app.post("/api/twiml/client-incoming")
+async def client_incoming_twiml(request: Request):
+    """TwiML endpoint for incoming calls to WebRTC client (agent's browser)"""
+    try:
+        # This handles when someone calls the agent's WebRTC client directly
+        params = dict(request.query_params)
+        from_number = params.get('From', 'Unknown')
+        
+        print(f"Incoming call to WebRTC client from: {from_number}")
+        
+        # TwiML to handle incoming calls to the agent's browser
+        twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">You have an incoming call from {from_number}.</Say>
+    <Dial timeout="30">
+        <Number>{from_number}</Number>
+    </Dial>
+</Response>"""
+        
+        return Response(content=twiml_response, media_type="application/xml")
+        
+    except Exception as e:
+        print(f"TwiML client incoming error: {e}")
+        fallback_twiml = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Unable to process the incoming call.</Say>
+</Response>"""
+        return Response(content=fallback_twiml, media_type="application/xml")
+
+# --- Updated Access Token Generation ---
 
 class TwilioCallRequest(BaseModel):
     lead_id: str
