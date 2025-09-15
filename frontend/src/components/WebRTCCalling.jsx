@@ -50,6 +50,7 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
     try {
       setCallStatus('connecting');
       setError(null);
+      console.log('Starting WebRTC device initialization...');
 
       // Check if browser supports WebRTC
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -58,12 +59,16 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
 
       // Request microphone permission
       try {
+        console.log('Requesting microphone permission...');
         await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('Microphone permission granted');
       } catch (permissionError) {
+        console.error('Microphone permission error:', permissionError);
         throw new Error('Microphone permission is required for WebRTC calls. Please allow microphone access and try again.');
       }
 
       // Get access token from backend
+      console.log('Requesting access token for user:', user.id);
       const response = await fetch(`${baseUrl}/api/twilio/access-token`, {
         method: 'POST',
         headers: {
@@ -73,24 +78,26 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
       });
 
       const result = await response.json();
+      console.log('Access token response:', result);
       
       if (result.status === 'setup_required') {
-        // Handle setup required - show setup instructions
-        setError(null);
+        console.log('Setup required - missing API keys');
+        setError('Missing Twilio API Keys. Please add them in Settings.');
         setCallStatus('setup_required');
         return;
       }
       
       if (result.status === 'error') {
-        // Handle API error response
-        let errorMsg = result.message || 'Failed to get access token';
-        throw new Error(errorMsg);
+        console.error('Access token error:', result);
+        throw new Error(result.message || 'Failed to get access token');
       }
       
       if (result.status !== 'success') {
+        console.error('Unexpected access token response:', result);
         throw new Error(result.message || 'Failed to get access token');
       }
 
+      console.log('Creating Twilio Device with token...');
       // Create and setup Twilio Device
       const twilioDevice = new Device(result.token, {
         logLevel: 1,
@@ -99,16 +106,17 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
         edge: ['sydney', 'singapore', 'tokyo'] // Use closest edge locations
       });
 
+      console.log('Setting up device event listeners...');
       // Device event listeners
       twilioDevice.on('ready', () => {
-        console.log('Twilio Device ready');
+        console.log('✅ Twilio Device ready!');
         setCallStatus('idle');
         setDevice(twilioDevice);
         deviceRef.current = twilioDevice;
       });
 
       twilioDevice.on('error', (error) => {
-        console.error('Twilio Device error:', error);
+        console.error('❌ Twilio Device error:', error);
         let errorMessage = 'Device error occurred';
         
         // Handle error object properly
@@ -128,9 +136,9 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
         if (errorMessage.includes('31208')) {
           errorMessage = 'Unable to connect to Twilio. Please check your internet connection.';
         } else if (errorMessage.includes('31400') || errorMessage.includes('20101')) {
-          errorMessage = 'Invalid Twilio credentials. Please check your Account SID and Auth Token in Settings.';
+          errorMessage = 'Invalid Twilio credentials. Please check your API Keys in Settings.';
         } else if (errorMessage.includes('AccessTokenInvalid')) {
-          errorMessage = 'Twilio access token is invalid. Please verify your Twilio credentials in Settings and ensure you have API Keys configured.';
+          errorMessage = 'Twilio access token is invalid. Please verify your API Keys in Settings.';
         }
         
         setError(errorMessage);
@@ -138,38 +146,39 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
       });
 
       twilioDevice.on('incoming', (incomingCall) => {
-        console.log('Incoming WebRTC call received:', incomingCall);
+        console.log('📞 Incoming WebRTC call received:', incomingCall);
         
         // This is the call from the lead (routed through our TwiML)
         setCall(incomingCall);
         setCallStatus('ringing');
         
         // Auto-accept the incoming call since we initiated it
+        console.log('Auto-accepting incoming call...');
         incomingCall.accept();
         
         // Set up call event listeners
         incomingCall.on('accept', () => {
-          console.log('WebRTC call connected');
+          console.log('✅ WebRTC call connected!');
           setCallStatus('connected');
           onCallStart?.();
         });
 
         incomingCall.on('disconnect', () => {
-          console.log('WebRTC call disconnected');
+          console.log('📞 WebRTC call disconnected');
           setCallStatus('idle');
           setCall(null);
           onCallEnd?.();
         });
 
         incomingCall.on('cancel', () => {
-          console.log('WebRTC call cancelled');
+          console.log('📞 WebRTC call cancelled');
           setCallStatus('idle');
           setCall(null);
           onCallEnd?.();
         });
 
         incomingCall.on('error', (error) => {
-          console.error('WebRTC call error:', error);
+          console.error('❌ WebRTC call error:', error);
           let errorMessage = 'Call failed';
           
           if (error && typeof error === 'object') {
@@ -189,11 +198,13 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
         });
       });
 
+      console.log('Registering Twilio Device...');
       // Register the device
       await twilioDevice.register();
+      console.log('✅ Device registered successfully');
 
     } catch (err) {
-      console.error('Device initialization error:', err);
+      console.error('❌ Device initialization error:', err);
       setError(err.message);
       setCallStatus('error');
     }
