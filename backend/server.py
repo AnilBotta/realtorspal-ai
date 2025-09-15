@@ -606,12 +606,23 @@ async def generate_access_token(token_request: AccessTokenRequest):
             # Generate the JWT token
             jwt_token = token.to_jwt()
             
+            # Log token generation for debugging
+            print(f"Generated WebRTC access token for user {token_request.user_id}")
+            print(f"Token identity: {identity}")
+            print(f"Account SID: {account_sid}")
+            print(f"API Key: {api_key}")
+            
             return {
                 "status": "success", 
                 "token": jwt_token,
                 "identity": identity,
                 "expires_in": 3600,
-                "twiml_app_url": f"{base_url}/api/twiml/outbound-call"
+                "account_sid": account_sid,  # Include for debugging
+                "debug_info": {
+                    "token_length": len(jwt_token),
+                    "api_key_prefix": api_key[:8] + "...",
+                    "account_sid_prefix": account_sid[:8] + "..."
+                }
             }
             
         except Exception as token_error:
