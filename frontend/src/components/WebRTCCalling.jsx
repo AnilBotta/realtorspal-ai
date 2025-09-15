@@ -13,7 +13,7 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
   
   const deviceRef = useRef(null);
   const callTimerRef = useRef(null);
-  const baseUrl = process.env.REACT_APP_BACKEND_URL || 'https://ai-agent-comm.preview.emergentagent.com';
+  const baseUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
   // Initialize Twilio Device
   useEffect(() => {
