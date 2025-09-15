@@ -511,26 +511,29 @@ async def generate_access_token(token_request: AccessTokenRequest):
         from twilio.jwt.access_token import AccessToken
         from twilio.jwt.access_token.grants import VoiceGrant
         
-        # For WebRTC calls, we need to use the Account SID as the API Key for simplicity
-        # In production, you'd want to create separate API Keys
-        api_key = account_sid
-        api_secret = auth_token
+        # For WebRTC calls, create a proper access token
+        # Use Account SID and Auth Token directly for the access token
+        token = AccessToken(
+            account_sid,
+            account_sid,  # Use Account SID as API Key SID for simplicity
+            auth_token,   # Use Auth Token as API Key Secret
+            identity=f"agent_{token_request.user_id}"
+        )
         
-        # Create access token
-        token = AccessToken(account_sid, api_key, api_secret)
-        token.identity = f"agent_{token_request.user_id}"
-        
-        # Create voice grant - for outbound calls we don't need an application SID
+        # Create voice grant for outbound calls
         voice_grant = VoiceGrant(
-            incoming_allow=False,  # We only need outbound calls for now
-            outgoing_application_sid=None  # None means use default TwiML
+            outgoing_application_sid=None,  # For simple outbound calls
+            incoming_allow=False
         )
         token.add_grant(voice_grant)
         
+        # Generate the JWT token
+        jwt_token = token.to_jwt()
+        
         return {
             "status": "success", 
-            "token": token.to_jwt(),
-            "identity": token.identity,
+            "token": jwt_token,
+            "identity": f"agent_{token_request.user_id}",
             "expires_in": 3600  # 1 hour
         }
         
