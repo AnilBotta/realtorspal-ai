@@ -359,6 +359,65 @@ export default function Settings({ user }){
         </div>
       </div>
 
+      {/* Twilio Communication Settings */}
+      <div className="bg-white rounded-xl border p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <Phone className="text-blue-600" size={20} />
+          <div className="text-lg font-semibold">Twilio Communication</div>
+        </div>
+        <div className="text-sm text-slate-500 mb-4">Configure Twilio for voice calls, SMS, and WhatsApp messaging</div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm text-slate-600 font-medium">Account SID</label>
+            <input 
+              type="password"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="AC..." 
+              value={form.twilio_account_sid} 
+              onChange={(e)=>setForm({...form, twilio_account_sid:e.target.value})} 
+            />
+          </div>
+          <div>
+            <label className="text-sm text-slate-600 font-medium">Auth Token</label>
+            <input 
+              type="password"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="Your auth token..." 
+              value={form.twilio_auth_token} 
+              onChange={(e)=>setForm({...form, twilio_auth_token:e.target.value})} 
+            />
+          </div>
+          <div>
+            <label className="text-sm text-slate-600 font-medium">Phone Number</label>
+            <input 
+              type="text"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="+1234567890" 
+              value={form.twilio_phone_number} 
+              onChange={(e)=>setForm({...form, twilio_phone_number:e.target.value})} 
+            />
+            <div className="text-xs text-slate-500 mt-1">For voice calls and SMS</div>
+          </div>
+          <div>
+            <label className="text-sm text-slate-600 font-medium">WhatsApp Number</label>
+            <input 
+              type="text"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="+1234567890" 
+              value={form.twilio_whatsapp_number} 
+              onChange={(e)=>setForm({...form, twilio_whatsapp_number:e.target.value})} 
+            />
+            <div className="text-xs text-slate-500 mt-1">For WhatsApp messaging</div>
+          </div>
+        </div>
+        <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+          <div className="text-xs text-blue-700">
+            <strong>Setup Instructions:</strong> Get your credentials from <a href="https://www.twilio.com/console" target="_blank" rel="noopener noreferrer" className="underline">Twilio Console</a>. 
+            For WhatsApp, you'll need to set up a WhatsApp Business Profile in your Twilio account.
+          </div>
+        </div>
+      </div>
+
       {/* API Key Integration Button */}
       <div className="bg-white rounded-xl border p-6">
         <div className="flex items-center justify-between">
