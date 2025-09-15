@@ -396,17 +396,19 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
       {/* Call Controls */}
       <div className="flex justify-center space-x-4">
         {/* Main Call Button */}
-        {(callStatus === 'idle' || callStatus === 'error') && device ? (
+        {(callStatus === 'idle' && device) ? (
           <button
             onClick={makeCall}
-            disabled={!device || callStatus === 'connecting'}
-            className="w-16 h-16 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 rounded-full flex items-center justify-center text-white transition-colors"
+            className="w-16 h-16 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center text-white transition-colors"
           >
-            {callStatus === 'connecting' ? (
-              <Loader2 size={24} className="animate-spin" />
-            ) : (
-              <Phone size={24} />
-            )}
+            <Phone size={24} />
+          </button>
+        ) : callStatus === 'connecting' ? (
+          <button
+            disabled
+            className="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center text-white"
+          >
+            <Loader2 size={24} className="animate-spin" />
           </button>
         ) : callStatus === 'setup_required' ? (
           <button
@@ -422,7 +424,21 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
           >
             <PhoneOff size={24} />
           </button>
-        ) : null}
+        ) : callStatus === 'error' ? (
+          <button
+            onClick={initializeDevice}
+            className="w-16 h-16 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center text-white transition-colors"
+          >
+            <Phone size={24} />
+          </button>
+        ) : (
+          <button
+            disabled
+            className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center text-white"
+          >
+            <Loader2 size={24} className="animate-spin" />
+          </button>
+        )}
 
         {/* Mute Button */}
         {callStatus === 'connected' && (
