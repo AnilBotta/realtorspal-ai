@@ -162,75 +162,36 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
       setCallStatus('connecting');
       setError(null);
       
-      // For outbound calls, we can call directly to the phone number
-      // Twilio will use the default From number configured in your account
-      const params = {
-        To: lead.phone,
-      };
-
-      console.log('Making WebRTC call to:', lead.phone);
-      const outgoingCall = await device.connect({ params });
-      setCall(outgoingCall);
-
-      // Call event listeners
-      outgoingCall.on('accept', () => {
-        console.log('Call accepted');
-        setCallStatus('connected');
-        onCallStart?.();
+      // Use REST API to initiate WebRTC call
+      const response = await fetch(`${baseUrl}/api/twilio/webrtc-call`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          lead_id: lead.id,
+          message: `Hello ${lead.first_name || 'there'}, this is your real estate agent calling about your property inquiry.`
+        }),
       });
 
-      outgoingCall.on('disconnect', () => {
-        console.log('Call disconnected');
-        setCallStatus('idle');
-        setCall(null);
-        onCallEnd?.();
-      });
+      const result = await response.json();
+      
+      if (result.status !== 'success') {
+        throw new Error(result.message || 'Failed to initiate call');
+      }
 
-      outgoingCall.on('cancel', () => {
-        console.log('Call cancelled');
-        setCallStatus('idle');
-        setCall(null);
-        onCallEnd?.();
-      });
-
-      outgoingCall.on('reject', () => {
-        console.log('Call rejected');
-        setCallStatus('idle');
-        setCall(null);
-        onCallEnd?.();
-      });
-
-      outgoingCall.on('error', (error) => {
-        console.error('Call error:', error);
-        let errorMessage = 'Call failed';
-        
-        // Handle error object properly
-        if (error && typeof error === 'object') {
-          if (error.message) {
-            errorMessage = error.message;
-          } else if (error.description) {
-            errorMessage = error.description;
-          } else if (error.toString) {
-            errorMessage = error.toString();
-          }
-        } else if (typeof error === 'string') {
-          errorMessage = error;
-        }
-        
-        // Provide specific error messages for common call issues
-        if (errorMessage.includes('31486')) {
-          errorMessage = 'Call was busy or not answered.';
-        } else if (errorMessage.includes('31480')) {
-          errorMessage = 'Invalid phone number or call could not be completed.';
-        }
-        
-        setError(errorMessage);
-        setCallStatus('error');
-        setCall(null);
-        onCallEnd?.();
-      });
-
+      console.log('WebRTC call initiated via REST API:', result);
+      
+      // The call is now initiated via Twilio REST API
+      // The lead will receive a call and be connected to our WebRTC client
       setCallStatus('ringing');
+      
+      // Set up a timeout to change status if call doesn't connect
+      setTimeout(() => {
+        if (callStatus === 'ringing') {
+          setCallStatus('waiting');
+        }
+      }, 10000);
 
       // Log the call activity in the lead notes
       try {
@@ -240,7 +201,7 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            notes: `${lead.notes || ''}\n\n[WebRTC Call] Initiated browser call to ${lead.phone} - ${new Date().toISOString()}`
+            notes: `${lead.notes || ''}\n\n[WebRTC Call] Initiated REST API call to ${lead.phone} - Call SID: ${result.call_sid} - ${new Date().toISOString()}`
           }),
         });
       } catch (logError) {
