@@ -54,6 +54,8 @@ export default function Settings({ user }){
         twilio_auth_token: data.twilio_auth_token || "",
         twilio_phone_number: data.twilio_phone_number || "",
         twilio_whatsapp_number: data.twilio_whatsapp_number || "",
+        twilio_api_key: data.twilio_api_key || "",
+        twilio_api_secret: data.twilio_api_secret || "",
       });
     } catch (err) {
       console.error('Failed to load settings:', err);
