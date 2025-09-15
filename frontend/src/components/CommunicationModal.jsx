@@ -214,6 +214,18 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
                     }`}>
                       {callResult.message}
                     </div>
+                    {/* Show setup instructions if available */}
+                    {callResult.setup_instructions && (
+                      <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
+                        <div className="font-medium mb-1">Setup Instructions:</div>
+                        <div className="space-y-1">
+                          <div>1. {callResult.setup_instructions.step1}</div>
+                          <div>2. {callResult.setup_instructions.step2}</div>
+                          <div>3. {callResult.setup_instructions.step3}</div>
+                          <div>4. {callResult.setup_instructions.step4}</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
