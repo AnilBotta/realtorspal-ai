@@ -286,8 +286,10 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
         return 'text-green-600';
       case 'error':
         return 'text-red-600';
-      case 'demo_mode':
+      case 'setup_required':
         return 'text-orange-600';
+      case 'waiting':
+        return 'text-blue-600';
       case 'idle':
       default:
         return 'text-gray-600';
