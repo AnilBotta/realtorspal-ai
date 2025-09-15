@@ -22,7 +22,7 @@ export default function CommunicationModal({ open, lead, type, onClose }) {
     
     switch (type) {
       case 'call':
-        return `Hello ${lead.first_name || 'there'}, this is your real estate agent calling about your property inquiry.`;
+        return `Connecting you to your real estate agent now. Please hold for a moment.`;
       case 'sms':
         return `Hi ${lead.first_name || 'there'}, this is your real estate agent. I wanted to follow up on your property interest. Are you available to discuss your requirements?`;
       case 'whatsapp':
