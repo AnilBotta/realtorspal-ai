@@ -6,6 +6,7 @@ import { DollarSign, MapPin, Calendar, Phone, Mail, MessageSquare, GripVertical 
 import dayjs from "dayjs";
 import AddLeadModal from "../components/AddLeadModal";
 import LeadDrawer from "../components/LeadDrawer";
+import CommunicationModal from "../components/CommunicationModal";
 
 function Stat({ label, value, hint }){
   return (
