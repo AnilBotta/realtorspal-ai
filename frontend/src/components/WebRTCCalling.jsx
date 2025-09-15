@@ -265,6 +265,8 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
         return `Connected - ${formatDuration(callDuration)}`;
       case 'error':
         return 'Error';
+      case 'demo_mode':
+        return 'Setup Required';
       case 'idle':
       default:
         return 'Ready to call';
@@ -281,6 +283,8 @@ const WebRTCCalling = ({ user, lead, onCallEnd, onCallStart }) => {
         return 'text-green-600';
       case 'error':
         return 'text-red-600';
+      case 'demo_mode':
+        return 'text-orange-600';
       case 'idle':
       default:
         return 'text-gray-600';
