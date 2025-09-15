@@ -549,7 +549,7 @@ async def get_twilio_client(user_id: str) -> Optional[TwilioClient]:
 
 @app.post("/api/twilio/access-token")
 async def generate_access_token(token_request: AccessTokenRequest):
-    """Generate Twilio access token for WebRTC calling"""
+    """Generate Twilio access token for WebRTC calling using API Keys"""
     try:
         # Get user settings
         settings = await db.settings.find_one({"user_id": token_request.user_id})
@@ -557,18 +557,24 @@ async def generate_access_token(token_request: AccessTokenRequest):
             raise HTTPException(status_code=400, detail="User settings not found")
         
         account_sid = settings.get("twilio_account_sid")
-        auth_token = settings.get("twilio_auth_token")
+        api_key = settings.get("twilio_api_key")
+        api_secret = settings.get("twilio_api_secret")
         
-        # If no Twilio credentials configured, provide demo/test mode
-        if not account_sid or not auth_token:
+        # Check if all required credentials are present
+        if not account_sid or not api_key or not api_secret:
+            missing_fields = []
+            if not account_sid: missing_fields.append("Account SID")
+            if not api_key: missing_fields.append("API Key SID")  
+            if not api_secret: missing_fields.append("API Key Secret")
+            
             return {
-                "status": "demo_mode",
-                "message": "Twilio credentials not configured. Please add your Twilio Account SID and Auth Token in Settings to enable WebRTC calling.",
+                "status": "setup_required",
+                "message": f"Missing Twilio credentials: {', '.join(missing_fields)}",
                 "setup_instructions": {
-                    "step1": "Sign up for a Twilio account at https://www.twilio.com/console",
-                    "step2": "Find your Account SID and Auth Token in the Twilio Console",
-                    "step3": "Add these credentials in Settings > Twilio Communication",
-                    "step4": "Purchase a Twilio phone number for outbound calls"
+                    "step1": "Go to Twilio Console → Account → API Keys & Tokens",
+                    "step2": "Create new API Key with Voice grants enabled",
+                    "step3": "Copy the API Key SID and Secret to Settings",
+                    "step4": "Make sure Account SID is also configured"
                 }
             }
         
@@ -577,19 +583,23 @@ async def generate_access_token(token_request: AccessTokenRequest):
         from twilio.jwt.access_token.grants import VoiceGrant
         
         try:
-            # For WebRTC, we can try using Account SID and Auth Token directly
-            # This is a simplified approach - in production you'd want separate API Keys
+            # Create access token using API Keys (proper way for WebRTC)
+            identity = f"agent_{token_request.user_id}"
+            
             token = AccessToken(
                 account_sid,
-                account_sid,
-                auth_token,
-                identity=f"agent_{token_request.user_id}"
+                api_key,      # API Key SID
+                api_secret,   # API Key Secret
+                identity=identity
             )
             
-            # Create voice grant for outbound calls
+            # Get base URL for TwiML endpoints
+            base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://ai-agent-comm.preview.emergentagent.com')
+            
+            # Create voice grant with our TwiML endpoints
             voice_grant = VoiceGrant(
-                outgoing_application_sid=None,  # Use default for outbound calls
-                incoming_allow=False  # Only outbound calls needed
+                outgoing_application_sid=None,  # We'll handle TwiML via URL parameters
+                incoming_allow=True  # Allow incoming calls to the WebRTC client
             )
             token.add_grant(voice_grant)
             
@@ -599,34 +609,24 @@ async def generate_access_token(token_request: AccessTokenRequest):
             return {
                 "status": "success", 
                 "token": jwt_token,
-                "identity": f"agent_{token_request.user_id}",
-                "expires_in": 3600
+                "identity": identity,
+                "expires_in": 3600,
+                "twiml_app_url": f"{base_url}/api/twiml/outbound-call"
             }
             
         except Exception as token_error:
-            # If token generation fails, provide helpful error message
             print(f"Token generation failed: {token_error}")
             return {
                 "status": "error",
-                "message": "Unable to generate WebRTC access token. This might be because WebRTC requires API Keys to be created in your Twilio Console.",
-                "troubleshooting": {
-                    "issue": "Access token generation failed",
-                    "solution": "WebRTC calling requires proper API Key configuration",
-                    "steps": [
-                        "Go to Twilio Console > Account > API Keys & Tokens",
-                        "Create a new API Key with Voice grants",
-                        "For now, try using Voice Bridge calling instead",
-                        "Contact support if you need help setting up WebRTC"
-                    ]
-                }
+                "message": f"Failed to generate access token: {str(token_error)}",
+                "suggestion": "Please verify your API Key and Secret are correct in Settings"
             }
         
     except Exception as e:
         print(f"Access token generation error: {e}")
         return {
             "status": "error", 
-            "message": f"Failed to generate access token: {str(e)}",
-            "suggestion": "Please verify your Twilio credentials in Settings and try Voice Bridge calling as an alternative."
+            "message": f"Access token error: {str(e)}"
         }
 
 @app.post("/api/twilio/webrtc-call")
