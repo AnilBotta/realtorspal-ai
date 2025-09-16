@@ -7,6 +7,7 @@ import dayjs from "dayjs";
 import AddLeadModal from "../components/AddLeadModal";
 import LeadDrawer from "../components/LeadDrawer";
 import CommunicationModal from "../components/CommunicationModal";
+import EmailModal from "../components/EmailModal";
 
 function Stat({ label, value, hint }){
   return (
