@@ -1197,6 +1197,14 @@ class SaveSettingsRequest(BaseModel):
     twilio_whatsapp_number: Optional[str] = None
     twilio_api_key: Optional[str] = None
     twilio_api_secret: Optional[str] = None
+    smtp_protocol: Optional[str] = None
+    smtp_hostname: Optional[str] = None
+    smtp_port: Optional[str] = None
+    smtp_ssl_tls: Optional[bool] = None
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_from_email: Optional[str] = None
+    smtp_from_name: Optional[str] = None
 
 @app.post("/api/settings", response_model=Settings)
 async def save_settings(payload: SaveSettingsRequest):
