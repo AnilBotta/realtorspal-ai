@@ -45,6 +45,8 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
         return 'Send SMS';
       case 'whatsapp':
         return 'Send WhatsApp';
+      case 'email':
+        return 'Send Email';
       default:
         return 'Communication';
     }
@@ -62,6 +64,8 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
         return <MessageSquare size={20} className="text-green-600" />;
       case 'whatsapp':
         return <MessageSquare size={20} className="text-green-600" />;
+      case 'email':
+        return <Mail size={20} className="text-blue-600" />;
       default:
         return <Phone size={20} />;
     }
