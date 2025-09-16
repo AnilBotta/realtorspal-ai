@@ -216,15 +216,25 @@ export default function Dashboard({ user }){
   };
 
   const handleCommunication = (lead, type) => {
-    setCommLead(lead);
-    setCommType(type);
-    setOpenComm(true);
+    if (type === 'email') {
+      setEmailLead(lead);
+      setOpenEmail(true);
+    } else {
+      setCommLead(lead);
+      setCommType(type);
+      setOpenComm(true);
+    }
   };
 
   const closeCommunication = () => {
     setOpenComm(false);
     setCommLead(null);
     setCommType('call');
+  };
+
+  const closeEmail = () => {
+    setOpenEmail(false);
+    setEmailLead(null);
   };
 
   const openDetails = (lead) => { setActiveLead(lead); setOpenDrawer(true); };
