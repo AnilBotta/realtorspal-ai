@@ -1722,6 +1722,11 @@ class RealtorsPalAPITester:
             self.test_twilio_webrtc_call_preparation,
             self.test_twilio_webrtc_call_missing_credentials,
             self.test_twilio_webrtc_call_invalid_lead,
+            # Email integration tests
+            self.test_email_draft_with_llm,
+            self.test_email_history,
+            self.test_email_send_setup_required,
+            self.test_smtp_settings_integration,
         ]
         
         for test in tests:
