@@ -140,8 +140,8 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle }){
           <Phone size={14}/> Call
         </button>
         <button 
-          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-gray-50" 
-          onClick={() => onOpen(lead)}
+          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-blue-50 hover:border-blue-200" 
+          onClick={(e) => { e.stopPropagation(); onCommunicate(lead, 'email'); }}
         >
           <Mail size={14}/> Email
         </button>
