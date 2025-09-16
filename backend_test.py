@@ -1519,12 +1519,29 @@ class RealtorsPalAPITester:
 
     def test_email_send_setup_required(self) -> bool:
         """Test POST /api/email/send with no SMTP configuration"""
-        # Use the specific lead ID from the review request
-        lead_id = "aafbf986-8cce-4bab-91fc-60d6f4148a07"
         demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
         
         try:
-            # First, ensure SMTP settings are cleared
+            # First, create a test lead with email address
+            timestamp = int(time.time()) + 300
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "Email",
+                "last_name": "SendTest",
+                "email": f"email.sendtest.{timestamp}@example.com",
+                "phone": "+14155551234",
+                "property_type": "House"
+            }
+            
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            if lead_response.status_code != 200:
+                self.log_test("Email Send Setup Required", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            test_lead_id = lead_data.get("id")
+            
+            # Ensure SMTP settings are cleared
             settings_payload = {
                 "user_id": demo_user_id,
                 "smtp_protocol": None,
@@ -1544,7 +1561,7 @@ class RealtorsPalAPITester:
             
             # Test email sending without SMTP configuration
             email_payload = {
-                "lead_id": lead_id,
+                "lead_id": test_lead_id,
                 "subject": "Test Email",
                 "body": "This is a test email to verify SMTP setup validation.",
                 "email_template": "follow_up",
