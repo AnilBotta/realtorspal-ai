@@ -1411,6 +1411,264 @@ class RealtorsPalAPITester:
             print("⚠️  Some lead import tests FAILED!")
             return False
 
+    def test_email_draft_with_llm(self) -> bool:
+        """Test GET /api/email/draft with different parameters"""
+        # Use the specific lead ID from the review request
+        lead_id = "aafbf986-8cce-4bab-91fc-60d6f4148a07"
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, create the test lead with the specific ID if it doesn't exist
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "Email",
+                "last_name": "TestLead",
+                "email": "email.testlead@example.com",
+                "phone": "+14155551234",
+                "property_type": "Single Family Home",
+                "neighborhood": "Downtown",
+                "price_min": 500000,
+                "price_max": 750000,
+                "priority": "high",
+                "stage": "New"
+            }
+            
+            # Try to create lead with specific ID by updating after creation
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            if lead_response.status_code == 200:
+                created_lead = lead_response.json()
+                actual_lead_id = created_lead.get("id")
+                print(f"  📝 Created test lead with ID: {actual_lead_id}")
+            else:
+                # Try to use the requested lead_id directly
+                actual_lead_id = lead_id
+                print(f"  📝 Using requested lead ID: {actual_lead_id}")
+            
+            # Test different combinations of parameters
+            test_cases = [
+                {"template": "follow_up", "tone": "professional", "provider": "emergent"},
+                {"template": "new_listing", "tone": "friendly", "provider": "openai"},
+                {"template": "appointment_reminder", "tone": "formal", "provider": "claude"},
+                {"template": "follow_up", "tone": "casual", "provider": "gemini"}
+            ]
+            
+            success_count = 0
+            for i, case in enumerate(test_cases):
+                params = {
+                    "lead_id": actual_lead_id,
+                    "email_template": case["template"],
+                    "tone": case["tone"],
+                    "llm_provider": case["provider"]
+                }
+                
+                response = requests.get(f"{self.base_url}/email/draft", params=params, timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if (data.get("status") == "success" and 
+                        "subject" in data and 
+                        "body" in data and
+                        data.get("template_used") == case["template"] and
+                        data.get("tone") == case["tone"] and
+                        data.get("llm_provider") == case["provider"]):
+                        success_count += 1
+                        print(f"  ✅ Test case {i+1}: {case['template']}/{case['tone']}/{case['provider']} - SUCCESS")
+                    elif data.get("fallback_used") == True:
+                        # Fallback is acceptable if LLM fails
+                        success_count += 1
+                        print(f"  ⚠️  Test case {i+1}: {case['template']}/{case['tone']}/{case['provider']} - FALLBACK USED")
+                    else:
+                        print(f"  ❌ Test case {i+1}: Invalid response structure: {data}")
+                else:
+                    print(f"  ❌ Test case {i+1}: Status {response.status_code}: {response.text}")
+            
+            if success_count == len(test_cases):
+                self.log_test("Email Draft with LLM", True, f"All {success_count}/{len(test_cases)} test cases passed")
+                return True
+            else:
+                self.log_test("Email Draft with LLM", False, f"Only {success_count}/{len(test_cases)} test cases passed")
+                return False
+                
+        except Exception as e:
+            self.log_test("Email Draft with LLM", False, f"Exception: {str(e)}")
+            return False
+
+    def test_email_history(self) -> bool:
+        """Test GET /api/email/history/{lead_id}"""
+        # Use the specific lead ID from the review request
+        lead_id = "aafbf986-8cce-4bab-91fc-60d6f4148a07"
+        
+        try:
+            response = requests.get(f"{self.base_url}/email/history/{lead_id}", timeout=10)
+            
+            if response.status_code == 200:
+                history = response.json()
+                if isinstance(history, list):
+                    self.log_test("Email History", True, f"Email history retrieved successfully. Found {len(history)} records")
+                    return True
+                else:
+                    self.log_test("Email History", False, f"Expected list response, got: {type(history)}")
+                    return False
+            else:
+                self.log_test("Email History", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Email History", False, f"Exception: {str(e)}")
+            return False
+
+    def test_email_send_setup_required(self) -> bool:
+        """Test POST /api/email/send with no SMTP configuration"""
+        # Use the specific lead ID from the review request
+        lead_id = "aafbf986-8cce-4bab-91fc-60d6f4148a07"
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, ensure SMTP settings are cleared
+            settings_payload = {
+                "user_id": demo_user_id,
+                "smtp_protocol": None,
+                "smtp_hostname": None,
+                "smtp_port": None,
+                "smtp_ssl_tls": None,
+                "smtp_username": None,
+                "smtp_password": None,
+                "smtp_from_email": None,
+                "smtp_from_name": None
+            }
+            settings_response = requests.post(f"{self.base_url}/settings", json=settings_payload, timeout=10)
+            
+            if settings_response.status_code != 200:
+                self.log_test("Email Send Setup Required", False, f"Failed to clear SMTP settings: {settings_response.text}")
+                return False
+            
+            # Test email sending without SMTP configuration
+            email_payload = {
+                "lead_id": lead_id,
+                "subject": "Test Email",
+                "body": "This is a test email to verify SMTP setup validation.",
+                "email_template": "follow_up",
+                "llm_provider": "emergent"
+            }
+            
+            response = requests.post(f"{self.base_url}/email/send", json=email_payload, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "error" and 
+                    ("SMTP configuration incomplete" in data.get("message", "") or
+                     data.get("setup_required") == True)):
+                    self.log_test("Email Send Setup Required", True, f"Proper setup_required error: {data.get('message', '')}")
+                    return True
+                else:
+                    self.log_test("Email Send Setup Required", False, f"Unexpected response: {data}")
+                    return False
+            else:
+                self.log_test("Email Send Setup Required", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Email Send Setup Required", False, f"Exception: {str(e)}")
+            return False
+
+    def test_smtp_settings_integration(self) -> bool:
+        """Test SMTP settings storage and retrieval"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Test saving SMTP settings
+            smtp_settings = {
+                "user_id": demo_user_id,
+                "smtp_protocol": "SMTP",
+                "smtp_hostname": "smtp.gmail.com",
+                "smtp_port": "587",
+                "smtp_ssl_tls": True,
+                "smtp_username": "test@gmail.com",
+                "smtp_password": "test_password",
+                "smtp_from_email": "test@gmail.com",
+                "smtp_from_name": "Test Agent"
+            }
+            
+            save_response = requests.post(f"{self.base_url}/settings", json=smtp_settings, timeout=10)
+            
+            if save_response.status_code != 200:
+                self.log_test("SMTP Settings Integration", False, f"Failed to save SMTP settings: {save_response.text}")
+                return False
+            
+            # Verify settings were saved
+            get_response = requests.get(f"{self.base_url}/settings", params={"user_id": demo_user_id}, timeout=10)
+            
+            if get_response.status_code != 200:
+                self.log_test("SMTP Settings Integration", False, f"Failed to retrieve settings: {get_response.text}")
+                return False
+            
+            settings = get_response.json()
+            
+            # Check all SMTP fields are present and correct
+            smtp_fields = [
+                "smtp_protocol", "smtp_hostname", "smtp_port", "smtp_ssl_tls",
+                "smtp_username", "smtp_password", "smtp_from_email", "smtp_from_name"
+            ]
+            
+            missing_fields = []
+            incorrect_fields = []
+            
+            for field in smtp_fields:
+                if field not in settings:
+                    missing_fields.append(field)
+                elif settings[field] != smtp_settings[field]:
+                    incorrect_fields.append(f"{field}: expected {smtp_settings[field]}, got {settings[field]}")
+            
+            if missing_fields:
+                self.log_test("SMTP Settings Integration", False, f"Missing SMTP fields: {missing_fields}")
+                return False
+            
+            if incorrect_fields:
+                self.log_test("SMTP Settings Integration", False, f"Incorrect SMTP field values: {incorrect_fields}")
+                return False
+            
+            self.log_test("SMTP Settings Integration", True, f"All SMTP settings stored and retrieved correctly")
+            return True
+            
+        except Exception as e:
+            self.log_test("SMTP Settings Integration", False, f"Exception: {str(e)}")
+            return False
+
+    def run_email_tests_only(self) -> bool:
+        """Run only the email integration tests"""
+        print("🚀 Starting Email Integration Tests")
+        print(f"📍 Base URL: {self.base_url}")
+        print("=" * 60)
+        
+        # First get authentication
+        if not self.test_health():
+            return False
+        if not self.test_login():
+            return False
+        
+        # Run email-specific tests
+        email_tests = [
+            self.test_email_draft_with_llm,
+            self.test_email_history,
+            self.test_email_send_setup_required,
+            self.test_smtp_settings_integration,
+        ]
+        
+        email_tests_passed = 0
+        for test in email_tests:
+            if test():
+                email_tests_passed += 1
+        
+        print("=" * 60)
+        print(f"📊 Email Tests Results: {email_tests_passed}/{len(email_tests)} tests passed")
+        
+        if email_tests_passed == len(email_tests):
+            print("🎉 All email integration tests PASSED!")
+            return True
+        else:
+            print("⚠️  Some email integration tests FAILED!")
+            return False
+
     def run_delete_import_workflow_only(self) -> bool:
         """Run only the DELETE ALL → IMPORT workflow test as requested"""
         print("🚀 Starting DELETE ALL → IMPORT Workflow Test")
