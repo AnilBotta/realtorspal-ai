@@ -462,6 +462,108 @@ export default function Settings({ user }){
         </div>
       </div>
 
+      {/* SMTP Email Configuration */}
+      <div className="bg-white rounded-lg border p-6">
+        <h3 className="text-lg font-semibold text-slate-800 mb-2">📧 SMTP Email Configuration</h3>
+        <div className="text-sm text-slate-500 mb-4">Configure SMTP settings for sending emails to leads with LLM-powered drafting</div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm text-slate-600 font-medium">Protocol</label>
+            <select 
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              value={form.smtp_protocol} 
+              onChange={(e)=>setForm({...form, smtp_protocol:e.target.value})}
+            >
+              <option value="smtp">SMTP</option>
+              <option value="smtps">SMTPS</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-slate-600 font-medium">Hostname</label>
+            <input 
+              type="text"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="smtp.gmail.com" 
+              value={form.smtp_hostname} 
+              onChange={(e)=>setForm({...form, smtp_hostname:e.target.value})} 
+            />
+          </div>
+          <div>
+            <label className="text-sm text-slate-600 font-medium">Port</label>
+            <input 
+              type="number"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="587" 
+              value={form.smtp_port} 
+              onChange={(e)=>setForm({...form, smtp_port:e.target.value})} 
+            />
+            <div className="text-xs text-slate-500 mt-1">Common: 587 (TLS), 465 (SSL), 25 (plain)</div>
+          </div>
+          <div>
+            <label className="text-sm text-slate-600 font-medium">SSL/TLS</label>
+            <select 
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              value={form.smtp_ssl_tls.toString()} 
+              onChange={(e)=>setForm({...form, smtp_ssl_tls: e.target.value === 'true'})}
+            >
+              <option value="true">Enabled (Recommended)</option>
+              <option value="false">Disabled</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-slate-600 font-medium">Username</label>
+            <input 
+              type="text"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="your-email@gmail.com" 
+              value={form.smtp_username} 
+              onChange={(e)=>setForm({...form, smtp_username:e.target.value})} 
+            />
+          </div>
+          <div>
+            <label className="text-sm text-slate-600 font-medium">Password</label>
+            <input 
+              type="password"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="Your app password" 
+              value={form.smtp_password} 
+              onChange={(e)=>setForm({...form, smtp_password:e.target.value})} 
+            />
+          </div>
+          <div>
+            <label className="text-sm text-slate-600 font-medium">From Email Address</label>
+            <input 
+              type="email"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="agent@realtorspal.com" 
+              value={form.smtp_from_email} 
+              onChange={(e)=>setForm({...form, smtp_from_email:e.target.value})} 
+            />
+            <div className="text-xs text-slate-500 mt-1">Email address shown to recipients</div>
+          </div>
+          <div>
+            <label className="text-sm text-slate-600 font-medium">From Name</label>
+            <input 
+              type="text"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="John Doe - Real Estate Agent" 
+              value={form.smtp_from_name} 
+              onChange={(e)=>setForm({...form, smtp_from_name:e.target.value})} 
+            />
+            <div className="text-xs text-slate-500 mt-1">Name shown to recipients</div>
+          </div>
+        </div>
+        <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+          <div className="text-xs text-blue-700">
+            <strong>Popular SMTP Settings:</strong>
+            <br />• <strong>Gmail:</strong> smtp.gmail.com:587 (TLS) - Use App Password
+            <br />• <strong>Outlook:</strong> smtp-mail.outlook.com:587 (TLS)
+            <br />• <strong>Yahoo:</strong> smtp.mail.yahoo.com:587 (TLS)
+            <br />• <strong>Custom:</strong> Contact your email provider for settings
+          </div>
+        </div>
+      </div>
+
       {/* API Key Integration Button */}
       <div className="bg-white rounded-xl border p-6">
         <div className="flex items-center justify-between">
