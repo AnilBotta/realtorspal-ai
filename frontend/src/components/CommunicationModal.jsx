@@ -1,8 +1,9 @@
 import React, { useState, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { Phone, MessageSquare, Send, X, Loader2, Headphones, Zap } from 'lucide-react';
+import { Phone, MessageSquare, Send, X, Loader2, Headphones, Zap, Mail } from 'lucide-react';
 import WebRTCCalling from './WebRTCCalling';
 import SimpleWebRTCCall from './SimpleWebRTCCall';
+import EmailModal from './EmailModal';
 
 export default function CommunicationModal({ open, lead, type, onClose, user }) {
   const [message, setMessage] = useState('');
