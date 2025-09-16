@@ -1107,7 +1107,7 @@ async def get_email_history(lead_id: str):
         return []
 
 @app.get("/api/email/draft")
-async def draft_email_with_llm(lead_id: str, email_template: str = "follow_up", tone: str = "professional"):
+async def draft_email_with_llm(lead_id: str, email_template: str = "follow_up", tone: str = "professional", llm_provider: str = "emergent"):
     """Draft email using LLM based on lead information"""
     try:
         # Get lead details
@@ -1115,9 +1115,171 @@ async def draft_email_with_llm(lead_id: str, email_template: str = "follow_up", 
         if not lead:
             raise HTTPException(status_code=404, detail="Lead not found")
         
-        # For now, return a placeholder response
-        # This will be enhanced with actual LLM integration in the next step
+        # Import LLM integration
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from dotenv import load_dotenv
+        import os
         
+        # Load environment variables
+        load_dotenv()
+        
+        # Get LLM key
+        api_key = os.getenv('EMERGENT_LLM_KEY')
+        if not api_key:
+            return {
+                "status": "error",
+                "message": "LLM API key not found. Please configure Emergent LLM key.",
+                "fallback_used": True
+            }
+        
+        # Prepare lead information for LLM
+        lead_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or "there"
+        property_info = f"{lead.get('property_type', 'property')} in {lead.get('neighborhood', 'your preferred area')}"
+        budget_info = ""
+        if lead.get('price_min') or lead.get('price_max'):
+            budget_min = f"${lead.get('price_min', 0):,}" if lead.get('price_min') else "any"
+            budget_max = f"${lead.get('price_max', 0):,}" if lead.get('price_max') else "any"
+            budget_info = f" with a budget range of {budget_min} to {budget_max}"
+        
+        # Create context for LLM
+        lead_context = f"""
+        Lead Information:
+        - Name: {lead_name}
+        - Email: {lead.get('email', 'Not provided')}
+        - Phone: {lead.get('phone', 'Not provided')}
+        - Property Interest: {property_info}{budget_info}
+        - Current Stage: {lead.get('stage', 'New')}
+        - Priority: {lead.get('priority', 'medium')}
+        - Notes: {lead.get('notes', 'No previous interactions')}
+        """
+        
+        # Template-specific prompts
+        template_prompts = {
+            "follow_up": f"""
+            Write a professional follow-up email to {lead_name} about their real estate inquiry. 
+            They are interested in {property_info}{budget_info}.
+            
+            The email should:
+            - Be {tone} in tone
+            - Reference their specific property interest
+            - Offer to help and provide value
+            - Include a clear call-to-action (schedule a call or meeting)
+            - Be personalized and not sound generic
+            - Be around 100-150 words
+            
+            Include both a subject line and email body.
+            """,
+            "new_listing": f"""
+            Write an email to {lead_name} about a new property listing that matches their criteria.
+            They are interested in {property_info}{budget_info}.
+            
+            The email should:
+            - Be {tone} in tone
+            - Sound exciting about the new listing
+            - Mention it matches their criteria
+            - Create urgency (competitive market)
+            - Include a call-to-action to schedule a viewing
+            - Be around 100-150 words
+            
+            Include both a subject line and email body.
+            """,
+            "appointment_reminder": f"""
+            Write a friendly reminder email to {lead_name} about an upcoming property viewing appointment.
+            They are interested in {property_info}{budget_info}.
+            
+            The email should:
+            - Be {tone} in tone
+            - Remind them of the appointment
+            - Express enthusiasm about helping them
+            - Ask if they have any questions
+            - Provide your contact information
+            - Be around 80-120 words
+            
+            Include both a subject line and email body.
+            """
+        }
+        
+        # Get the appropriate prompt
+        prompt = template_prompts.get(email_template, template_prompts["follow_up"])
+        
+        # Initialize LLM chat
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"email_draft_{lead_id}_{email_template}",
+            system_message=f"""You are a professional real estate agent assistant helping to draft personalized emails to leads. 
+            
+            Always format your response as:
+            SUBJECT: [email subject line]
+            
+            BODY:
+            [email body content]
+            
+            Keep emails professional, personalized, and focused on providing value to the potential client.
+            {lead_context}
+            """
+        )
+        
+        # Set model based on provider (default to gpt-4o-mini for cost efficiency)
+        if llm_provider == "emergent":
+            chat.with_model("openai", "gpt-4o-mini")
+        elif llm_provider == "openai":
+            chat.with_model("openai", "gpt-4o")
+        elif llm_provider == "claude":
+            chat.with_model("anthropic", "claude-3-5-sonnet-20241022")
+        elif llm_provider == "gemini":
+            chat.with_model("gemini", "gemini-2.0-flash")
+        
+        # Create user message
+        user_message = UserMessage(text=prompt)
+        
+        # Get LLM response
+        response = await chat.send_message(user_message)
+        
+        # Parse the response
+        lines = response.strip().split('\n')
+        subject = ""
+        body = ""
+        
+        parsing_body = False
+        for line in lines:
+            if line.startswith("SUBJECT:"):
+                subject = line.replace("SUBJECT:", "").strip()
+            elif line.startswith("BODY:"):
+                parsing_body = True
+                continue
+            elif parsing_body:
+                if body:
+                    body += "\n" + line
+                else:
+                    body = line
+        
+        # Fallback parsing if format is not followed
+        if not subject or not body:
+            response_parts = response.split('\n\n', 1)
+            if len(response_parts) == 2:
+                subject = response_parts[0].replace("SUBJECT:", "").strip()
+                body = response_parts[1].replace("BODY:", "").strip()
+            else:
+                # Use the entire response as body and generate a subject
+                body = response.strip()
+                subject = f"Following up on your {lead.get('property_type', 'property')} inquiry"
+        
+        return {
+            "status": "success",
+            "subject": subject,
+            "body": body,
+            "template_used": email_template,
+            "tone": tone,
+            "llm_provider": llm_provider,
+            "lead_name": lead_name,
+            "property_info": property_info,
+            "llm_generated": True
+        }
+        
+    except Exception as e:
+        print(f"LLM email drafting error: {e}")
+        
+        # Fallback to template-based generation if LLM fails
         lead_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or "there"
         property_info = f"{lead.get('property_type', 'property')} in {lead.get('neighborhood', 'your preferred area')}"
         
@@ -1174,12 +1336,11 @@ Your Real Estate Agent"""
             "template_used": email_template,
             "tone": tone,
             "lead_name": lead_name,
-            "property_info": property_info
+            "property_info": property_info,
+            "llm_generated": False,
+            "fallback_used": True,
+            "error": str(e)
         }
-        
-    except Exception as e:
-        print(f"Email drafting error: {e}")
-        return {"status": "error", "message": str(e)}
 
 # --- End Email Communication Endpoints ---
 
