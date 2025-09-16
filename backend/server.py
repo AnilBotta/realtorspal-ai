@@ -1182,6 +1182,29 @@ async def get_settings(user_id: str):
         return settings
     return Settings(**{k: v for k, v in doc.items() if k != "_id"})
 
+class EmailHistory(BaseModel):
+    id: str
+    user_id: str
+    lead_id: str
+    subject: str
+    body: str
+    to_email: str
+    from_email: str
+    from_name: str
+    status: str  # sent, failed, draft
+    sent_at: Optional[str] = None
+    error_message: Optional[str] = None
+    llm_provider: Optional[str] = None
+    email_template: Optional[str] = None
+    created_at: str
+
+class SendEmailRequest(BaseModel):
+    lead_id: str
+    subject: str
+    body: str
+    email_template: Optional[str] = None
+    llm_provider: Optional[str] = None
+
 class SaveSettingsRequest(BaseModel):
     user_id: str
     openai_api_key: Optional[str] = None
