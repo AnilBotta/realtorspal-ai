@@ -175,6 +175,8 @@ export default function Dashboard({ user }){
   const [openComm, setOpenComm] = useState(false);
   const [commType, setCommType] = useState('call'); // 'call', 'sms', 'whatsapp'
   const [commLead, setCommLead] = useState(null);
+  const [openEmail, setOpenEmail] = useState(false);
+  const [emailLead, setEmailLead] = useState(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   useEffect(() => {
