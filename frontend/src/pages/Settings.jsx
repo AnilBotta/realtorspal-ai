@@ -16,7 +16,15 @@ export default function Settings({ user }){
     twilio_phone_number: "",
     twilio_whatsapp_number: "",
     twilio_api_key: "",
-    twilio_api_secret: ""
+    twilio_api_secret: "",
+    smtp_protocol: "smtp",
+    smtp_hostname: "",
+    smtp_port: "587",
+    smtp_ssl_tls: true,
+    smtp_username: "",
+    smtp_password: "",
+    smtp_from_email: "",
+    smtp_from_name: ""
   });
   const [copiedWebhook, setCopiedWebhook] = useState(null);
   const [showApiModal, setShowApiModal] = useState(false);
