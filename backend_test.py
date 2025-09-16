@@ -1759,6 +1759,9 @@ def main():
         elif sys.argv[1] == "--webrtc-review":
             tester = RealtorsPalAPITester()
             success = tester.run_webrtc_review_tests()
+        elif sys.argv[1] == "--email-only":
+            tester = RealtorsPalAPITester()
+            success = tester.run_email_tests_only()
         else:
             tester = RealtorsPalAPITester()
             success = tester.run_all_tests()
