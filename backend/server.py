@@ -966,6 +966,223 @@ async def send_whatsapp(whatsapp_data: TwilioWhatsAppRequest):
         print(f"WhatsApp sending error: {e}")
         return {"status": "error", "message": str(e)}
 
+# --- Email Communication Endpoints ---
+
+@app.post("/api/email/send")
+async def send_email(email_request: SendEmailRequest):
+    """Send email to lead using SMTP configuration"""
+    try:
+        # Get lead details
+        lead = await db.leads.find_one({"id": email_request.lead_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        if not lead.get("email"):
+            return {"status": "error", "message": "Lead has no email address"}
+        
+        # Get SMTP settings
+        settings = await db.settings.find_one({"user_id": lead["user_id"]})
+        if not settings:
+            return {"status": "error", "message": "User settings not found"}
+        
+        # Check SMTP configuration
+        required_fields = ["smtp_hostname", "smtp_port", "smtp_username", "smtp_password", "smtp_from_email"]
+        missing_fields = [field for field in required_fields if not settings.get(field)]
+        
+        if missing_fields:
+            return {
+                "status": "error", 
+                "message": f"SMTP configuration incomplete. Missing: {', '.join(missing_fields)}",
+                "setup_required": True
+            }
+        
+        # Import required libraries for email
+        import smtplib
+        import ssl
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        
+        # Create email message
+        message = MIMEMultipart("alternative")
+        message["Subject"] = email_request.subject
+        message["From"] = f"{settings.get('smtp_from_name', 'RealtorsPal Agent')} <{settings['smtp_from_email']}>"
+        message["To"] = lead["email"]
+        
+        # Create HTML and plain text versions
+        html_body = email_request.body.replace('\n', '<br>')
+        text_body = email_request.body
+        
+        text_part = MIMEText(text_body, "plain")
+        html_part = MIMEText(html_body, "html")
+        
+        message.attach(text_part)
+        message.attach(html_part)
+        
+        # Create email history record
+        email_id = str(uuid.uuid4())
+        email_history = {
+            "id": email_id,
+            "user_id": lead["user_id"],
+            "lead_id": email_request.lead_id,
+            "subject": email_request.subject,
+            "body": email_request.body,
+            "to_email": lead["email"],
+            "from_email": settings["smtp_from_email"],
+            "from_name": settings.get("smtp_from_name", "RealtorsPal Agent"),
+            "status": "draft",
+            "llm_provider": email_request.llm_provider,
+            "email_template": email_request.email_template,
+            "created_at": datetime.now().isoformat()
+        }
+        
+        try:
+            # Connect to SMTP server
+            context = ssl.create_default_context()
+            
+            if settings.get("smtp_ssl_tls", True):
+                # Use TLS
+                server = smtplib.SMTP(settings["smtp_hostname"], int(settings["smtp_port"]))
+                server.starttls(context=context)
+            else:
+                # Use plain connection
+                server = smtplib.SMTP(settings["smtp_hostname"], int(settings["smtp_port"]))
+            
+            # Login and send email
+            server.login(settings["smtp_username"], settings["smtp_password"])
+            server.sendmail(settings["smtp_from_email"], lead["email"], message.as_string())
+            server.quit()
+            
+            # Update email history with success
+            email_history["status"] = "sent"
+            email_history["sent_at"] = datetime.now().isoformat()
+            
+            # Log email activity in lead notes
+            current_notes = lead.get('notes', '')
+            new_note = f"\n\n[Email] Sent: '{email_request.subject}' to {lead['email']} - {datetime.now().isoformat()}"
+            await db.leads.update_one(
+                {"id": email_request.lead_id},
+                {"$set": {"notes": current_notes + new_note}}
+            )
+            
+            print(f"Email sent successfully to {lead['email']}")
+            
+        except Exception as smtp_error:
+            print(f"SMTP error: {smtp_error}")
+            email_history["status"] = "failed"
+            email_history["error_message"] = str(smtp_error)
+        
+        # Save email history
+        await db.email_history.insert_one(email_history)
+        
+        if email_history["status"] == "sent":
+            return {
+                "status": "success",
+                "message": f"Email sent successfully to {lead['email']}",
+                "email_id": email_id
+            }
+        else:
+            return {
+                "status": "error",
+                "message": f"Failed to send email: {email_history['error_message']}",
+                "email_id": email_id
+            }
+            
+    except Exception as e:
+        print(f"Email sending error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/email/history/{lead_id}")
+async def get_email_history(lead_id: str):
+    """Get email history for a specific lead"""
+    try:
+        history = await db.email_history.find(
+            {"lead_id": lead_id}, 
+            sort=[("created_at", -1)]
+        ).to_list(length=None)
+        
+        return [EmailHistory(**{k: v for k, v in record.items() if k != "_id"}) for record in history]
+        
+    except Exception as e:
+        print(f"Email history error: {e}")
+        return []
+
+@app.get("/api/email/draft")
+async def draft_email_with_llm(lead_id: str, email_template: str = "follow_up", tone: str = "professional"):
+    """Draft email using LLM based on lead information"""
+    try:
+        # Get lead details
+        lead = await db.leads.find_one({"id": lead_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # For now, return a placeholder response
+        # This will be enhanced with actual LLM integration in the next step
+        
+        lead_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or "there"
+        property_info = f"{lead.get('property_type', 'property')} in {lead.get('neighborhood', 'your preferred area')}"
+        
+        templates = {
+            "follow_up": {
+                "subject": f"Following up on your {lead.get('property_type', 'property')} inquiry",
+                "body": f"""Dear {lead_name},
+
+I hope this email finds you well. I wanted to follow up on your recent inquiry about {property_info}.
+
+As your dedicated real estate agent, I'm here to help you find the perfect property that meets your needs and budget. I have several new listings that might interest you based on your preferences.
+
+Would you be available for a quick call this week to discuss your requirements in more detail? I'd love to show you some properties that I think would be a great fit.
+
+Best regards,
+Your Real Estate Agent"""
+            },
+            "new_listing": {
+                "subject": f"New {lead.get('property_type', 'property')} listing that matches your criteria",
+                "body": f"""Hi {lead_name},
+
+I hope you're doing well! I wanted to reach out because I have an exciting new listing that I think would be perfect for you.
+
+Based on our previous conversation about your interest in {property_info}, this new property checks all the boxes and is priced competitively in the current market.
+
+Would you like to schedule a viewing? I'm available this week and would love to show you this property before it goes to other potential buyers.
+
+Looking forward to hearing from you!
+
+Best regards,
+Your Real Estate Agent"""
+            },
+            "appointment_reminder": {
+                "subject": "Reminder: Property viewing appointment",
+                "body": f"""Dear {lead_name},
+
+This is a friendly reminder about our upcoming appointment to view properties in {lead.get('neighborhood', 'your preferred area')}.
+
+Please let me know if you need to reschedule or if you have any questions before our meeting.
+
+I'm looking forward to helping you find your dream home!
+
+Best regards,
+Your Real Estate Agent"""
+            }
+        }
+        
+        template_data = templates.get(email_template, templates["follow_up"])
+        
+        return {
+            "status": "success",
+            "subject": template_data["subject"],
+            "body": template_data["body"],
+            "template_used": email_template,
+            "tone": tone,
+            "lead_name": lead_name,
+            "property_info": property_info
+        }
+        
+    except Exception as e:
+        print(f"Email drafting error: {e}")
+        return {"status": "error", "message": str(e)}
+
+# --- End Email Communication Endpoints ---
+
 # --- Utils ---
 def normalize_phone(phone_str):
     """Normalize phone number to E.164 format"""
