@@ -210,6 +210,29 @@ class ImportResult(BaseModel):
     errors: List[Dict[str, Any]]
     inserted_leads: List[Lead]
 
+class EmailHistory(BaseModel):
+    id: str
+    user_id: str
+    lead_id: str
+    subject: str
+    body: str
+    to_email: str
+    from_email: str
+    from_name: str
+    status: str  # sent, failed, draft
+    sent_at: Optional[str] = None
+    error_message: Optional[str] = None
+    llm_provider: Optional[str] = None
+    email_template: Optional[str] = None
+    created_at: str
+
+class SendEmailRequest(BaseModel):
+    lead_id: str
+    subject: str
+    body: str
+    email_template: Optional[str] = None
+    llm_provider: Optional[str] = None
+
 # --- API Authentication ---
 async def authenticate_api_key(api_key: str) -> Optional[str]:
     """Authenticate API key and return user_id"""
