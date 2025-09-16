@@ -64,6 +64,14 @@ export default function Settings({ user }){
         twilio_whatsapp_number: data.twilio_whatsapp_number || "",
         twilio_api_key: data.twilio_api_key || "",
         twilio_api_secret: data.twilio_api_secret || "",
+        smtp_protocol: data.smtp_protocol || "smtp",
+        smtp_hostname: data.smtp_hostname || "",
+        smtp_port: data.smtp_port || "587",
+        smtp_ssl_tls: data.smtp_ssl_tls !== undefined ? data.smtp_ssl_tls : true,
+        smtp_username: data.smtp_username || "",
+        smtp_password: data.smtp_password || "",
+        smtp_from_email: data.smtp_from_email || "",
+        smtp_from_name: data.smtp_from_name || "",
       });
     } catch (err) {
       console.error('Failed to load settings:', err);
