@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Filter, Mail, Phone, MapPin, Calendar, User, Edit, Trash2 } from 'lucide-react';
 import { getLeads, createLead, updateLead, deleteLead } from '../api';
-import { useUser } from '../store';
 import AddLeadModal from '../components/AddLeadModal';
 import ImportLeadsModal from '../components/ImportLeadsModal';
 import LeadDrawer from '../components/LeadDrawer';
 import EmailModal from '../components/EmailModal';
 
-export default function Leads() {
-  const { user } = useUser();
+export default function Leads({ user }) {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
