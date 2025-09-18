@@ -1,341 +1,424 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { getLeads, createLead, updateLead, deleteLead, importLeads } from "../api";
-import AddLeadModal from "../components/AddLeadModal";
-import LeadDrawer from "../components/LeadDrawer";
-import ImportLeadsModal from "../components/ImportLeadsModal";
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Filter, Mail, Phone, MapPin, Calendar, User, Edit, Trash2 } from 'lucide-react';
+import { getLeads, createLead, updateLead, deleteLead } from '../api';
+import { useUser } from '../store';
+import AddLeadModal from '../components/AddLeadModal';
+import ImportLeadsModal from '../components/ImportLeadsModal';
+import LeadDrawer from '../components/LeadDrawer';
+import EmailModal from '../components/EmailModal';
 
-const STAGES = ["New", "Contacted", "Appointment", "Onboarded", "Closed"];
-const PRIORITIES = ["high", "medium", "low"];
-
-export default function Leads({ user }){
+export default function Leads() {
+  const { user } = useUser();
   const [leads, setLeads] = useState([]);
-  const [openAdd, setOpenAdd] = useState(false);
-  const [openImport, setOpenImport] = useState(false);
-  const [openDrawer, setOpenDrawer] = useState(false);
-  const [activeLead, setActiveLead] = useState(null);
-
-  // Search & Filters
-  const [query, setQuery] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState({
-    stages: new Set(),
-    dashboard: "all", // all | yes | no
-    priority: new Set(),
-    property_type: "",
-    neighborhood: "",
-    budget_min: "",
-    budget_max: "",
-  });
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterPriority, setFilterPriority] = useState('all');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
+  
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showLeadDrawer, setShowLeadDrawer] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [selectedLead, setSelectedLead] = useState(null);
 
   useEffect(() => {
     loadLeads();
-  }, [user.id]);
+  }, [user]);
 
   const loadLeads = async () => {
+    if (!user) return;
     try {
-      const { data } = await getLeads(user.id);
-      setLeads(data);
-      console.log(`Loaded ${data.length} leads from database`);
-    } catch (err) {
-      console.error('Failed to load leads:', err);
-      alert('Failed to load leads');
+      setLoading(true);
+      const data = await getLeads(user.id);
+      setLeads(data || []);
+    } catch (error) {
+      console.error('Failed to load leads:', error);
+      setLeads([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const onCreate = async (payload) => {
-    try{
-      const { data } = await createLead({ user_id: user.id, in_dashboard: false, ...payload });
-      setLeads(prev => [data, ...prev]);
-      setOpenAdd(false);
-    }catch(err){
-      alert(err?.response?.data?.detail || 'Failed to create lead');
+  const handleCreateLead = async (leadData) => {
+    try {
+      const newLead = await createLead({ ...leadData, user_id: user.id });
+      setLeads(prev => [newLead, ...prev]);
+    } catch (error) {
+      console.error('Failed to create lead:', error);
+      throw error;
     }
   };
 
-  const onSave = async (payload) => {
-    try{
-      const { data } = await updateLead(activeLead.id, payload);
-      setLeads(arr => arr.map(l => l.id === data.id ? data : l));
-      setActiveLead(data);
-      setOpenDrawer(false);
-    }catch(err){ alert(err?.response?.data?.detail || 'Failed to update lead'); }
-  };
-
-  const onDeleteLead = async (leadId) => {
-    try{
-      await deleteLead(leadId);
-      console.log(`Lead ${leadId} deleted, refreshing leads list...`);
-      // Refresh the entire list to ensure consistency
-      await loadLeads();
-      setOpenDrawer(false);
-      setActiveLead(null);
-    }catch(err){ 
-      console.error('Delete error:', err);
-      alert(err?.response?.data?.detail || 'Failed to delete lead'); 
+  const handleUpdateLead = async (leadData) => {
+    try {
+      const updatedLead = await updateLead(leadData.id, leadData);
+      setLeads(prev => prev.map(lead => lead.id === updatedLead.id ? updatedLead : lead));
+    } catch (error) {
+      console.error('Failed to update lead:', error);
+      throw error;
     }
   };
 
-  const addToDashboard = async (lead) => {
-    try{
-      const { data } = await updateLead(lead.id, { in_dashboard: true, stage: 'New' });
-      setLeads(arr => arr.map(l => l.id === data.id ? data : l));
-      alert('Added to dashboard');
-    }catch(err){ alert(err?.response?.data?.detail || 'Failed to add to dashboard'); }
-  };
-
-  const onImported = async (inserted) => {
-    console.log('onImported called with:', inserted);
-    if (Array.isArray(inserted) && inserted.length) {
-      console.log(`Successfully imported ${inserted.length} leads, refreshing leads list...`);
-      // Instead of relying on state merging, refresh the entire leads list from database
-      // This ensures we get the most up-to-date data, especially after delete operations
-      try {
-        const { data } = await getLeads(user.id);
-        setLeads(data);
-        console.log(`Leads list refreshed with ${data.length} total leads`);
-      } catch (err) {
-        console.error('Failed to refresh leads list after import:', err);
-        // Fallback to state merging if refresh fails
-        setLeads(prev => [...inserted, ...prev]);
-      }
+  const handleDeleteLead = async (lead) => {
+    if (!window.confirm(`Are you sure you want to delete ${lead.first_name} ${lead.last_name}?`)) {
+      return;
     }
-  };
-
-  const onImportApi = async (payload) => {
-    console.log('=== onImportApi CALLED ===');
-    console.log('Payload being sent:', JSON.stringify(payload, null, 2));
     
     try {
-      console.log('Calling importLeads function...');
-      const response = await importLeads(payload);
-      console.log('Raw importLeads response:', response);
-      console.log('Response data:', response.data);
-      return response.data;
+      await deleteLead(lead.id);
+      setLeads(prev => prev.filter(l => l.id !== lead.id));
+      setShowLeadDrawer(false);
     } catch (error) {
-      console.error('=== onImportApi ERROR ===');
-      console.error('Error type:', typeof error);
-      console.error('Error object:', error);
-      console.error('Error message:', error?.message);
-      console.error('Error response:', error?.response);
-      console.error('Error response status:', error?.response?.status);
-      console.error('Error response data:', error?.response?.data);
-      console.error('Error config:', error?.config);
-      
-      // Re-throw the error with more context
-      if (error?.response?.data) {
-        console.error('Throwing backend error');
-        throw error;
-      } else if (error?.message) {
-        console.error('Throwing network error');
-        const networkError = new Error(`Network error: ${error.message}`);
-        networkError.response = { data: { detail: `Network error: ${error.message}` } };
-        throw networkError;
-      } else {
-        console.error('Throwing unknown error');
-        const unknownError = new Error(`Unknown error: ${JSON.stringify(error)}`);
-        unknownError.response = { data: { detail: `Unknown error: ${JSON.stringify(error)}` } };
-        throw unknownError;
-      }
+      console.error('Failed to delete lead:', error);
     }
   };
 
-  // Base rows
-  const rows = useMemo(() => leads.map(l => ({
-    id: l.id,
-    name: `${l.first_name||''} ${l.last_name||''}`.trim() || l.name || 'Lead',
-    email: l.email || '-',
-    phone: l.phone || '-',
-    property_type: l.property_type || '-',
-    neighborhood: l.neighborhood || '-',
-    budget_min: l.price_min ?? null,
-    budget_max: l.price_max ?? null,
-    budget: l.price_min && l.price_max ? `$ ${Math.round(l.price_min/1000)}K - $ ${Math.round(l.price_max/1000)}K` : '-',
-    priority: l.priority || '-',
-    tags: Array.isArray(l.source_tags) ? l.source_tags.join(', ') : (l.source_tags || '-'),
-    stage: l.stage,
-    in_dashboard: l.in_dashboard !== false,
-    raw: l,
-  })), [leads]);
-
-  // Search across all visible string fields and apply filters
-  const filteredRows = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    let data = rows;
-
-    if (q) {
-      data = data.filter(r => {
-        const bucket = [
-          r.name, r.email, r.phone, r.property_type, r.neighborhood,
-          r.budget, r.priority, r.tags, r.stage, r.id
-        ].join(' ').toLowerCase();
-        return bucket.includes(q);
-      });
-    }
-
-    // Apply filters
-    data = data.filter(r => {
-      if (filters.stages.size && !filters.stages.has(r.stage)) return false;
-      if (filters.dashboard === 'yes' && !r.in_dashboard) return false;
-      if (filters.dashboard === 'no' && r.in_dashboard) return false;
-      if (filters.priority.size && !filters.priority.has((r.priority||'').toLowerCase())) return false;
-      if (filters.property_type && r.property_type !== filters.property_type) return false;
-      if (filters.neighborhood && r.neighborhood !== filters.neighborhood) return false;
-      const bmin = filters.budget_min !== '' ? parseInt(filters.budget_min, 10) : null;
-      const bmax = filters.budget_max !== '' ? parseInt(filters.budget_max, 10) : null;
-      if (bmin !== null && (r.budget_min === null || r.budget_min < bmin)) return false;
-      if (bmax !== null && (r.budget_max === null || r.budget_max > bmax)) return false;
-      return true;
-    });
-
-    return data;
-  }, [rows, query, filters]);
-
-  // Distinct lists for dropdowns
-  const propertyTypes = useMemo(() => Array.from(new Set(leads.map(l => l.property_type).filter(Boolean))).sort(), [leads]);
-  const neighborhoods = useMemo(() => Array.from(new Set(leads.map(l => l.neighborhood).filter(Boolean))).sort(), [leads]);
-
-  const toggleSet = (s, val) => {
-    const next = new Set(Array.from(s));
-    if (next.has(val)) next.delete(val); else next.add(val);
-    return next;
+  const handleViewLead = (lead) => {
+    setSelectedLead(lead);
+    setShowLeadDrawer(true);
   };
 
-  const clearFilters = () => setFilters({
-    stages: new Set(),
-    dashboard: 'all',
-    priority: new Set(),
-    property_type: '',
-    neighborhood: '',
-    budget_min: '',
-    budget_max: '',
+  const handleEmailLead = (lead) => {
+    setSelectedLead(lead);
+    setShowEmailModal(true);
+  };
+
+  const handleImportComplete = () => {
+    loadLeads();
+    setShowImportModal(false);
+  };
+
+  // Filter and sort leads
+  const filteredLeads = leads.filter(lead => {
+    const matchesSearch = searchQuery === '' || 
+      `${lead.first_name} ${lead.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.phone?.includes(searchQuery) ||
+      lead.property_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.city?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus = filterStatus === 'all' || lead.status === filterStatus;
+    const matchesPriority = filterPriority === 'all' || lead.priority === filterPriority;
+
+    return matchesSearch && matchesStatus && matchesPriority;
+  }).sort((a, b) => {
+    let aValue = a[sortBy];
+    let bValue = b[sortBy];
+    
+    // Handle date sorting
+    if (sortBy === 'created_at') {
+      aValue = new Date(aValue);
+      bValue = new Date(bValue);
+    }
+    
+    // Handle string sorting
+    if (typeof aValue === 'string') {
+      aValue = aValue.toLowerCase();
+      bValue = bValue?.toLowerCase() || '';
+    }
+    
+    if (sortOrder === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    } else {
+      return aValue < bValue ? 1 : -1;
+    }
   });
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between relative">
-        <div className="text-lg font-semibold">Leads</div>
-        <div className="flex items-center gap-2">
-          {/* Search */}
-          <input
-            className="px-3 py-2 rounded-lg border text-sm w-56"
-            placeholder="Search leads..."
-            value={query}
-            onChange={(e)=>setQuery(e.target.value)}
-          />
-          {/* Filters button */}
-          <button onClick={()=>setFiltersOpen(v=>!v)} className="px-3 py-2 rounded-lg border text-slate-700 hover:bg-slate-50 text-sm">Filters</button>
-          <button onClick={()=>setOpenImport(true)} className="px-3 py-2 rounded-lg border text-slate-700 hover:bg-slate-50 text-sm">Import</button>
-          <button onClick={()=>setOpenAdd(true)} className="px-3 py-2 rounded-lg border text-slate-700 hover:bg-slate-50 text-sm">Add Lead</button>
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'open': return 'bg-green-100 text-green-800';
+      case 'contacted': return 'bg-blue-100 text-blue-800';
+      case 'in progress': return 'bg-yellow-100 text-yellow-800';
+      case 'closed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
-          {/* Filters panel */}
-          {filtersOpen && (
-            <div className="absolute right-0 top-12 z-20 w-[680px] bg-white border rounded-xl shadow-lg p-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                <div>
-                  <div className="text-slate-600 mb-1">Stage</div>
-                  <div className="flex flex-wrap gap-2">
-                    {STAGES.map(s => (
-                      <button key={s} onClick={()=>setFilters(f=>({...f, stages: toggleSet(f.stages, s)}))} className={`px-2 py-1 rounded border text-xs ${filters.stages.has(s)?'bg-emerald-50 border-emerald-300 text-emerald-700':'hover:bg-slate-50'}`}>{s}</button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-slate-600 mb-1">Dashboard</div>
-                  <select className="w-full px-2 py-1 rounded border" value={filters.dashboard} onChange={(e)=>setFilters(f=>({...f, dashboard: e.target.value}))}>
-                    <option value="all">All</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
-                </div>
-                <div>
-                  <div className="text-slate-600 mb-1">Priority</div>
-                  <div className="flex flex-wrap gap-2">
-                    {PRIORITIES.map(p => (
-                      <button key={p} onClick={()=>setFilters(f=>({...f, priority: toggleSet(f.priority, p)}))} className={`px-2 py-1 rounded border text-xs ${filters.priority.has(p)?'bg-emerald-50 border-emerald-300 text-emerald-700':'hover:bg-slate-50'}`}>{p}</button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-slate-600 mb-1">Property Type</div>
-                  <select className="w-full px-2 py-1 rounded border" value={filters.property_type} onChange={(e)=>setFilters(f=>({...f, property_type: e.target.value}))}>
-                    <option value="">All</option>
-                    {propertyTypes.map(pt => <option key={pt} value={pt}>{pt}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <div className="text-slate-600 mb-1">Location</div>
-                  <select className="w-full px-2 py-1 rounded border" value={filters.neighborhood} onChange={(e)=>setFilters(f=>({...f, neighborhood: e.target.value}))}>
-                    <option value="">All</option>
-                    {neighborhoods.map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <div className="text-slate-600 mb-1">Budget (min / max)</div>
-                  <div className="flex items-center gap-2">
-                    <input className="w-full px-2 py-1 rounded border" type="number" placeholder="Min" value={filters.budget_min} onChange={(e)=>setFilters(f=>({...f, budget_min: e.target.value}))} />
-                    <input className="w-full px-2 py-1 rounded border" type="number" placeholder="Max" value={filters.budget_max} onChange={(e)=>setFilters(f=>({...f, budget_max: e.target.value}))} />
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center justify-end gap-2">
-                <button onClick={clearFilters} className="px-3 py-2 rounded-lg border text-sm">Clear</button>
-                <button onClick={()=>setFiltersOpen(false)} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">Apply</button>
-              </div>
-            </div>
-          )}
+  const getPriorityColor = (priority) => {
+    switch (priority?.toLowerCase()) {
+      case 'high': return 'bg-red-100 text-red-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  const LeadCard = ({ lead }) => (
+    <div className="bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors p-4">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <h3 className="font-medium text-gray-900 text-lg">
+            {lead.first_name} {lead.last_name}
+          </h3>
+          <p className="text-sm text-gray-500">{lead.lead_type || 'Lead'}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(lead.status)}`}>
+            {lead.status || 'Open'}
+          </span>
+          <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(lead.priority)}`}>
+            {lead.priority || 'Medium'}
+          </span>
         </div>
       </div>
 
-      {/* Lead list table */}
-      <div className="bg-white rounded-xl border overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
-            <tr>
-              <th className="text-left p-3">Name</th>
-              <th className="text-left p-3">Email</th>
-              <th className="text-left p-3">Phone</th>
-              <th className="text-left p-3">Property Type</th>
-              <th className="text-left p-3">Location</th>
-              <th className="text-left p-3">Budget</th>
-              <th className="text-left p-3">Priority</th>
-              <th className="text-left p-3">Tags</th>
-              <th className="text-left p-3">Stage</th>
-              <th className="text-left p-3">Dashboard</th>
-              <th className="text-right p-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRows.map((r) => (
-              <tr key={r.id} className="border-t">
-                <td className="p-3 font-medium text-slate-800 cursor-pointer" onClick={()=>{setActiveLead(r.raw); setOpenDrawer(true);}}>{r.name}</td>
-                <td className="p-3">{r.email}</td>
-                <td className="p-3">{r.phone}</td>
-                <td className="p-3">{r.property_type}</td>
-                <td className="p-3">{r.neighborhood}</td>
-                <td className="p-3">{r.budget}</td>
-                <td className="p-3">{r.priority}</td>
-                <td className="p-3">{r.tags}</td>
-                <td className="p-3">{r.stage}</td>
-                <td className="p-3">{r.in_dashboard ? 'Yes' : 'No'}</td>
-                <td className="p-3 text-right">
-                  {!r.in_dashboard && (
-                    <button onClick={()=>addToDashboard(r.raw)} className="px-2 py-1 rounded border text-xs mr-2">Add to Dashboard</button>
-                  )}
-                  <button onClick={()=>{setActiveLead(r.raw); setOpenDrawer(true);}} className="px-2 py-1 rounded border text-xs mr-2">Edit</button>
-                  <button onClick={()=>onDeleteLead(r.id)} className="px-2 py-1 rounded border text-xs text-rose-700">Delete</button>
-                </td>
-              </tr>
-            ))}
-            {filteredRows.length === 0 && (
-              <tr><td className="p-6 text-center text-slate-500" colSpan={11}>No leads found</td></tr>
-            )}
-          </tbody>
-        </table>
+      {/* Contact Info */}
+      <div className="space-y-2 mb-4">
+        {lead.email && (
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Mail size={14} />
+            <span className="truncate">{lead.email}</span>
+          </div>
+        )}
+        {lead.phone && (
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Phone size={14} />
+            <span>{lead.phone}</span>
+          </div>
+        )}
+        {(lead.city || lead.neighborhood) && (
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <MapPin size={14} />
+            <span className="truncate">{lead.city || lead.neighborhood}</span>
+          </div>
+        )}
       </div>
 
-      <AddLeadModal open={openAdd} onClose={()=>setOpenAdd(false)} onCreate={onCreate} />
-      <ImportLeadsModal open={openImport} onClose={()=>setOpenImport(false)} userId={user.id} onImported={onImported} onImportApi={onImportApi} />
-      <LeadDrawer open={openDrawer} lead={activeLead} onClose={()=>setOpenDrawer(false)} onSave={onSave} onDelete={onDeleteLead} />
+      {/* Property Info */}
+      {(lead.property_type || lead.buying_in || lead.budget) && (
+        <div className="bg-gray-50 rounded p-3 mb-4">
+          <div className="text-sm">
+            {lead.property_type && (
+              <div><span className="font-medium">Property:</span> {lead.property_type}</div>
+            )}
+            {lead.buying_in && (
+              <div><span className="font-medium">Timeline:</span> {lead.buying_in}</div>
+            )}
+            {(lead.budget || lead.price_min || lead.price_max) && (
+              <div>
+                <span className="font-medium">Budget:</span> 
+                {lead.budget && ` $${lead.budget.toLocaleString()}`}
+                {!lead.budget && lead.price_min && lead.price_max && 
+                  ` $${lead.price_min.toLocaleString()} - $${lead.price_max.toLocaleString()}`}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Agent Info */}
+      {lead.main_agent && lead.main_agent !== 'Not selected' && (
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+          <User size={14} />
+          <span>Agent: {lead.main_agent}</span>
+        </div>
+      )}
+
+      {/* Meta Info */}
+      <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+        <div className="flex items-center gap-2">
+          <Calendar size={12} />
+          <span>Created: {formatDate(lead.created_at)}</span>
+        </div>
+        {lead.pipeline && lead.pipeline !== 'Not Set' && (
+          <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">
+            {lead.pipeline}
+          </span>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => handleViewLead(lead)}
+          className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+        >
+          <Edit size={14} />
+          View Details
+        </button>
+        {lead.email && (
+          <button
+            onClick={() => handleEmailLead(lead)}
+            className="px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
+          >
+            <Mail size={14} />
+            Email
+          </button>
+        )}
+        <button
+          onClick={() => handleDeleteLead(lead)}
+          className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading leads...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {filteredLeads.length} of {leads.length} leads
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <Plus size={16} />
+            Import Leads
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <Plus size={16} />
+            Add Lead
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-lg border p-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Search */}
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search leads..."
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <select
+            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="Open">Open</option>
+            <option value="Contacted">Contacted</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Closed">Closed</option>
+          </select>
+
+          {/* Priority Filter */}
+          <select
+            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            value={filterPriority}
+            onChange={(e) => setFilterPriority(e.target.value)}
+          >
+            <option value="all">All Priority</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+
+          {/* Sort */}
+          <select
+            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            value={`${sortBy}-${sortOrder}`}
+            onChange={(e) => {
+              const [field, order] = e.target.value.split('-');
+              setSortBy(field);
+              setSortOrder(order);
+            }}
+          >
+            <option value="created_at-desc">Newest First</option>
+            <option value="created_at-asc">Oldest First</option>
+            <option value="first_name-asc">Name A-Z</option>
+            <option value="first_name-desc">Name Z-A</option>
+            <option value="status-asc">Status A-Z</option>
+            <option value="priority-desc">High Priority First</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Leads Grid */}
+      {filteredLeads.length === 0 ? (
+        <div className="bg-white rounded-lg border p-12 text-center">
+          <div className="text-gray-500 mb-4">
+            {searchQuery || filterStatus !== 'all' || filterPriority !== 'all' 
+              ? 'No leads match your filters' 
+              : 'No leads found'
+            }
+          </div>
+          {(!searchQuery && filterStatus === 'all' && filterPriority === 'all') && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+            >
+              <Plus size={16} />
+              Add Your First Lead
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredLeads.map(lead => (
+            <LeadCard key={lead.id} lead={lead} />
+          ))}
+        </div>
+      )}
+
+      {/* Modals */}
+      <AddLeadModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onCreate={handleCreateLead}
+      />
+
+      <ImportLeadsModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImported={handleImportComplete}
+      />
+
+      <LeadDrawer
+        open={showLeadDrawer}
+        lead={selectedLead}
+        onClose={() => setShowLeadDrawer(false)}
+        onSave={handleUpdateLead}
+        onDelete={handleDeleteLead}
+      />
+
+      <EmailModal
+        open={showEmailModal}
+        lead={selectedLead}
+        onClose={() => setShowEmailModal(false)}
+        user={user}
+      />
     </div>
   );
 }
