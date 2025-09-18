@@ -82,22 +82,76 @@ class LoginResponse(BaseModel):
 class Lead(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
-
-    # Name fields
-    name: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
-
-    # Pipeline and details
+    lead_description: Optional[str] = None
+    
+    # Additional Contact Information
+    work_phone: Optional[str] = None
+    home_phone: Optional[str] = None
+    email_2: Optional[str] = None
+    
+    # Spouse Information
+    spouse_name: Optional[str] = None
+    spouse_first_name: Optional[str] = None
+    spouse_last_name: Optional[str] = None
+    spouse_email: Optional[str] = None
+    spouse_mobile_phone: Optional[str] = None
+    spouse_birthday: Optional[str] = None
+    
+    # Pipeline and Status
+    pipeline: Optional[str] = None
+    status: Optional[str] = None
+    ref_source: Optional[str] = None
+    lead_rating: Optional[str] = None
+    lead_source: Optional[str] = None
+    lead_type: Optional[str] = None
+    lead_type_2: Optional[str] = None
+    
+    # Property Information
+    house_to_sell: Optional[str] = None
+    buying_in: Optional[str] = None
+    selling_in: Optional[str] = None
+    owns_rents: Optional[str] = None
+    mortgage_type: Optional[str] = None
+    
+    # Address Information
+    city: Optional[str] = None
+    zip_postal_code: Optional[str] = None
+    address: Optional[str] = None
+    
+    # Property Details
+    property_type: Optional[str] = None
+    property_condition: Optional[str] = None
+    listing_status: Optional[str] = None
+    bedrooms: Optional[str] = None
+    bathrooms: Optional[str] = None
+    basement: Optional[str] = None
+    parking_type: Optional[str] = None
+    
+    # Dates and Anniversaries  
+    house_anniversary: Optional[str] = None
+    planning_to_sell_in: Optional[str] = None
+    
+    # Agent Assignments
+    main_agent: Optional[str] = None
+    mort_agent: Optional[str] = None
+    list_agent: Optional[str] = None
+    
+    # Custom Fields (flexible JSON structure)
+    custom_fields: Optional[dict] = None
+    
+    # Existing fields for compatibility
+    name: Optional[str] = None
+    budget: Optional[int] = None
+    priority: Optional[str] = None  # high|medium|low
     stage: str = Field(default="New")
     notes: Optional[str] = None
-    property_type: Optional[str] = None
     neighborhood: Optional[str] = None
     price_min: Optional[int] = None
     price_max: Optional[int] = None
-    priority: Optional[str] = None  # high|medium|low
     source_tags: Optional[List[str]] = None
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     in_dashboard: Optional[bool] = True
