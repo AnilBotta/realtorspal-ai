@@ -34,7 +34,7 @@ export default function Settings({ user }){
   });
 
   // Generate webhook URLs
-  const baseUrl = process.env.REACT_APP_BACKEND_URL || 'https://ai-agent-comm.preview.emergentagent.com';
+  const baseUrl = process.env.REACT_APP_BACKEND_URL || 'https://realtor-assistant.preview.emergentagent.com';
   const facebookWebhookUrl = `${baseUrl}/api/webhooks/facebook-leads/${user?.id}`;
   const genericWebhookUrl = `${baseUrl}/api/webhooks/generic-leads/${user?.id}`;
 
