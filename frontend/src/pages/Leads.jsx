@@ -44,7 +44,9 @@ export default function Leads({ user }) {
   const handleCreateLead = async (leadData) => {
     try {
       const newLead = await createLead({ ...leadData, user_id: user.id });
-      setLeads(prev => [newLead, ...prev]);
+      if (newLead) {
+        setLeads(prev => Array.isArray(prev) ? [newLead, ...prev] : [newLead]);
+      }
     } catch (error) {
       console.error('Failed to create lead:', error);
       throw error;
@@ -54,7 +56,12 @@ export default function Leads({ user }) {
   const handleUpdateLead = async (leadData) => {
     try {
       const updatedLead = await updateLead(leadData.id, leadData);
-      setLeads(prev => prev.map(lead => lead.id === updatedLead.id ? updatedLead : lead));
+      if (updatedLead) {
+        setLeads(prev => Array.isArray(prev) ? 
+          prev.map(lead => lead.id === updatedLead.id ? updatedLead : lead) : 
+          [updatedLead]
+        );
+      }
     } catch (error) {
       console.error('Failed to update lead:', error);
       throw error;
@@ -68,7 +75,7 @@ export default function Leads({ user }) {
     
     try {
       await deleteLead(lead.id);
-      setLeads(prev => prev.filter(l => l.id !== lead.id));
+      setLeads(prev => Array.isArray(prev) ? prev.filter(l => l.id !== lead.id) : []);
       setShowLeadDrawer(false);
     } catch (error) {
       console.error('Failed to delete lead:', error);
