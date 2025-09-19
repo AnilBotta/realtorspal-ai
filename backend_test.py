@@ -1709,6 +1709,476 @@ class RealtorsPalAPITester:
             print("⚠️  DELETE ALL → IMPORT workflow test FAILED!")
             return False
 
+    def test_comprehensive_lead_creation(self) -> bool:
+        """Test creating a lead with comprehensive field structure"""
+        # Use the specific demo user ID as requested
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            timestamp = int(time.time()) + 500
+            
+            # Create comprehensive lead payload with all new fields
+            comprehensive_payload = {
+                "user_id": demo_user_id,
+                
+                # Basic fields
+                "first_name": "John",
+                "last_name": "Comprehensive",
+                "email": f"john.comprehensive.{timestamp}@example.com",
+                "phone": "+14155551234",
+                "lead_description": "Comprehensive lead test with all fields",
+                
+                # Additional Contact Information
+                "work_phone": "+14155551235",
+                "home_phone": "+14155551236", 
+                "email_2": f"john.alt.{timestamp}@example.com",
+                
+                # Spouse Information
+                "spouse_first_name": "Jane",
+                "spouse_last_name": "Comprehensive",
+                "spouse_email": f"jane.comprehensive.{timestamp}@example.com",
+                "spouse_mobile_phone": "+14155551237",
+                "spouse_birthday": "1985-06-15",
+                
+                # Pipeline and Status
+                "pipeline": "Residential Sales",
+                "status": "Active",
+                "ref_source": "Website",
+                "lead_rating": "A",
+                "lead_source": "Online",
+                "lead_type": "Buyer",
+                "lead_type_2": "First Time Buyer",
+                
+                # Property Information
+                "house_to_sell": "Yes",
+                "buying_in": "San Francisco",
+                "selling_in": "Oakland",
+                "owns_rents": "Owns",
+                "mortgage_type": "Conventional",
+                
+                # Address Information
+                "city": "San Francisco",
+                "zip_postal_code": "94102",
+                "address": "123 Market Street",
+                
+                # Property Details
+                "property_type": "Single Family Home",
+                "property_condition": "Good",
+                "bedrooms": "3",
+                "bathrooms": "2",
+                "basement": "Yes",
+                "parking_type": "Garage",
+                
+                # Agent Assignments
+                "main_agent": "Agent Smith",
+                "mort_agent": "Mortgage Jones",
+                "list_agent": "Listing Brown",
+                
+                # Custom Fields (JSON object)
+                "custom_fields": {
+                    "preferred_contact_time": "Evening",
+                    "budget_flexibility": "High",
+                    "timeline": "3-6 months",
+                    "special_requirements": "Pet-friendly"
+                },
+                
+                # Existing compatibility fields
+                "neighborhood": "SOMA",
+                "price_min": 800000,
+                "price_max": 1200000,
+                "priority": "high",
+                "source_tags": ["Website", "Comprehensive Test"],
+                "notes": "Comprehensive lead test with all new fields",
+                "stage": "New",
+                "in_dashboard": True
+            }
+            
+            response = requests.post(f"{self.base_url}/leads", json=comprehensive_payload, timeout=15)
+            
+            if response.status_code == 200:
+                lead = response.json()
+                
+                # Verify all comprehensive fields are present and correct
+                checks = []
+                
+                # Basic fields
+                checks.append(("first_name", lead.get("first_name") == "John"))
+                checks.append(("last_name", lead.get("last_name") == "Comprehensive"))
+                checks.append(("email", lead.get("email") == f"john.comprehensive.{timestamp}@example.com"))
+                checks.append(("phone", lead.get("phone") == "+14155551234"))
+                
+                # Contact fields
+                checks.append(("work_phone", lead.get("work_phone") == "+14155551235"))
+                checks.append(("home_phone", lead.get("home_phone") == "+14155551236"))
+                
+                # Spouse fields
+                checks.append(("spouse_first_name", lead.get("spouse_first_name") == "Jane"))
+                checks.append(("spouse_last_name", lead.get("spouse_last_name") == "Comprehensive"))
+                
+                # Pipeline fields
+                checks.append(("pipeline", lead.get("pipeline") == "Residential Sales"))
+                checks.append(("status", lead.get("status") == "Active"))
+                checks.append(("lead_rating", lead.get("lead_rating") == "A"))
+                
+                # Property fields
+                checks.append(("house_to_sell", lead.get("house_to_sell") == "Yes"))
+                checks.append(("buying_in", lead.get("buying_in") == "San Francisco"))
+                checks.append(("city", lead.get("city") == "San Francisco"))
+                
+                # Property details
+                checks.append(("bedrooms", lead.get("bedrooms") == "3"))
+                checks.append(("bathrooms", lead.get("bathrooms") == "2"))
+                
+                # Agent assignments
+                checks.append(("main_agent", lead.get("main_agent") == "Agent Smith"))
+                
+                # Custom fields (JSON object)
+                custom_fields = lead.get("custom_fields", {})
+                checks.append(("custom_fields_contact_time", custom_fields.get("preferred_contact_time") == "Evening"))
+                
+                # Check if lead has ID and created_at
+                checks.append(("id", "id" in lead and lead["id"]))
+                checks.append(("created_at", "created_at" in lead and lead["created_at"]))
+                
+                # Count successful checks
+                passed_checks = [check for check in checks if check[1]]
+                failed_checks = [check[0] for check in checks if not check[1]]
+                
+                if len(failed_checks) == 0:
+                    self.log_test("Comprehensive Lead Creation", True, 
+                                f"All {len(checks)} comprehensive fields verified successfully. Lead ID: {lead.get('id')}")
+                    return True
+                else:
+                    self.log_test("Comprehensive Lead Creation", False, 
+                                f"Failed field checks: {failed_checks}. Passed: {len(passed_checks)}/{len(checks)}")
+                    return False
+            else:
+                self.log_test("Comprehensive Lead Creation", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Comprehensive Lead Creation", False, f"Exception: {str(e)}")
+            return False
+
+    def test_comprehensive_lead_retrieval(self) -> bool:
+        """Test that existing leads are retrieved correctly with new field structure"""
+        # Use the specific demo user ID as requested
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Get all leads for the demo user
+            response = requests.get(f"{self.base_url}/leads", params={"user_id": demo_user_id}, timeout=10)
+            
+            if response.status_code == 200:
+                leads = response.json()
+                
+                if isinstance(leads, list) and len(leads) > 0:
+                    # Check that leads have the expected structure
+                    sample_lead = leads[0]
+                    
+                    # Check for basic required fields
+                    required_fields = ["id", "user_id", "created_at", "stage"]
+                    missing_required = [field for field in required_fields if field not in sample_lead]
+                    
+                    if missing_required:
+                        self.log_test("Comprehensive Lead Retrieval", False, 
+                                    f"Missing required fields in lead: {missing_required}")
+                        return False
+                    
+                    # Check that comprehensive fields are supported (can be None/null)
+                    comprehensive_fields = [
+                        "first_name", "last_name", "email", "phone", "lead_description",
+                        "work_phone", "home_phone", "email_2",
+                        "spouse_first_name", "spouse_last_name", "spouse_email", "spouse_mobile_phone", "spouse_birthday",
+                        "pipeline", "status", "ref_source", "lead_rating", "lead_source", "lead_type", "lead_type_2",
+                        "house_to_sell", "buying_in", "selling_in", "owns_rents", "mortgage_type",
+                        "city", "zip_postal_code", "address",
+                        "property_condition", "bedrooms", "bathrooms", "basement", "parking_type",
+                        "main_agent", "mort_agent", "list_agent", "custom_fields"
+                    ]
+                    
+                    # Count how many comprehensive fields are present in the lead structure
+                    present_fields = [field for field in comprehensive_fields if field in sample_lead]
+                    
+                    self.log_test("Comprehensive Lead Retrieval", True, 
+                                f"Retrieved {len(leads)} leads successfully. "
+                                f"Sample lead has {len(present_fields)}/{len(comprehensive_fields)} comprehensive fields. "
+                                f"Required fields present: {required_fields}")
+                    return True
+                else:
+                    self.log_test("Comprehensive Lead Retrieval", False, f"Expected array with leads, got: {leads}")
+                    return False
+            else:
+                self.log_test("Comprehensive Lead Retrieval", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Comprehensive Lead Retrieval", False, f"Exception: {str(e)}")
+            return False
+
+    def test_comprehensive_field_compatibility(self) -> bool:
+        """Test that existing leads work with new field structure and don't break"""
+        # Use the specific demo user ID as requested
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First create a simple lead with minimal fields (old style)
+            timestamp = int(time.time()) + 600
+            simple_payload = {
+                "user_id": demo_user_id,
+                "name": "Simple Legacy Lead",
+                "email": f"simple.legacy.{timestamp}@example.com",
+                "phone": "+14155559999",
+                "property_type": "Condo",
+                "stage": "New"
+            }
+            
+            response = requests.post(f"{self.base_url}/leads", json=simple_payload, timeout=10)
+            
+            if response.status_code != 200:
+                self.log_test("Comprehensive Field Compatibility", False, f"Failed to create simple lead: {response.text}")
+                return False
+            
+            simple_lead = response.json()
+            simple_lead_id = simple_lead.get("id")
+            
+            if not simple_lead_id:
+                self.log_test("Comprehensive Field Compatibility", False, f"No ID in simple lead response: {simple_lead}")
+                return False
+            
+            # Now try to update this lead with comprehensive fields
+            update_payload = {
+                "spouse_first_name": "Updated Spouse",
+                "pipeline": "Updated Pipeline",
+                "custom_fields": {
+                    "test_field": "test_value",
+                    "compatibility": "verified"
+                },
+                "bedrooms": "4",
+                "city": "Updated City"
+            }
+            
+            update_response = requests.put(f"{self.base_url}/leads/{simple_lead_id}", json=update_payload, timeout=10)
+            
+            if update_response.status_code == 200:
+                updated_lead = update_response.json()
+                
+                # Verify the update worked and comprehensive fields are present
+                checks = []
+                checks.append(("spouse_first_name", updated_lead.get("spouse_first_name") == "Updated Spouse"))
+                checks.append(("pipeline", updated_lead.get("pipeline") == "Updated Pipeline"))
+                checks.append(("bedrooms", updated_lead.get("bedrooms") == "4"))
+                checks.append(("city", updated_lead.get("city") == "Updated City"))
+                
+                # Check custom fields
+                custom_fields = updated_lead.get("custom_fields", {})
+                checks.append(("custom_fields_test", custom_fields.get("test_field") == "test_value"))
+                
+                # Verify original fields are preserved
+                checks.append(("original_name", updated_lead.get("name") == "Simple Legacy Lead"))
+                checks.append(("original_email", updated_lead.get("email") == f"simple.legacy.{timestamp}@example.com"))
+                checks.append(("original_phone", updated_lead.get("phone") == "+14155559999"))
+                
+                failed_checks = [check[0] for check in checks if not check[1]]
+                
+                if len(failed_checks) == 0:
+                    self.log_test("Comprehensive Field Compatibility", True, 
+                                f"Field compatibility verified. Simple lead updated with comprehensive fields successfully. "
+                                f"All {len(checks)} checks passed.")
+                    return True
+                else:
+                    self.log_test("Comprehensive Field Compatibility", False, 
+                                f"Failed compatibility checks: {failed_checks}")
+                    return False
+            else:
+                self.log_test("Comprehensive Field Compatibility", False, 
+                            f"Failed to update lead with comprehensive fields. Status: {update_response.status_code}, Response: {update_response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Comprehensive Field Compatibility", False, f"Exception: {str(e)}")
+            return False
+
+    def test_comprehensive_data_validation(self) -> bool:
+        """Test that comprehensive lead creation endpoint handles all new fields properly"""
+        # Use the specific demo user ID as requested
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            timestamp = int(time.time()) + 700
+            
+            # Test with various data types and edge cases
+            validation_payload = {
+                "user_id": demo_user_id,
+                
+                # Test string fields
+                "first_name": "Validation",
+                "last_name": "Test",
+                "email": f"validation.test.{timestamp}@example.com",
+                "phone": "4155551234",  # Test phone normalization
+                "lead_description": "Testing comprehensive validation with special chars: @#$%^&*()",
+                
+                # Test additional contact fields
+                "work_phone": "14155551235",  # Different phone format
+                "home_phone": "+1-415-555-1236",  # Phone with dashes
+                "email_2": f"validation.alt.{timestamp}@test.org",
+                
+                # Test spouse fields with various formats
+                "spouse_first_name": "Spouse Name",
+                "spouse_last_name": "Test",
+                "spouse_email": f"spouse.{timestamp}@example.com",
+                "spouse_mobile_phone": "(415) 555-1237",  # Phone with parentheses
+                "spouse_birthday": "1990-12-25",  # Date format
+                
+                # Test pipeline fields
+                "pipeline": "Test Pipeline with Spaces",
+                "status": "Active Status",
+                "ref_source": "Website Referral",
+                "lead_rating": "A+",
+                "lead_source": "Online Marketing",
+                "lead_type": "Buyer/Seller",
+                "lead_type_2": "Investment Property",
+                
+                # Test property fields
+                "house_to_sell": "Maybe",
+                "buying_in": "San Francisco Bay Area",
+                "selling_in": "East Bay",
+                "owns_rents": "Currently Renting",
+                "mortgage_type": "FHA Loan",
+                
+                # Test address fields
+                "city": "San Francisco",
+                "zip_postal_code": "94102-1234",  # Extended ZIP
+                "address": "123 Main Street, Apt 4B",
+                
+                # Test property details
+                "property_condition": "Needs Renovation",
+                "bedrooms": "3-4",  # Range format
+                "bathrooms": "2.5",  # Decimal format
+                "basement": "Partial",
+                "parking_type": "Street Parking",
+                
+                # Test agent assignments
+                "main_agent": "John Smith, Realtor",
+                "mort_agent": "Jane Doe, Mortgage Broker",
+                "list_agent": "Bob Johnson, Listing Agent",
+                
+                # Test complex custom fields
+                "custom_fields": {
+                    "preferences": {
+                        "style": "Modern",
+                        "features": ["Pool", "Garden", "Garage"]
+                    },
+                    "budget_details": {
+                        "down_payment": 200000,
+                        "monthly_payment": 4500,
+                        "flexibility": True
+                    },
+                    "timeline": "6 months",
+                    "notes": "Very specific requirements"
+                },
+                
+                # Test existing compatibility fields
+                "property_type": "Single Family Home",
+                "neighborhood": "Mission District",
+                "price_min": 900000,
+                "price_max": 1300000,
+                "priority": "high",
+                "source_tags": ["Website", "Validation Test", "Comprehensive"],
+                "notes": "Comprehensive validation test with all field types",
+                "stage": "New",
+                "in_dashboard": True
+            }
+            
+            response = requests.post(f"{self.base_url}/leads", json=validation_payload, timeout=15)
+            
+            if response.status_code == 200:
+                lead = response.json()
+                
+                # Verify data validation and normalization
+                validation_checks = []
+                
+                # Check phone normalization
+                validation_checks.append(("phone_normalized", lead.get("phone", "").startswith("+")))
+                validation_checks.append(("work_phone_normalized", lead.get("work_phone", "").startswith("+")))
+                validation_checks.append(("home_phone_normalized", lead.get("home_phone", "").startswith("+")))
+                validation_checks.append(("spouse_phone_normalized", lead.get("spouse_mobile_phone", "").startswith("+")))
+                
+                # Check email validation
+                validation_checks.append(("email_valid", "@" in lead.get("email", "")))
+                validation_checks.append(("email_2_valid", "@" in lead.get("email_2", "")))
+                validation_checks.append(("spouse_email_valid", "@" in lead.get("spouse_email", "")))
+                
+                # Check complex custom fields preservation
+                custom_fields = lead.get("custom_fields", {})
+                validation_checks.append(("custom_fields_present", isinstance(custom_fields, dict)))
+                validation_checks.append(("custom_preferences", "preferences" in custom_fields))
+                validation_checks.append(("custom_budget", "budget_details" in custom_fields))
+                
+                # Check that all text fields are preserved
+                validation_checks.append(("description_preserved", "special chars" in lead.get("lead_description", "")))
+                validation_checks.append(("pipeline_preserved", "Test Pipeline" in lead.get("pipeline", "")))
+                validation_checks.append(("address_preserved", "Apt 4B" in lead.get("address", "")))
+                
+                # Check required fields
+                validation_checks.append(("has_id", "id" in lead and lead["id"]))
+                validation_checks.append(("has_user_id", lead.get("user_id") == demo_user_id))
+                validation_checks.append(("has_created_at", "created_at" in lead))
+                
+                failed_validations = [check[0] for check in validation_checks if not check[1]]
+                
+                if len(failed_validations) == 0:
+                    self.log_test("Comprehensive Data Validation", True, 
+                                f"All {len(validation_checks)} validation checks passed. "
+                                f"Phone normalization, email validation, and complex data structures working correctly.")
+                    return True
+                else:
+                    self.log_test("Comprehensive Data Validation", False, 
+                                f"Failed validation checks: {failed_validations}")
+                    return False
+            else:
+                self.log_test("Comprehensive Data Validation", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Comprehensive Data Validation", False, f"Exception: {str(e)}")
+            return False
+
+    def run_comprehensive_lead_tests_only(self) -> bool:
+        """Run only the comprehensive lead model tests"""
+        print("🚀 Starting Comprehensive Lead Model Tests")
+        print(f"📍 Base URL: {self.base_url}")
+        print("=" * 60)
+        
+        # First get authentication
+        if not self.test_health():
+            return False
+        if not self.test_login():
+            return False
+        
+        # Run comprehensive lead tests
+        comprehensive_tests = [
+            self.test_comprehensive_lead_creation,
+            self.test_comprehensive_lead_retrieval,
+            self.test_comprehensive_field_compatibility,
+            self.test_comprehensive_data_validation,
+        ]
+        
+        comprehensive_tests_passed = 0
+        for test in comprehensive_tests:
+            if test():
+                comprehensive_tests_passed += 1
+        
+        print("=" * 60)
+        print(f"📊 Comprehensive Lead Tests Results: {comprehensive_tests_passed}/{len(comprehensive_tests)} tests passed")
+        
+        if comprehensive_tests_passed == len(comprehensive_tests):
+            print("🎉 All comprehensive lead model tests PASSED!")
+            return True
+        else:
+            print("⚠️  Some comprehensive lead model tests FAILED!")
+            return False
+
     def run_all_tests(self) -> bool:
         """Run all backend API tests"""
         print("🚀 Starting RealtorsPal AI Backend API Tests")
@@ -1726,6 +2196,13 @@ class RealtorsPalAPITester:
             self.test_get_settings,
             self.test_save_settings,
             self.test_ai_chat,
+            
+            # Comprehensive Lead Model Tests (NEW)
+            self.test_comprehensive_lead_creation,
+            self.test_comprehensive_lead_retrieval,
+            self.test_comprehensive_field_compatibility,
+            self.test_comprehensive_data_validation,
+            
             # Lead import functionality tests
             self.test_import_leads_basic,
             self.test_import_leads_phone_normalization,
