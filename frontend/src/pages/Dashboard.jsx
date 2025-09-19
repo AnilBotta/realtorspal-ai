@@ -124,14 +124,15 @@ function displayName(lead){
 
 function LeadCard({ lead, onOpen, onCommunicate, dragHandle }){
   const nameToShow = displayName(lead);
-  const stage = lead.stage || 'New';
-  const propertyType = lead.property_type || (stage === 'Contacted' ? 'Townhouse' : '3BR Condo');
-  const neighborhood = lead.neighborhood || (stage === 'Contacted' ? 'Suburbs' : 'Downtown');
-  const priceMin = lead.price_min ?? (stage === 'Contacted' ? 700000 : 400000);
-  const priceMax = lead.price_max ?? (stage === 'Contacted' ? 900000 : 500000);
+  const stage = lead.stage || 'Prospecting';
+  const pipeline = lead.pipeline || 'Not set';
+  const propertyType = lead.property_type || (stage === 'Engagement' ? 'Townhouse' : '3BR Condo');
+  const neighborhood = lead.neighborhood || (stage === 'Engagement' ? 'Suburbs' : 'Downtown');
+  const priceMin = lead.price_min ?? (stage === 'Engagement' ? 700000 : 400000);
+  const priceMax = lead.price_max ?? (stage === 'Engagement' ? 900000 : 500000);
   const createdAt = lead.created_at || dayjs().format('M/D/YYYY');
-  const priority = (lead.priority || (stage === 'New' ? 'high' : stage === 'Contacted' ? 'medium' : 'low')).toLowerCase();
-  const tags = lead.source_tags || (stage === 'Contacted' ? ["Referral","Lead Generator AI"] : ["Website","Lead Generator AI"]);
+  const priority = (lead.priority || (stage === 'Prospecting' ? 'high' : stage === 'Engagement' ? 'medium' : 'low')).toLowerCase();
+  const tags = lead.source_tags || (stage === 'Engagement' ? ["Referral","Lead Generator AI"] : ["Website","Lead Generator AI"]);
 
   return (
     <div className={`bg-white rounded-2xl border p-3 shadow-sm`}>
@@ -143,6 +144,7 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle }){
           <div>
             <div className="font-semibold text-slate-800 leading-none">{nameToShow}</div>
             <div className="text-xs text-slate-500 mt-1">{propertyType} - {neighborhood}</div>
+            <div className="text-xs text-blue-600 mt-1 font-medium">{pipeline}</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
