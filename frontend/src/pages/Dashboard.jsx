@@ -227,7 +227,16 @@ export default function Dashboard({ user }){
 
   const grouped = useMemo(() => {
     const m = Object.fromEntries(STAGES.map(s => [s, []]));
-    for (const l of leads) m[l.stage]?.push(l);
+    for (const l of leads) {
+      // Map pipeline to stage category, fallback to existing stage if no pipeline
+      const mappedStage = l.pipeline ? getPipelineStageMapping(l.pipeline) : (l.stage || 'Prospecting');
+      if (m[mappedStage]) {
+        m[mappedStage].push(l);
+      } else {
+        // Fallback to Prospecting for unknown stages
+        m['Prospecting'].push(l);
+      }
+    }
     return m;
   }, [leads]);
 
