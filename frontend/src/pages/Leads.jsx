@@ -91,9 +91,9 @@ export default function Leads({ user }) {
   };
 
   // Filter and sort leads
-  const filteredLeads = leads.filter(lead => {
+  const filteredLeads = (Array.isArray(leads) ? leads : []).filter(lead => {
     const matchesSearch = searchQuery === '' || 
-      `${lead.first_name} ${lead.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      `${lead.first_name || ''} ${lead.last_name || ''}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.phone?.includes(searchQuery) ||
       lead.property_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -109,8 +109,8 @@ export default function Leads({ user }) {
     
     // Handle date sorting
     if (sortBy === 'created_at') {
-      aValue = new Date(aValue);
-      bValue = new Date(bValue);
+      aValue = new Date(aValue || 0);
+      bValue = new Date(bValue || 0);
     }
     
     // Handle string sorting
@@ -118,6 +118,10 @@ export default function Leads({ user }) {
       aValue = aValue.toLowerCase();
       bValue = bValue?.toLowerCase() || '';
     }
+    
+    // Handle undefined/null values
+    if (aValue === null || aValue === undefined) aValue = '';
+    if (bValue === null || bValue === undefined) bValue = '';
     
     if (sortOrder === 'asc') {
       return aValue > bValue ? 1 : -1;
