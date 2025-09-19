@@ -6,6 +6,7 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
   const [activeTab, setActiveTab] = useState('lead-data');
   const [showCustomFieldModal, setShowCustomFieldModal] = useState(false);
   const [customFieldDefinitions, setCustomFieldDefinitions] = useState([]);
+  const [formData, setFormData] = useState({
     // Basic Information
     first_name: '',
     last_name: '',
