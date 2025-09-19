@@ -242,9 +242,19 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
         options={[
           { value: 'Not Set', label: 'Not Set' },
           { value: 'New Lead', label: 'New Lead' },
-          { value: 'Qualified', label: 'Qualified' },
-          { value: 'Proposal', label: 'Proposal' },
-          { value: 'Closed', label: 'Closed' }
+          { value: 'Tried to contact', label: 'Tried to contact' },
+          { value: 'Non-responsive', label: 'Non-responsive' },
+          { value: 'Made contact', label: 'Made contact' },
+          { value: 'Cold/Not Ready', label: 'Cold/Not Ready' },
+          { value: 'Warm/Nurturing', label: 'Warm/Nurturing' },
+          { value: 'Hot/Ready', label: 'Hot/Ready' },
+          { value: 'Set meeting', label: 'Set meeting' },
+          { value: 'Signed agreement', label: 'Signed agreement' },
+          { value: 'Showing', label: 'Showing' },
+          { value: 'Sold', label: 'Sold' },
+          { value: 'Past Client', label: 'Past Client' },
+          { value: 'Sphere of Influence', label: 'Sphere of Influence' },
+          { value: 'Archive', label: 'Archive' }
         ]}
       />
       <FormField
