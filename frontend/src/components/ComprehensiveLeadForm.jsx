@@ -28,7 +28,7 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
     spouse_birthday: '',
     
     // Pipeline and Status
-    pipeline: 'Not Set',
+    pipeline: 'Not set',
     status: 'Open',
     ref_source: 'Ext. source',
     lead_rating: 'Not selected',
