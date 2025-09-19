@@ -384,7 +384,7 @@ export default function Dashboard({ user }){
       </div>
 
       <AddLeadModal open={openAdd} onClose={()=>setOpenAdd(false)} onCreate={onCreate} />
-      <LeadDrawer open={openDrawer} lead={activeLead} onClose={()=>setOpenDrawer(false)} onSave={()=>{}} onDelete={()=>{}} />
+      <LeadDrawer open={openDrawer} lead={activeLead} onClose={()=>setOpenDrawer(false)} onSave={handleLeadUpdate} onDelete={handleLeadDelete} />
       <CommunicationModal open={openComm} lead={commLead} type={commType} onClose={closeCommunication} user={user} />
       <EmailModal open={openEmail} lead={emailLead} onClose={closeEmail} user={user} />
     </div>
