@@ -31,7 +31,8 @@ export default function Leads({ user }) {
     try {
       setLoading(true);
       const data = await getLeads(user.id);
-      setLeads(data || []);
+      // Ensure we always have an array
+      setLeads(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load leads:', error);
       setLeads([]);
