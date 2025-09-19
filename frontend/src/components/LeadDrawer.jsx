@@ -120,7 +120,7 @@ export default function LeadDrawer({ open, lead, onClose, onSave, onDelete }) {
                       <div className="bg-gray-50 rounded-lg p-4">
                         <h3 className="font-medium text-gray-900 mb-3">Status & Pipeline</h3>
                         <div className="space-y-2 text-sm">
-                          <div><span className="font-medium">Pipeline:</span> {lead.pipeline || 'Not Set'}</div>
+                          <div><span className="font-medium">Pipeline:</span> {lead.pipeline || 'Not set'}</div>
                           <div><span className="font-medium">Status:</span> {lead.status || 'Open'}</div>
                           <div><span className="font-medium">Stage:</span> {lead.stage || 'New'}</div>
                           <div><span className="font-medium">Priority:</span> {lead.priority || 'medium'}</div>
