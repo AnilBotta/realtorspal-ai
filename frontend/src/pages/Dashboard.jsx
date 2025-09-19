@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getLeads, getDashboardAnalytics, createLead, updateLeadStage } from "../api";
+import { getLeads, getDashboardAnalytics, createLead, updateLeadStage, updateLead } from "../api";
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { DollarSign, MapPin, Calendar, Phone, Mail, MessageSquare, GripVertical } from "lucide-react";
