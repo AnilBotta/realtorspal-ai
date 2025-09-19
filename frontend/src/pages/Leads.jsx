@@ -242,7 +242,7 @@ export default function Leads({ user }) {
           <Calendar size={12} />
           <span>Created: {formatDate(lead.created_at)}</span>
         </div>
-        {lead.pipeline && lead.pipeline !== 'Not Set' && (
+        {lead.pipeline && lead.pipeline !== 'Not set' && (
           <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">
             {lead.pipeline}
           </span>
