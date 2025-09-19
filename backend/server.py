@@ -1550,14 +1550,80 @@ async def create_lead(payload: CreateLeadRequest):
     full_name = payload.name or " ".join([v for v in [payload.first_name, payload.last_name] if v]).strip() or "New Lead"
     in_dashboard = True if payload.in_dashboard is None else payload.in_dashboard
     stage = payload.stage or "New"
+    
+    # Normalize phone numbers
+    normalized_phone = normalize_phone(payload.phone) if payload.phone else None
+    normalized_work_phone = normalize_phone(payload.work_phone) if payload.work_phone else None
+    normalized_home_phone = normalize_phone(payload.home_phone) if payload.home_phone else None
+    normalized_spouse_phone = normalize_phone(payload.spouse_mobile_phone) if payload.spouse_mobile_phone else None
+    
     lead = Lead(
         user_id=payload.user_id,
         name=full_name,
+        
+        # Basic fields
         first_name=payload.first_name,
         last_name=payload.last_name,
         email=payload.email,
-        phone=payload.phone,
+        phone=normalized_phone,
+        lead_description=payload.lead_description,
+        
+        # Additional Contact Information
+        work_phone=normalized_work_phone,
+        home_phone=normalized_home_phone,
+        email_2=payload.email_2,
+        
+        # Spouse Information
+        spouse_name=payload.spouse_name,
+        spouse_first_name=payload.spouse_first_name,
+        spouse_last_name=payload.spouse_last_name,
+        spouse_email=payload.spouse_email,
+        spouse_mobile_phone=normalized_spouse_phone,
+        spouse_birthday=payload.spouse_birthday,
+        
+        # Pipeline and Status
+        pipeline=payload.pipeline,
+        status=payload.status,
+        ref_source=payload.ref_source,
+        lead_rating=payload.lead_rating,
+        lead_source=payload.lead_source,
+        lead_type=payload.lead_type,
+        lead_type_2=payload.lead_type_2,
+        
+        # Property Information
+        house_to_sell=payload.house_to_sell,
+        buying_in=payload.buying_in,
+        selling_in=payload.selling_in,
+        owns_rents=payload.owns_rents,
+        mortgage_type=payload.mortgage_type,
+        
+        # Address Information
+        city=payload.city,
+        zip_postal_code=payload.zip_postal_code,
+        address=payload.address,
+        
+        # Property Details
         property_type=payload.property_type,
+        property_condition=payload.property_condition,
+        listing_status=payload.listing_status,
+        bedrooms=payload.bedrooms,
+        bathrooms=payload.bathrooms,
+        basement=payload.basement,
+        parking_type=payload.parking_type,
+        
+        # Dates and Anniversaries
+        house_anniversary=payload.house_anniversary,
+        planning_to_sell_in=payload.planning_to_sell_in,
+        
+        # Agent Assignments
+        main_agent=payload.main_agent,
+        mort_agent=payload.mort_agent,
+        list_agent=payload.list_agent,
+        
+        # Custom Fields
+        custom_fields=payload.custom_fields,
+        
+        # Existing compatibility fields
         neighborhood=payload.neighborhood,
         price_min=payload.price_min,
         price_max=payload.price_max,
