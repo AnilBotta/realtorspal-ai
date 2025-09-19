@@ -575,41 +575,50 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 border-b pb-4">
-        {tabs.map(tab => (
-          <TabButton
-            key={tab.id}
-            tab={tab}
-            isActive={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
-          />
-        ))}
-      </div>
+    <div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Tab Navigation */}
+        <div className="flex flex-wrap gap-2 border-b pb-4">
+          {tabs.map(tab => (
+            <TabButton
+              key={tab.id}
+              tab={tab}
+              isActive={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+            />
+          ))}
+        </div>
 
-      {/* Tab Content */}
-      <div className="min-h-96">
-        {renderTabContent()}
-      </div>
+        {/* Tab Content */}
+        <div className="min-h-96">
+          {renderTabContent()}
+        </div>
 
-      {/* Form Actions */}
-      <div className="flex gap-3 pt-4 border-t">
-        <button
-          type="submit"
-          className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          {lead ? 'Update Lead' : 'Create Lead'}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-6 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
+        {/* Form Actions */}
+        <div className="flex gap-3 pt-4 border-t">
+          <button
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            {lead ? 'Update Lead' : 'Create Lead'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      {/* Custom Field Modal */}
+      <CustomFieldModal
+        open={showCustomFieldModal}
+        onClose={() => setShowCustomFieldModal(false)}
+        onSave={handleAddCustomField}
+      />
+    </div>
   );
 };
 
