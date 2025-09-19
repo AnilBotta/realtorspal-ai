@@ -282,9 +282,39 @@ export default function Dashboard({ user }){
 
   const moveLeadTo = async (leadId, targetStage) => {
     const lead = leads.find(l => l.id === leadId);
-    if (!lead || lead.stage === targetStage) return;
-    const { data } = await updateLeadStage(leadId, targetStage);
-    setLeads(arr => arr.map(l => l.id === data.id ? data : l));
+    if (!lead) return;
+    
+    // Get current stage based on pipeline
+    const currentStage = lead.pipeline ? getPipelineStageMapping(lead.pipeline) : (lead.stage || 'Prospecting');
+    if (currentStage === targetStage) return;
+    
+    // Find a default pipeline status for the target stage
+    const getDefaultPipelineForStage = (stage) => {
+      switch(stage) {
+        case 'Prospecting': return 'New Lead';
+        case 'Engagement': return 'made contact';
+        case 'Active': return 'warm / nurturing';
+        case 'Closing': return 'showing';
+        case 'Closed': return 'sold';
+        default: return 'New Lead';
+      }
+    };
+    
+    const newPipeline = getDefaultPipelineForStage(targetStage);
+    
+    // Update both stage and pipeline
+    try {
+      const { data } = await updateLeadStage(leadId, targetStage);
+      // Also update pipeline
+      const updatedLead = { ...data, pipeline: newPipeline, stage: targetStage };
+      
+      // Update the lead with new pipeline and stage
+      await updateLead(leadId, { pipeline: newPipeline, stage: targetStage });
+      
+      setLeads(arr => arr.map(l => l.id === leadId ? { ...l, pipeline: newPipeline, stage: targetStage } : l));
+    } catch (error) {
+      console.error('Failed to move lead:', error);
+    }
   };
 
   const onDragEnd = async (event) => {
