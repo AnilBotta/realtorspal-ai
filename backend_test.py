@@ -2256,6 +2256,9 @@ def main():
         elif sys.argv[1] == "--email-only":
             tester = RealtorsPalAPITester()
             success = tester.run_email_tests_only()
+        elif sys.argv[1] == "--comprehensive-leads":
+            tester = RealtorsPalAPITester()
+            success = tester.run_comprehensive_lead_tests_only()
         else:
             tester = RealtorsPalAPITester()
             success = tester.run_all_tests()
