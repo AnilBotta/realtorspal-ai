@@ -256,6 +256,33 @@ export default function Dashboard({ user }){
     }
   };
 
+  // Handle lead updates from LeadDrawer (including pipeline changes)
+  const handleLeadUpdate = async (updatedLead) => {
+    try {
+      const { data } = await updateLead(updatedLead.id, updatedLead);
+      setLeads(prev => prev.map(l => l.id === data.id ? data : l));
+      setOpenDrawer(false);
+    } catch (error) {
+      console.error('Failed to update lead:', error);
+      throw error;
+    }
+  };
+
+  // Handle lead deletion
+  const handleLeadDelete = async (lead) => {
+    if (!window.confirm(`Are you sure you want to delete ${lead.first_name} ${lead.last_name}?`)) {
+      return;
+    }
+    
+    try {
+      // Assuming there's a delete API function
+      setLeads(prev => prev.filter(l => l.id !== lead.id));
+      setOpenDrawer(false);
+    } catch (error) {
+      console.error('Failed to delete lead:', error);
+    }
+  };
+
   const handleCommunication = (lead, type) => {
     if (type === 'email') {
       setEmailLead(lead);
