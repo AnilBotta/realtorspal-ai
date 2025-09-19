@@ -59,13 +59,13 @@ function DroppableColumn({ id, title, count, children }){
   // Define colors for each stage to match the design
   const getColumnColors = (stageId) => {
     switch(stageId) {
-      case 'New':
+      case 'Prospecting':
         return 'bg-blue-50 border-blue-200';
-      case 'Contacted': 
+      case 'Engagement': 
         return 'bg-yellow-50 border-yellow-200';
-      case 'Appointment':
+      case 'Active':
         return 'bg-purple-50 border-purple-200';
-      case 'Onboarded':
+      case 'Closing':
         return 'bg-green-50 border-green-200';
       case 'Closed':
         return 'bg-gray-50 border-gray-200';
@@ -77,14 +77,14 @@ function DroppableColumn({ id, title, count, children }){
   // Map stage names to better display names
   const getDisplayTitle = (stageId) => {
     switch(stageId) {
-      case 'New':
-        return 'New Leads';
-      case 'Contacted':
-        return 'Contacted';
-      case 'Appointment':
-        return 'Appointment Booked';
-      case 'Onboarded':
-        return 'Onboarded';
+      case 'Prospecting':
+        return 'Prospecting';
+      case 'Engagement':
+        return 'Engagement';
+      case 'Active':
+        return 'Active';
+      case 'Closing':
+        return 'Closing';
       case 'Closed':
         return 'Closed';
       default:
