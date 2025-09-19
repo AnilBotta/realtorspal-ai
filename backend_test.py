@@ -2243,6 +2243,320 @@ class RealtorsPalAPITester:
             print("⚠️  Some backend API tests FAILED!")
             return False
 
+    def test_pipeline_create_leads_with_different_statuses(self) -> bool:
+        """Test creating leads with different pipeline statuses from the 15 new options"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        # Define all 15 new pipeline options
+        pipeline_options = [
+            'Not set', 'New Lead', 'Tried to contact', 'not responsive', 'made contact', 
+            'cold/not ready', 'warm / nurturing', 'Hot/ Ready', 'set meeting', 
+            'signed agreement', 'showing', 'sold', 'past client', 'sphere of influence', 'archive'
+        ]
+        
+        try:
+            created_leads = []
+            timestamp = int(time.time()) + 300
+            
+            # Create leads with each pipeline status
+            for i, pipeline_status in enumerate(pipeline_options):
+                lead_payload = {
+                    "user_id": demo_user_id,
+                    "first_name": f"Pipeline{i+1}",
+                    "last_name": "TestLead",
+                    "email": f"pipeline.test.{i+1}.{timestamp}@example.com",
+                    "phone": f"+1415555{1000+i:04d}",
+                    "pipeline": pipeline_status,
+                    "property_type": "House",
+                    "neighborhood": "Pipeline Test Area",
+                    "stage": "New"
+                }
+                
+                response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+                
+                if response.status_code == 200:
+                    lead_data = response.json()
+                    if lead_data.get("pipeline") == pipeline_status:
+                        created_leads.append({
+                            "id": lead_data.get("id"),
+                            "pipeline": pipeline_status,
+                            "name": f"Pipeline{i+1} TestLead"
+                        })
+                    else:
+                        self.log_test("Pipeline Create Leads Different Statuses", False, 
+                                    f"Pipeline status not saved correctly for '{pipeline_status}'. Got: {lead_data.get('pipeline')}")
+                        return False
+                else:
+                    self.log_test("Pipeline Create Leads Different Statuses", False, 
+                                f"Failed to create lead with pipeline '{pipeline_status}': {response.text}")
+                    return False
+            
+            if len(created_leads) == 15:
+                self.log_test("Pipeline Create Leads Different Statuses", True, 
+                            f"Successfully created {len(created_leads)} leads with all 15 pipeline options")
+                return True
+            else:
+                self.log_test("Pipeline Create Leads Different Statuses", False, 
+                            f"Expected 15 leads, created {len(created_leads)}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Pipeline Create Leads Different Statuses", False, f"Exception: {str(e)}")
+            return False
+
+    def test_pipeline_update_lead_status(self) -> bool:
+        """Test updating lead pipeline status and verify backend accepts all new options"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First create a test lead
+            timestamp = int(time.time()) + 400
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "PipelineUpdate",
+                "last_name": "TestLead",
+                "email": f"pipeline.update.{timestamp}@example.com",
+                "phone": "+14155552000",
+                "pipeline": "Not set",
+                "property_type": "Condo",
+                "stage": "New"
+            }
+            
+            response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            if response.status_code != 200:
+                self.log_test("Pipeline Update Lead Status", False, f"Failed to create test lead: {response.text}")
+                return False
+            
+            lead_data = response.json()
+            lead_id = lead_data.get("id")
+            
+            # Test updating to different pipeline statuses
+            pipeline_updates = [
+                'New Lead', 'Tried to contact', 'made contact', 'warm / nurturing', 
+                'Hot/ Ready', 'set meeting', 'signed agreement', 'sold'
+            ]
+            
+            for pipeline_status in pipeline_updates:
+                update_payload = {
+                    "pipeline": pipeline_status
+                }
+                
+                response = requests.put(f"{self.base_url}/leads/{lead_id}", json=update_payload, timeout=10)
+                
+                if response.status_code == 200:
+                    updated_lead = response.json()
+                    if updated_lead.get("pipeline") != pipeline_status:
+                        self.log_test("Pipeline Update Lead Status", False, 
+                                    f"Pipeline not updated correctly to '{pipeline_status}'. Got: {updated_lead.get('pipeline')}")
+                        return False
+                else:
+                    self.log_test("Pipeline Update Lead Status", False, 
+                                f"Failed to update pipeline to '{pipeline_status}': {response.text}")
+                    return False
+            
+            self.log_test("Pipeline Update Lead Status", True, 
+                        f"Successfully updated lead pipeline through {len(pipeline_updates)} different statuses")
+            return True
+            
+        except Exception as e:
+            self.log_test("Pipeline Update Lead Status", False, f"Exception: {str(e)}")
+            return False
+
+    def test_pipeline_lead_retrieval_with_new_structure(self) -> bool:
+        """Test lead retrieval with new pipeline field structure"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Get all leads for the demo user
+            response = requests.get(f"{self.base_url}/leads", params={"user_id": demo_user_id}, timeout=10)
+            
+            if response.status_code == 200:
+                leads = response.json()
+                
+                if not isinstance(leads, list) or len(leads) == 0:
+                    self.log_test("Pipeline Lead Retrieval New Structure", False, f"Expected array of leads, got: {type(leads)} with {len(leads) if isinstance(leads, list) else 'N/A'} items")
+                    return False
+                
+                # Check that leads have the pipeline field and it's properly structured
+                pipeline_field_count = 0
+                pipeline_values_found = []
+                
+                for lead in leads:
+                    if "pipeline" in lead:
+                        pipeline_field_count += 1
+                        pipeline_value = lead.get("pipeline")
+                        if pipeline_value and pipeline_value not in pipeline_values_found:
+                            pipeline_values_found.append(pipeline_value)
+                
+                # Verify that leads have the required fields
+                required_fields = ["id", "user_id", "created_at", "stage"]
+                field_checks = []
+                
+                for field in required_fields:
+                    field_present = all(field in lead for lead in leads[:5])  # Check first 5 leads
+                    field_checks.append(f"{field}: {'✓' if field_present else '✗'}")
+                
+                if pipeline_field_count > 0:
+                    self.log_test("Pipeline Lead Retrieval New Structure", True, 
+                                f"Successfully retrieved {len(leads)} leads with pipeline field structure. "
+                                f"Pipeline field present in {pipeline_field_count} leads. "
+                                f"Pipeline values found: {pipeline_values_found}")
+                    return True
+                else:
+                    self.log_test("Pipeline Lead Retrieval New Structure", False, 
+                                f"No leads found with pipeline field. Total leads: {len(leads)}")
+                    return False
+            else:
+                self.log_test("Pipeline Lead Retrieval New Structure", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Pipeline Lead Retrieval New Structure", False, f"Exception: {str(e)}")
+            return False
+
+    def test_pipeline_existing_leads_compatibility(self) -> bool:
+        """Test that existing leads still work with new pipeline options"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Create a lead without pipeline field (legacy style)
+            timestamp = int(time.time()) + 500
+            legacy_payload = {
+                "user_id": demo_user_id,
+                "first_name": "Legacy",
+                "last_name": "TestLead",
+                "email": f"legacy.test.{timestamp}@example.com",
+                "phone": "+14155553000",
+                "property_type": "House",
+                "stage": "New"
+                # Note: No pipeline field
+            }
+            
+            response = requests.post(f"{self.base_url}/leads", json=legacy_payload, timeout=10)
+            if response.status_code != 200:
+                self.log_test("Pipeline Existing Leads Compatibility", False, f"Failed to create legacy lead: {response.text}")
+                return False
+            
+            legacy_lead = response.json()
+            legacy_lead_id = legacy_lead.get("id")
+            
+            # Verify legacy lead was created successfully
+            if not legacy_lead_id:
+                self.log_test("Pipeline Existing Leads Compatibility", False, f"No ID returned for legacy lead: {legacy_lead}")
+                return False
+            
+            # Now update the legacy lead with a new pipeline option
+            update_payload = {
+                "pipeline": "warm / nurturing",
+                "notes": "Updated with new pipeline option"
+            }
+            
+            response = requests.put(f"{self.base_url}/leads/{legacy_lead_id}", json=update_payload, timeout=10)
+            if response.status_code != 200:
+                self.log_test("Pipeline Existing Leads Compatibility", False, f"Failed to update legacy lead with pipeline: {response.text}")
+                return False
+            
+            updated_lead = response.json()
+            
+            # Verify the update worked correctly
+            if (updated_lead.get("pipeline") == "warm / nurturing" and 
+                updated_lead.get("first_name") == "Legacy" and
+                updated_lead.get("stage") == "New"):
+                
+                self.log_test("Pipeline Existing Leads Compatibility", True, 
+                            f"Successfully created legacy lead and updated with new pipeline option. "
+                            f"Lead ID: {legacy_lead_id}, Pipeline: {updated_lead.get('pipeline')}")
+                return True
+            else:
+                self.log_test("Pipeline Existing Leads Compatibility", False, 
+                            f"Legacy lead update failed. Expected pipeline 'warm / nurturing', got: {updated_lead.get('pipeline')}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Pipeline Existing Leads Compatibility", False, f"Exception: {str(e)}")
+            return False
+
+    def test_pipeline_comprehensive_lead_creation(self) -> bool:
+        """Test comprehensive lead creation with new pipeline options"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            timestamp = int(time.time()) + 600
+            
+            # Test comprehensive lead creation with various pipeline statuses
+            comprehensive_leads = [
+                {
+                    "user_id": demo_user_id,
+                    "first_name": "Comprehensive",
+                    "last_name": "Prospecting",
+                    "email": f"comp.prospecting.{timestamp}@example.com",
+                    "phone": "+14155554001",
+                    "pipeline": "New Lead",  # Prospecting category
+                    "property_type": "Single Family Home",
+                    "neighborhood": "Downtown",
+                    "price_min": 500000,
+                    "price_max": 750000,
+                    "priority": "high",
+                    "stage": "New",
+                    "notes": "Interested in family home with good schools"
+                },
+                {
+                    "user_id": demo_user_id,
+                    "first_name": "Comprehensive",
+                    "last_name": "Engagement",
+                    "email": f"comp.engagement.{timestamp}@example.com",
+                    "phone": "+14155554002",
+                    "pipeline": "made contact",  # Engagement category
+                    "property_type": "Condo",
+                    "neighborhood": "Midtown",
+                    "price_min": 300000,
+                    "price_max": 500000,
+                    "priority": "medium",
+                    "stage": "Contacted",
+                    "notes": "First-time buyer, needs guidance"
+                }
+            ]
+            
+            created_leads = []
+            
+            for lead_data in comprehensive_leads:
+                response = requests.post(f"{self.base_url}/leads", json=lead_data, timeout=10)
+                
+                if response.status_code == 200:
+                    created_lead = response.json()
+                    
+                    # Verify all fields were saved correctly
+                    if (created_lead.get("pipeline") == lead_data["pipeline"] and
+                        created_lead.get("first_name") == lead_data["first_name"] and
+                        created_lead.get("property_type") == lead_data["property_type"]):
+                        
+                        created_leads.append({
+                            "name": f"{created_lead.get('first_name')} {created_lead.get('last_name')}",
+                            "pipeline": created_lead.get("pipeline")
+                        })
+                    else:
+                        self.log_test("Pipeline Comprehensive Lead Creation", False, 
+                                    f"Lead data not saved correctly for {lead_data['first_name']}. "
+                                    f"Expected pipeline: {lead_data['pipeline']}, Got: {created_lead.get('pipeline')}")
+                        return False
+                else:
+                    self.log_test("Pipeline Comprehensive Lead Creation", False, 
+                                f"Failed to create comprehensive lead {lead_data['first_name']}: {response.text}")
+                    return False
+            
+            if len(created_leads) == 2:
+                self.log_test("Pipeline Comprehensive Lead Creation", True, 
+                            f"Successfully created {len(created_leads)} comprehensive leads with pipeline options")
+                return True
+            else:
+                self.log_test("Pipeline Comprehensive Lead Creation", False, 
+                            f"Expected 2 comprehensive leads, created {len(created_leads)}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Pipeline Comprehensive Lead Creation", False, f"Exception: {str(e)}")
+            return False
+
 def main():
     import sys
     
