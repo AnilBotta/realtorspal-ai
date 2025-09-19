@@ -466,49 +466,92 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
       
       {/* Custom Fields Section */}
       <div className="border-t pt-4">
-        <h4 className="text-lg font-medium text-gray-900 mb-3">Custom Fields</h4>
-        <div className="space-y-3">
-          {Object.entries(formData.custom_fields || {}).map(([key, value]) => (
-            <div key={key} className="grid grid-cols-3 gap-2 items-end">
-              <input
-                type="text"
-                placeholder="Field name"
-                value={key}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-                readOnly
-              />
-              <input
-                type="text"
-                placeholder="Field value"
-                value={value}
-                onChange={(e) => handleCustomFieldChange(key, e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const newFields = { ...formData.custom_fields };
-                  delete newFields[key];
-                  setFormData(prev => ({ ...prev, custom_fields: newFields }));
-                }}
-                className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              >
-                Remove
-              </button>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-lg font-medium text-gray-900">Custom Fields</h4>
           <button
             type="button"
-            onClick={() => {
-              const fieldName = prompt('Enter field name:');
-              if (fieldName) {
-                handleCustomFieldChange(fieldName, '');
-              }
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={() => setShowCustomFieldModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
           >
             Add Custom Field
           </button>
+        </div>
+        
+        {/* Render Custom Fields */}
+        <div className="space-y-3">
+          {customFieldDefinitions.map((fieldDef) => {
+            const fieldName = fieldDef.name;
+            const fieldValue = formData.custom_fields?.[fieldName] || '';
+            
+            return (
+              <div key={fieldName} className="flex gap-3 items-start">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {fieldName}
+                  </label>
+                  
+                  {fieldDef.type === 'Text' && (
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={fieldValue}
+                      onChange={(e) => handleCustomFieldChange(fieldName, e.target.value)}
+                      placeholder={`Enter ${fieldName.toLowerCase()}`}
+                    />
+                  )}
+                  
+                  {fieldDef.type === 'Number' && (
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={fieldValue}
+                      onChange={(e) => handleCustomFieldChange(fieldName, e.target.value)}
+                      placeholder={`Enter ${fieldName.toLowerCase()}`}
+                    />
+                  )}
+                  
+                  {fieldDef.type === 'Date' && (
+                    <input
+                      type="date"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={fieldValue}
+                      onChange={(e) => handleCustomFieldChange(fieldName, e.target.value)}
+                    />
+                  )}
+                  
+                  {fieldDef.type === 'Dropdown' && (
+                    <select
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={fieldValue}
+                      onChange={(e) => handleCustomFieldChange(fieldName, e.target.value)}
+                    >
+                      <option value="">Not selected</option>
+                      {fieldDef.options?.map(option => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCustomField(fieldName)}
+                  className="mt-6 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm"
+                >
+                  Remove
+                </button>
+              </div>
+            );
+          })}
+          
+          {customFieldDefinitions.length === 0 && (
+            <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+              <p className="text-sm">No custom fields added yet</p>
+              <p className="text-xs mt-1">Click "Add Custom Field" to create your first custom field</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
