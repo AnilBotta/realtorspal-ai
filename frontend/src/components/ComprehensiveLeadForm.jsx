@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { User, Home, Users, Settings, UserCheck } from 'lucide-react';
+import CustomFieldModal from './CustomFieldModal';
 
 const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false }) => {
   const [activeTab, setActiveTab] = useState('lead-data');
-  const [formData, setFormData] = useState({
+  const [showCustomFieldModal, setShowCustomFieldModal] = useState(false);
+  const [customFieldDefinitions, setCustomFieldDefinitions] = useState([]);
     // Basic Information
     first_name: '',
     last_name: '',
