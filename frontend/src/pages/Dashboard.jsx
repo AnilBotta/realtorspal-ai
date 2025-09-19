@@ -19,7 +19,39 @@ function Stat({ label, value, hint }){
   );
 }
 
-const STAGES = ["New", "Contacted", "Appointment", "Onboarded", "Closed"];
+const STAGES = ["Prospecting", "Engagement", "Active", "Closing", "Closed"];
+
+// Map pipeline statuses to Kanban categories
+const getPipelineStageMapping = (pipeline) => {
+  const mapping = {
+    // Prospecting category
+    'Not set': 'Prospecting',
+    'New Lead': 'Prospecting', 
+    'Tried to contact': 'Prospecting',
+    
+    // Engagement category
+    'not responsive': 'Engagement',
+    'made contact': 'Engagement',
+    'cold/not ready': 'Engagement',
+    
+    // Active category
+    'warm / nurturing': 'Active',
+    'Hot/ Ready': 'Active',
+    'set meeting': 'Active',
+    
+    // Closing category
+    'signed agreement': 'Closing',
+    'showing': 'Closing',
+    
+    // Closed category
+    'sold': 'Closed',
+    'past client': 'Closed',
+    'sphere of influence': 'Closed',
+    'archive': 'Closed',
+  };
+  
+  return mapping[pipeline] || 'Prospecting';
+};
 
 function DroppableColumn({ id, title, count, children }){
   const { setNodeRef, isOver } = useDroppable({ id: `col-${id}`, data: { columnId: id } });
