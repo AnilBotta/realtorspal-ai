@@ -108,6 +108,26 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
     }));
   };
 
+  const handleAddCustomField = (customFieldDef) => {
+    const fieldName = customFieldDef.name;
+    
+    // Add to field definitions
+    setCustomFieldDefinitions(prev => [...prev, customFieldDef]);
+    
+    // Initialize field value
+    handleCustomFieldChange(fieldName, '');
+  };
+
+  const handleRemoveCustomField = (fieldName) => {
+    // Remove from field definitions
+    setCustomFieldDefinitions(prev => prev.filter(field => field.name !== fieldName));
+    
+    // Remove from form data
+    const newCustomFields = { ...formData.custom_fields };
+    delete newCustomFields[fieldName];
+    setFormData(prev => ({ ...prev, custom_fields: newCustomFields }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
