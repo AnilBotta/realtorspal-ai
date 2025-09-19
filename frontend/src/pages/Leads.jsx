@@ -287,7 +287,7 @@ export default function Leads({ user }) {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {filteredLeads.length} of {leads.length} leads
+            {filteredLeads.length} of {Array.isArray(leads) ? leads.length : 0} leads
           </p>
         </div>
         <div className="flex gap-3">
