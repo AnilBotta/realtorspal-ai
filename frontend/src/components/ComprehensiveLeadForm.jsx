@@ -240,21 +240,21 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
         name="pipeline"
         type="select"
         options={[
-          { value: 'Not Set', label: 'Not Set' },
+          { value: 'Not set', label: 'Not set' },
           { value: 'New Lead', label: 'New Lead' },
           { value: 'Tried to contact', label: 'Tried to contact' },
-          { value: 'Non-responsive', label: 'Non-responsive' },
-          { value: 'Made contact', label: 'Made contact' },
-          { value: 'Cold/Not Ready', label: 'Cold/Not Ready' },
-          { value: 'Warm/Nurturing', label: 'Warm/Nurturing' },
-          { value: 'Hot/Ready', label: 'Hot/Ready' },
-          { value: 'Set meeting', label: 'Set meeting' },
-          { value: 'Signed agreement', label: 'Signed agreement' },
-          { value: 'Showing', label: 'Showing' },
-          { value: 'Sold', label: 'Sold' },
-          { value: 'Past Client', label: 'Past Client' },
-          { value: 'Sphere of Influence', label: 'Sphere of Influence' },
-          { value: 'Archive', label: 'Archive' }
+          { value: 'not responsive', label: 'not responsive' },
+          { value: 'made contact', label: 'made contact' },
+          { value: 'cold/not ready', label: 'cold/not ready' },
+          { value: 'warm / nurturing', label: 'warm / nurturing' },
+          { value: 'Hot/ Ready', label: 'Hot/ Ready' },
+          { value: 'set meeting', label: 'set meeting' },
+          { value: 'signed agreement', label: 'signed agreement' },
+          { value: 'showing', label: 'showing' },
+          { value: 'sold', label: 'sold' },
+          { value: 'past client', label: 'past client' },
+          { value: 'sphere of influence', label: 'sphere of influence' },
+          { value: 'archive', label: 'archive' }
         ]}
       />
       <FormField
