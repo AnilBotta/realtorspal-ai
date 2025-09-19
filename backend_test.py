@@ -2203,6 +2203,13 @@ class RealtorsPalAPITester:
             self.test_comprehensive_field_compatibility,
             self.test_comprehensive_data_validation,
             
+            # NEW PIPELINE FUNCTIONALITY TESTS
+            self.test_pipeline_create_leads_with_different_statuses,
+            self.test_pipeline_update_lead_status,
+            self.test_pipeline_lead_retrieval_with_new_structure,
+            self.test_pipeline_existing_leads_compatibility,
+            self.test_pipeline_comprehensive_lead_creation,
+            
             # Lead import functionality tests
             self.test_import_leads_basic,
             self.test_import_leads_phone_normalization,
