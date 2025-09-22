@@ -456,6 +456,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
           label="Lead Type 2"
           name="lead_type_2"
           type="select"
+          formData={formData}
+          handleInputChange={handleInputChange}
           options={[
             { value: 'Not selected', label: 'Not selected' },
             { value: 'First Time Buyer', label: 'First Time Buyer' },
@@ -472,6 +474,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
           label="Main Agent"
           name="main_agent"
           type="select"
+          formData={formData}
+          handleInputChange={handleInputChange}
           options={[
             { value: 'Anil Botta', label: 'Anil Botta' },
             { value: 'Not selected', label: 'Not selected' }
@@ -481,6 +485,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
           label="Mort. Agent"
           name="mort_agent"
           type="select"
+          formData={formData}
+          handleInputChange={handleInputChange}
           options={[
             { value: 'Not selected', label: 'Not selected' },
             { value: 'John Smith', label: 'John Smith' },
@@ -491,6 +497,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
           label="List. Agent"
           name="list_agent"
           type="select"
+          formData={formData}
+          handleInputChange={handleInputChange}
           options={[
             { value: 'Not selected', label: 'Not selected' },
             { value: 'Mike Johnson', label: 'Mike Johnson' },
