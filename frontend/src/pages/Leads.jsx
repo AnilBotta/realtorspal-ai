@@ -138,7 +138,8 @@ export default function Leads({ user }) {
   });
 
   const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
+    const statusStr = typeof status === 'string' ? status.toLowerCase() : (status || '').toString().toLowerCase();
+    switch (statusStr) {
       case 'open': return 'bg-green-100 text-green-800';
       case 'contacted': return 'bg-blue-100 text-blue-800';
       case 'in progress': return 'bg-yellow-100 text-yellow-800';
@@ -148,7 +149,8 @@ export default function Leads({ user }) {
   };
 
   const getPriorityColor = (priority) => {
-    switch (priority?.toLowerCase()) {
+    const priorityStr = typeof priority === 'string' ? priority.toLowerCase() : (priority || '').toString().toLowerCase();
+    switch (priorityStr) {
       case 'high': return 'bg-red-100 text-red-800';
       case 'medium': return 'bg-yellow-100 text-yellow-800';
       case 'low': return 'bg-green-100 text-green-800';
