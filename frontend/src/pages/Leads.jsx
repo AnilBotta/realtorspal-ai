@@ -96,6 +96,40 @@ export default function Leads({ user }) {
     }
   };
 
+  const handleAddToDashboard = async (lead) => {
+    try {
+      // Update lead to be included in dashboard
+      const updatedLead = await updateLead(lead.id, { ...lead, in_dashboard: true });
+      if (updatedLead) {
+        setLeads(prev => Array.isArray(prev) ? 
+          prev.map(l => l.id === lead.id ? { ...l, in_dashboard: true } : l) : 
+          [updatedLead]
+        );
+        alert(`${lead.first_name} ${lead.last_name} has been added to the Dashboard!`);
+      }
+    } catch (error) {
+      console.error('Failed to add lead to dashboard:', error);
+      alert('Failed to add lead to dashboard. Please try again.');
+    }
+  };
+
+  const handleRemoveFromDashboard = async (lead) => {
+    try {
+      // Update lead to be removed from dashboard
+      const updatedLead = await updateLead(lead.id, { ...lead, in_dashboard: false });
+      if (updatedLead) {
+        setLeads(prev => Array.isArray(prev) ? 
+          prev.map(l => l.id === lead.id ? { ...l, in_dashboard: false } : l) : 
+          [updatedLead]
+        );
+        alert(`${lead.first_name} ${lead.last_name} has been removed from the Dashboard!`);
+      }
+    } catch (error) {
+      console.error('Failed to remove lead from dashboard:', error);
+      alert('Failed to remove lead from dashboard. Please try again.');
+    }
+  };
+
   const handleViewLead = (lead) => {
     setSelectedLead(lead);
     setShowLeadDrawer(true);
