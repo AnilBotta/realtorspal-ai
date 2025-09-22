@@ -475,7 +475,7 @@ export default function Leads({ user }) {
         </div>
       </div>
 
-      {/* Leads Grid */}
+      {/* Leads Table */}
       {filteredLeads.length === 0 ? (
         <div className="bg-white rounded-lg border p-12 text-center">
           <div className="text-gray-500 mb-4">
