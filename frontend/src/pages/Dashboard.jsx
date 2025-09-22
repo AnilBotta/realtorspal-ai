@@ -134,11 +134,11 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle, onPipelineChange })
   const priority = ((lead.priority || (stage === 'Prospecting' ? 'high' : stage === 'Engagement' ? 'medium' : 'low')) || 'low').toString().toLowerCase();
   const tags = lead.source_tags || (stage === 'Engagement' ? ["Referral","Lead Generator AI"] : ["Website","Lead Generator AI"]);
 
-  // Mock communication counts - in a real app, these would come from the backend
+  // Real communication counts from backend, default to 0 for new leads
   const communicationCounts = {
-    calls: lead.call_count || Math.floor(Math.random() * 5),
-    emails: lead.email_count || Math.floor(Math.random() * 8),
-    sms: lead.sms_count || Math.floor(Math.random() * 3)
+    calls: lead.call_count || 0,
+    emails: lead.email_count || 0, 
+    sms: lead.sms_count || 0
   };
 
   // All 15 pipeline options
