@@ -44,8 +44,10 @@ export default function Leads({ user }) {
     if (!user) return;
     try {
       setLoading(true);
-      const data = await getLeads(user.id);
-      // Ensure we always have an array
+      const response = await getLeads(user.id);
+      console.log('API Response:', response);
+      // Handle different response structures
+      const data = response.data || response || [];
       setLeads(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load leads:', error);
@@ -57,10 +59,14 @@ export default function Leads({ user }) {
 
   const handleCreateLead = async (leadData) => {
     try {
+      console.log('Creating lead with data:', leadData);
       // Create lead but don't add to dashboard automatically - user chooses
-      const newLead = await createLead({ ...leadData, user_id: user.id, in_dashboard: false });
+      const response = await createLead({ ...leadData, user_id: user.id, in_dashboard: false });
+      console.log('Create lead response:', response);
+      const newLead = response.data || response;
       if (newLead) {
         setLeads(prev => Array.isArray(prev) ? [newLead, ...prev] : [newLead]);
+        setShowAddModal(false);
       }
     } catch (error) {
       console.error('Failed to create lead:', error);
