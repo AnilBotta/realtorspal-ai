@@ -23,6 +23,11 @@ export default function Leads({ user }) {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
 
+  // Communication modal states
+  const [showCommunicationModal, setShowCommunicationModal] = useState(false);
+  const [communicationType, setCommunicationType] = useState('call');
+  const [communicationLead, setCommunicationLead] = useState(null);
+
   useEffect(() => {
     loadLeads();
   }, [user]);
