@@ -344,6 +344,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
         label="Buying In"
         name="buying_in"
         type="select"
+        formData={formData}
+        handleInputChange={handleInputChange}
         options={[
           { value: 'Not selected', label: 'Not selected' },
           { value: '0-3 months', label: '0-3 months' },
@@ -356,6 +358,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
         label="Mortgage Type"
         name="mortgage_type"
         type="select"
+        formData={formData}
+        handleInputChange={handleInputChange}
         options={[
           { value: 'Not selected', label: 'Not selected' },
           { value: 'Conventional', label: 'Conventional' },
@@ -364,29 +368,31 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
           { value: 'Cash', label: 'Cash' }
         ]}
       />
-      <FormField label="Property Type" name="property_type" />
+      <FormField label="Property Type" name="property_type" formData={formData} handleInputChange={handleInputChange} />
       <FormField
         label="Owns/Rents"
         name="owns_rents"
         type="select"
+        formData={formData}
+        handleInputChange={handleInputChange}
         options={[
           { value: 'Not Selected', label: 'Not Selected' },
           { value: 'Owns', label: 'Owns' },
           { value: 'Rents', label: 'Rents' }
         ]}
       />
-      <FormField label="Budget Min" name="price_min" type="number" placeholder="0" />
-      <FormField label="Budget Max" name="price_max" type="number" placeholder="0" />
+      <FormField label="Budget Min" name="price_min" type="number" placeholder="0" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Budget Max" name="price_max" type="number" placeholder="0" formData={formData} handleInputChange={handleInputChange} />
       
       {/* Spouse Information */}
       <div className="md:col-span-2">
         <h4 className="text-lg font-medium text-gray-900 mb-3 border-b pb-2">Spouse Information</h4>
       </div>
-      <FormField label="Spouse First Name" name="spouse_first_name" />
-      <FormField label="Spouse Last Name" name="spouse_last_name" />
-      <FormField label="Spouse Email" name="spouse_email" type="email" />
-      <FormField label="Spouse Mobile Phone" name="spouse_mobile_phone" type="tel" />
-      <FormField label="Spouse Birthday" name="spouse_birthday" type="date" />
+      <FormField label="Spouse First Name" name="spouse_first_name" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Spouse Last Name" name="spouse_last_name" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Spouse Email" name="spouse_email" type="email" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Spouse Mobile Phone" name="spouse_mobile_phone" type="tel" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Spouse Birthday" name="spouse_birthday" type="date" formData={formData} handleInputChange={handleInputChange} />
     </div>
   );
 
