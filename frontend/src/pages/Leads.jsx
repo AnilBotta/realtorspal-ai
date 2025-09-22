@@ -232,6 +232,12 @@ export default function Leads({ user }) {
           <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(lead.priority)}`}>
             {lead.priority || 'Medium'}
           </span>
+          {/* Dashboard Status Indicator */}
+          {lead.in_dashboard && (
+            <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">
+              📊 On Dashboard
+            </span>
+          )}
         </div>
       </div>
 
