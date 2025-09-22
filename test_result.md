@@ -817,6 +817,14 @@ Comprehensive testing of WebRTC access token generation and call initiation endp
 - **Priority**: "high"
 - **Needs Retesting**: false
 
+#### 15. Pipeline Dropdown Functionality Testing
+- **Task**: Test new pipeline dropdown functionality on Dashboard lead cards with all 15 pipeline options and real-time Kanban card movement
+- **Implemented**: true
+- **Working**: true
+- **File**: "/app/frontend/src/pages/Dashboard.jsx"
+- **Priority**: "high"
+- **Needs Retesting**: false
+
 ### Status History
 
 #### Twilio Integration Implementation
