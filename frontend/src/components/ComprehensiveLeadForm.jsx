@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { User, Home, Users, Settings, UserCheck } from 'lucide-react';
 import CustomFieldModal from './CustomFieldModal';
 
