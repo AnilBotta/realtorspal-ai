@@ -337,6 +337,11 @@ export default function Dashboard({ user }){
     setCommType('call');
   };
 
+  const closeEmail = () => {
+    setOpenEmail(false);
+    setEmailLead(null);
+  };
+
   // Handle pipeline change from dropdown on lead card
   const handlePipelineChange = async (leadId, newPipeline) => {
     try {
