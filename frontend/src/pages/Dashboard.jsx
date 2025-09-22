@@ -220,12 +220,18 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle, onPipelineChange })
   );
 }
 
-function DraggableLeadCard({ lead, onOpen, onCommunicate }){
+function DraggableLeadCard({ lead, onOpen, onCommunicate, onPipelineChange }){
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `lead-${lead.id}`, data: { leadId: lead.id } });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
   return (
     <div ref={setNodeRef} style={style} className={`${isDragging ? 'opacity-70 ring-2 ring-emerald-300' : ''}`}>
-      <LeadCard lead={lead} onOpen={onOpen} onCommunicate={onCommunicate} dragHandle={<div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing"><GripVertical size={16}/></div>} />
+      <LeadCard 
+        lead={lead} 
+        onOpen={onOpen} 
+        onCommunicate={onCommunicate} 
+        onPipelineChange={onPipelineChange}
+        dragHandle={<div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing"><GripVertical size={16}/></div>} 
+      />
     </div>
   );
 }
