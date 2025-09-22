@@ -336,7 +336,7 @@ export default function Leads({ user }) {
       </td>
 
       {/* ACTIONS */}
-      <td className="px-3 py-3 border-b w-60">
+      <td className="px-3 py-3 border-b w-80">
         <div className="flex flex-wrap gap-1">
           <button
             onClick={() => handleViewLead(lead)}
