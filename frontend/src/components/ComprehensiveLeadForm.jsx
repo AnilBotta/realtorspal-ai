@@ -224,76 +224,24 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
     );
   };
 
-  const FormField = ({ label, name, type = 'text', options = null, placeholder = '', required = false }) => {
-    if (type === 'select') {
-      return (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {label} {required && <span className="text-red-500">*</span>}
-          </label>
-          <select
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            value={formData[name] || ''}
-            onChange={(e) => handleInputChange(name, e.target.value)}
-          >
-            {options?.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      );
-    }
-
-    if (type === 'textarea') {
-      return (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {label} {required && <span className="text-red-500">*</span>}
-          </label>
-          <textarea
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24 resize-none"
-            value={formData[name] || ''}
-            onChange={(e) => handleInputChange(name, e.target.value)}
-            placeholder={placeholder}
-          />
-        </div>
-      );
-    }
-
-    return (
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {label} {required && <span className="text-red-500">*</span>}
-        </label>
-        <input
-          type={type}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          value={formData[name] || ''}
-          onChange={(e) => handleInputChange(name, e.target.value)}
-          placeholder={placeholder}
-        />
-      </div>
-    );
-  };
-
   const renderLeadDataTab = () => (
     <div className="grid md:grid-cols-2 gap-4">
-      <FormField label="First Name" name="first_name" required />
-      <FormField label="Last Name" name="last_name" required />
-      <FormField label="Phone" name="phone" type="tel" />
-      <FormField label="Email" name="email" type="email" />
-      <FormField label="Work Phone" name="work_phone" type="tel" />
-      <FormField label="Home Phone" name="home_phone" type="tel" />
-      <FormField label="Email 2" name="email_2" type="email" />
+      <FormField label="First Name" name="first_name" required formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Last Name" name="last_name" required formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Phone" name="phone" type="tel" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Email" name="email" type="email" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Work Phone" name="work_phone" type="tel" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Home Phone" name="home_phone" type="tel" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Email 2" name="email_2" type="email" formData={formData} handleInputChange={handleInputChange} />
       <div className="md:col-span-2">
-        <FormField label="Lead Description" name="lead_description" type="textarea" />
+        <FormField label="Lead Description" name="lead_description" type="textarea" formData={formData} handleInputChange={handleInputChange} />
       </div>
       <FormField
         label="Pipeline"
         name="pipeline"
         type="select"
+        formData={formData}
+        handleInputChange={handleInputChange}
         options={[
           { value: 'Not set', label: 'Not set' },
           { value: 'New Lead', label: 'New Lead' },
@@ -316,6 +264,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
         label="Status"
         name="status"
         type="select"
+        formData={formData}
+        handleInputChange={handleInputChange}
         options={[
           { value: 'Open', label: 'Open' },
           { value: 'Contacted', label: 'Contacted' },
