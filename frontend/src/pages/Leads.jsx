@@ -40,17 +40,6 @@ export default function Leads({ user }) {
     };
   }, [user]);
 
-  // Also refresh leads when the component mounts/remounts
-  useEffect(() => {
-    const refreshInterval = setInterval(() => {
-      if (user) {
-        loadLeads();
-      }
-    }, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(refreshInterval);
-  }, [user]);
-
   const loadLeads = async () => {
     if (!user) return;
     try {
