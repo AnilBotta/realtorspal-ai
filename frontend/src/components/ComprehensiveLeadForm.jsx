@@ -402,6 +402,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
         label="House to Sell"
         name="house_to_sell"
         type="select"
+        formData={formData}
+        handleInputChange={handleInputChange}
         options={[
           { value: 'Unknown', label: 'Unknown' },
           { value: 'Yes', label: 'Yes' },
@@ -413,6 +415,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
         label="Selling In"
         name="selling_in"
         type="select"
+        formData={formData}
+        handleInputChange={handleInputChange}
         options={[
           { value: 'Not selected', label: 'Not selected' },
           { value: '0-3 months', label: '0-3 months' },
@@ -421,17 +425,19 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
           { value: '12+ months', label: '12+ months' }
         ]}
       />
-      <FormField label="Bedrooms" name="bedrooms" placeholder="e.g., 3" />
-      <FormField label="Bathrooms" name="bathrooms" placeholder="e.g., 2.5" />
-      <FormField label="Basement" name="basement" placeholder="e.g., Finished" />
-      <FormField label="Parking Type" name="parking_type" placeholder="e.g., Garage" />
-      <FormField label="Property Condition" name="property_condition" />
-      <FormField label="Listing Status" name="listing_status" />
-      <FormField label="House Anniversary" name="house_anniversary" type="date" />
+      <FormField label="Bedrooms" name="bedrooms" placeholder="e.g., 3" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Bathrooms" name="bathrooms" placeholder="e.g., 2.5" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Basement" name="basement" placeholder="e.g., Finished" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Parking Type" name="parking_type" placeholder="e.g., Garage" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Property Condition" name="property_condition" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Listing Status" name="listing_status" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="House Anniversary" name="house_anniversary" type="date" formData={formData} handleInputChange={handleInputChange} />
       <FormField
         label="Planning to Sell In"
         name="planning_to_sell_in"
         type="select"
+        formData={formData}
+        handleInputChange={handleInputChange}
         options={[
           { value: '', label: 'Not selected' },
           { value: '0-3 months', label: '0-3 months' },
