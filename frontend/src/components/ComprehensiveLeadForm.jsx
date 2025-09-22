@@ -649,7 +649,7 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
         <div className="flex gap-3 pt-4 border-t">
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 active:scale-95"
           >
             {lead ? 'Update Lead' : 'Create Lead'}
           </button>
