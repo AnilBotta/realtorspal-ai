@@ -134,6 +134,13 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle, onPipelineChange })
   const priority = (lead.priority || (stage === 'Prospecting' ? 'high' : stage === 'Engagement' ? 'medium' : 'low')).toLowerCase();
   const tags = lead.source_tags || (stage === 'Engagement' ? ["Referral","Lead Generator AI"] : ["Website","Lead Generator AI"]);
 
+  // Mock communication counts - in a real app, these would come from the backend
+  const communicationCounts = {
+    calls: lead.call_count || Math.floor(Math.random() * 5),
+    emails: lead.email_count || Math.floor(Math.random() * 8),
+    sms: lead.sms_count || Math.floor(Math.random() * 3)
+  };
+
   // All 15 pipeline options
   const pipelineOptions = [
     'Not set', 'New Lead', 'Tried to contact', 'not responsive', 'made contact',
@@ -150,21 +157,21 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle, onPipelineChange })
   };
 
   return (
-    <div className={`bg-white rounded-2xl border p-3 shadow-sm`}>
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => onOpen(lead)}>
-          <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-medium">
+    <div className={`bg-white rounded-2xl border p-3 shadow-sm overflow-hidden`}>
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-3 cursor-pointer flex-1 min-w-0" onClick={() => onOpen(lead)}>
+          <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
             {initialsFromName(nameToShow)}
           </div>
-          <div>
-            <div className="font-semibold text-slate-800 leading-none">{nameToShow}</div>
-            <div className="text-xs text-slate-500 mt-1">{propertyType} - {neighborhood}</div>
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-slate-800 leading-none truncate">{nameToShow}</div>
+            <div className="text-xs text-slate-500 mt-1 truncate">{propertyType} - {neighborhood}</div>
             {/* Pipeline Dropdown */}
             <div className="mt-1" onClick={(e) => e.stopPropagation()}>
               <select
                 value={pipeline}
                 onChange={handlePipelineChange}
-                className="text-xs text-blue-600 font-medium bg-transparent border-none p-0 focus:ring-0 focus:outline-none cursor-pointer hover:bg-blue-50 rounded px-1"
+                className="text-xs text-blue-600 font-medium bg-transparent border-none p-0 focus:ring-0 focus:outline-none cursor-pointer hover:bg-blue-50 rounded px-1 max-w-full"
                 style={{ appearance: 'none' }}
               >
                 {pipelineOptions.map(option => (
@@ -176,44 +183,44 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle, onPipelineChange })
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
           <PriorityChip level={priority} />
           <div className="text-slate-400">{dragHandle}</div>
         </div>
       </div>
 
-      <div className="mt-3 space-y-1.5 text-xs text-slate-600">
+      <div className="space-y-1.5 text-xs text-slate-600 mb-3">
         <div className="flex items-center gap-1"><DollarSign size={12}/> ${priceMin?.toLocaleString()} - ${priceMax?.toLocaleString()}</div>
         <div className="flex items-center gap-1"><MapPin size={12}/> {neighborhood}</div>
         <div className="flex items-center gap-1"><Calendar size={12}/> {createdAt}</div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between">
-        <div className="flex flex-wrap gap-1">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap gap-1 min-w-0">
           {tags.slice(0,2).map((tag,idx) => (
-            <span key={idx} className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">{tag}</span>
+            <span key={idx} className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs truncate">{tag}</span>
           ))}
         </div>
       </div>
 
-      <div className="mt-3 flex items-center gap-2 text-xs">
+      <div className="flex items-center gap-1 text-xs flex-wrap">
         <button 
-          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-blue-50 hover:border-blue-200" 
+          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-blue-50 hover:border-blue-200 whitespace-nowrap" 
           onClick={(e) => { e.stopPropagation(); onCommunicate(lead, 'call'); }}
         >
-          <Phone size={14}/> Call
+          <Phone size={12}/> Call ({communicationCounts.calls})
         </button>
         <button 
-          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-blue-50 hover:border-blue-200" 
+          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-blue-50 hover:border-blue-200 whitespace-nowrap" 
           onClick={(e) => { e.stopPropagation(); onCommunicate(lead, 'email'); }}
         >
-          <Mail size={14}/> Email
+          <Mail size={12}/> Email ({communicationCounts.emails})
         </button>
         <button 
-          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-green-50 hover:border-green-200" 
+          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-green-50 hover:border-green-200 whitespace-nowrap" 
           onClick={(e) => { e.stopPropagation(); onCommunicate(lead, 'sms'); }}
         >
-          <MessageSquare size={14}/> SMS
+          <MessageSquare size={12}/> SMS ({communicationCounts.sms})
         </button>
       </div>
     </div>
