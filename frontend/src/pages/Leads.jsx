@@ -221,145 +221,153 @@ export default function Leads({ user }) {
     }
   };
 
-  const LeadCard = ({ lead }) => (
-    <div className="bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors p-4">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <h3 className="font-medium text-gray-900 text-lg">
-            {lead.first_name} {lead.last_name}
-          </h3>
-          <p className="text-sm text-gray-500">{lead.lead_type || 'Lead'}</p>
+  // Table component for lead row
+  const LeadTableRow = ({ lead, index }) => (
+    <tr className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+      {/* INFO */}
+      <td className="px-4 py-3 border-b">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-medium">
+            {((lead.first_name || '').charAt(0) + (lead.last_name || '').charAt(0)).toUpperCase() || 'L'}
+          </div>
+          <div>
+            <div className="font-medium text-gray-900">
+              {lead.first_name || 'N/A'} {lead.last_name || ''}
+            </div>
+            <div className="text-sm text-gray-500">{lead.email || 'No email'}</div>
+            <div className="text-sm text-gray-500">{lead.phone || 'No phone'}</div>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(lead.status)}`}>
+      </td>
+
+      {/* PIPELINE/STATUS/TYPE */}
+      <td className="px-4 py-3 border-b">
+        <div className="space-y-1">
+          <span className="block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+            {lead.pipeline || 'Not set'}
+          </span>
+          <span className={`block px-2 py-1 text-xs rounded-full ${getStatusColor(lead.status)}`}>
             {lead.status || 'Open'}
           </span>
-          <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(lead.priority)}`}>
-            {lead.priority || 'Medium'}
+          <span className="block text-xs text-gray-600">
+            {lead.lead_type || 'Not specified'}
           </span>
-          {/* Dashboard Status Indicator */}
-          {lead.in_dashboard && (
-            <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">
-              📊 On Dashboard
+        </div>
+      </td>
+
+      {/* PERSONAL */}
+      <td className="px-4 py-3 border-b">
+        <div className="text-sm text-gray-900">
+          <div><strong>Priority:</strong> 
+            <span className={`ml-1 px-2 py-1 text-xs rounded-full ${getPriorityColor(lead.priority)}`}>
+              {lead.priority || 'Medium'}
             </span>
-          )}
+          </div>
+          <div className="mt-1"><strong>Source:</strong> {lead.ref_source || lead.lead_source || 'Not specified'}</div>
+          <div className="mt-1"><strong>Rating:</strong> {lead.lead_rating || 'Not selected'}</div>
         </div>
-      </div>
+      </td>
 
-      {/* Contact Info */}
-      <div className="space-y-2 mb-4">
-        {lead.email && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Mail size={14} />
-            <span className="truncate">{lead.email}</span>
-          </div>
-        )}
-        {lead.phone && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Phone size={14} />
-            <span>{lead.phone}</span>
-          </div>
-        )}
-        {(lead.city || lead.neighborhood) && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <MapPin size={14} />
-            <span className="truncate">{lead.city || lead.neighborhood}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Property Info */}
-      {(lead.property_type || lead.buying_in || lead.budget) && (
-        <div className="bg-gray-50 rounded p-3 mb-4">
-          <div className="text-sm">
-            {lead.property_type && (
-              <div><span className="font-medium">Property:</span> {lead.property_type}</div>
-            )}
-            {lead.buying_in && (
-              <div><span className="font-medium">Timeline:</span> {lead.buying_in}</div>
-            )}
-            {(lead.budget || lead.price_min || lead.price_max) && (
-              <div>
-                <span className="font-medium">Budget:</span> 
-                {lead.budget && ` $${lead.budget.toLocaleString()}`}
-                {!lead.budget && lead.price_min && lead.price_max && 
-                  ` $${lead.price_min.toLocaleString()} - $${lead.price_max.toLocaleString()}`}
-              </div>
-            )}
+      {/* PROPERTY */}
+      <td className="px-4 py-3 border-b">
+        <div className="text-sm text-gray-900">
+          <div><strong>Type:</strong> {lead.property_type || 'Not specified'}</div>
+          <div><strong>Location:</strong> {lead.city || lead.neighborhood || 'Not specified'}</div>
+          <div><strong>Budget:</strong> 
+            {lead.price_min || lead.price_max ? 
+              `$${(lead.price_min || 0).toLocaleString()} - $${(lead.price_max || 0).toLocaleString()}` : 
+              'Not specified'}
           </div>
         </div>
-      )}
+      </td>
 
-      {/* Agent Info */}
-      {lead.main_agent && lead.main_agent !== 'Not selected' && (
-        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-          <User size={14} />
-          <span>Agent: {lead.main_agent}</span>
+      {/* TIMELINE */}
+      <td className="px-4 py-3 border-b">
+        <div className="text-sm text-gray-900">
+          <div><strong>Created:</strong> {formatDate(lead.created_at)}</div>
+          <div><strong>Buying In:</strong> {lead.buying_in || 'Not specified'}</div>
+          <div><strong>Selling In:</strong> {lead.selling_in || 'Not specified'}</div>
         </div>
-      )}
+      </td>
 
-      {/* Meta Info */}
-      <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-        <div className="flex items-center gap-2">
-          <Calendar size={12} />
-          <span>Created: {formatDate(lead.created_at)}</span>
+      {/* ACTIVITY */}
+      <td className="px-4 py-3 border-b">
+        <div className="flex gap-2 text-xs">
+          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+            📞 {lead.call_count || 0}
+          </span>
+          <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
+            ✉️ {lead.email_count || 0}
+          </span>
+          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
+            💬 {lead.sms_count || 0}
+          </span>
         </div>
-        {lead.pipeline && lead.pipeline !== 'Not set' && (
-          <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">
-            {lead.pipeline}
+      </td>
+
+      {/* DASHBOARD STATUS */}
+      <td className="px-4 py-3 border-b">
+        {lead.in_dashboard ? (
+          <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">
+            📊 On Dashboard
+          </span>
+        ) : (
+          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
+            Not on Dashboard
           </span>
         )}
-      </div>
+      </td>
 
-      {/* Actions */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => handleViewLead(lead)}
-          className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
-        >
-          <Edit size={14} />
-          View Details
-        </button>
-        
-        {/* Dashboard Management Button */}
-        {lead.in_dashboard ? (
+      {/* ACTIONS */}
+      <td className="px-4 py-3 border-b">
+        <div className="flex gap-2">
           <button
-            onClick={() => handleRemoveFromDashboard(lead)}
-            className="px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-1"
-            title="Remove from Dashboard"
+            onClick={() => handleViewLead(lead)}
+            className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+            title="View Details"
           >
-            <X size={14} />
-            Dashboard
+            View
           </button>
-        ) : (
+          
+          {/* Dashboard Management Button */}
+          {lead.in_dashboard ? (
+            <button
+              onClick={() => handleRemoveFromDashboard(lead)}
+              className="px-3 py-1 bg-orange-600 text-white text-xs font-medium rounded hover:bg-orange-700 transition-colors"
+              title="Remove from Dashboard"
+            >
+              Remove
+            </button>
+          ) : (
+            <button
+              onClick={() => handleAddToDashboard(lead)}
+              className="px-3 py-1 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 transition-colors"
+              title="Add to Dashboard"
+            >
+              Add
+            </button>
+          )}
+          
+          {lead.email && (
+            <button
+              onClick={() => handleEmailLead(lead)}
+              className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors"
+              title="Send Email"
+            >
+              Email
+            </button>
+          )}
+          
           <button
-            onClick={() => handleAddToDashboard(lead)}
-            className="px-3 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1"
-            title="Add to Dashboard"
+            onClick={() => handleDeleteLead(lead)}
+            className="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 transition-colors"
+            title="Delete Lead"
           >
-            <LayoutDashboard size={14} />
-            Dashboard
+            Delete
           </button>
-        )}
-        
-        {lead.email && (
-          <button
-            onClick={() => handleEmailLead(lead)}
-            className="px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
-          >
-            <Mail size={14} />
-            Email
-          </button>
-        )}
-        <button
-          onClick={() => handleDeleteLead(lead)}
-          className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
-        >
-          <Trash2 size={14} />
-        </button>
-      </div>
-    </div>
+        </div>
+      </td>
+    </tr>
   );
 
   if (loading) {
