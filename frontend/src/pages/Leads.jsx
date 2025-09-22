@@ -308,6 +308,28 @@ export default function Leads({ user }) {
           <Edit size={14} />
           View Details
         </button>
+        
+        {/* Dashboard Management Button */}
+        {lead.in_dashboard ? (
+          <button
+            onClick={() => handleRemoveFromDashboard(lead)}
+            className="px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-1"
+            title="Remove from Dashboard"
+          >
+            <X size={14} />
+            Dashboard
+          </button>
+        ) : (
+          <button
+            onClick={() => handleAddToDashboard(lead)}
+            className="px-3 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1"
+            title="Add to Dashboard"
+          >
+            <LayoutDashboard size={14} />
+            Dashboard
+          </button>
+        )}
+        
         {lead.email && (
           <button
             onClick={() => handleEmailLead(lead)}
