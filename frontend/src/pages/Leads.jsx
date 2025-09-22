@@ -597,6 +597,18 @@ export default function Leads({ user }) {
         onClose={() => setShowEmailModal(false)}
         user={user}
       />
+
+      <CommunicationModal
+        open={showCommunicationModal}
+        lead={communicationLead}
+        type={communicationType}
+        onClose={() => {
+          setShowCommunicationModal(false);
+          setCommunicationLead(null);
+          setCommunicationType('call');
+        }}
+        user={user}
+      />
     </div>
   );
 }
