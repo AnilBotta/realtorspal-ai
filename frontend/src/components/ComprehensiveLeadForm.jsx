@@ -2,6 +2,61 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { User, Home, Users, Settings, UserCheck } from 'lucide-react';
 import CustomFieldModal from './CustomFieldModal';
 
+// FormField component moved outside to prevent re-creation on every render
+const FormField = ({ label, name, type = 'text', options = null, placeholder = '', required = false, formData, handleInputChange }) => {
+  if (type === 'select') {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        <select
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          value={formData[name] || ''}
+          onChange={(e) => handleInputChange(name, e.target.value)}
+        >
+          {options?.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  if (type === 'textarea') {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        <textarea
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24 resize-none"
+          value={formData[name] || ''}
+          onChange={(e) => handleInputChange(name, e.target.value)}
+          placeholder={placeholder}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <input
+        type={type}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        value={formData[name] || ''}
+        onChange={(e) => handleInputChange(name, e.target.value)}
+        placeholder={placeholder}
+      />
+    </div>
+  );
+};
+
 const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false }) => {
   const [activeTab, setActiveTab] = useState('lead-data');
   const [showCustomFieldModal, setShowCustomFieldModal] = useState(false);
