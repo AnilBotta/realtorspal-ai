@@ -294,10 +294,11 @@ export default function Dashboard({ user }){
   const addLead = () => setOpenAdd(true);
   const onCreate = async (payload) => {
     try{
-      // Dashboard add -> ensure it appears in dashboard
-      const { data } = await createLead({ user_id: user.id, in_dashboard: true, ...payload });
-      setLeads(prev => [...prev, data]);
+      // Create lead but DON'T automatically add to dashboard - let user choose from Leads page
+      const { data } = await createLead({ user_id: user.id, in_dashboard: false, ...payload });
+      // Don't add to dashboard state - user must explicitly add from Leads page
       setOpenAdd(false);
+      alert('Lead created successfully! Go to Leads page to add it to your Dashboard.');
     }catch(err){ alert(err?.response?.data?.detail || 'Failed to create lead'); }
   };
 
