@@ -348,6 +348,22 @@ export default function Leads({ user }) {
             </button>
           )}
           
+          <button
+            onClick={() => handleCallLead(lead)}
+            className="px-2 py-1 bg-purple-600 text-white text-xs font-medium rounded hover:bg-purple-700 transition-colors"
+            title="Make Call"
+          >
+            Call
+          </button>
+          
+          <button
+            onClick={() => handleSMSLead(lead)}
+            className="px-2 py-1 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors"
+            title="Send SMS"
+          >
+            SMS
+          </button>
+          
           {lead.email && (
             <button
               onClick={() => handleEmailLead(lead)}
