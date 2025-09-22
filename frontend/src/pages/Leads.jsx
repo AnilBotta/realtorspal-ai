@@ -5,6 +5,7 @@ import AddLeadModal from '../components/AddLeadModal';
 import ImportLeadsModal from '../components/ImportLeadsModal';
 import LeadDrawer from '../components/LeadDrawer';
 import EmailModal from '../components/EmailModal';
+import CommunicationModal from '../components/CommunicationModal';
 
 export default function Leads({ user }) {
   const [leads, setLeads] = useState([]);
