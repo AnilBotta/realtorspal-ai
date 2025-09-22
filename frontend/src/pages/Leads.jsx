@@ -530,7 +530,7 @@ export default function Leads({ user }) {
       ) : (
         <div className="bg-white rounded-lg border overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1400px]">
+            <table className="w-full min-w-[1500px]">
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
