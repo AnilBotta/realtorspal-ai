@@ -278,15 +278,17 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
 
   const renderMoreDetailsTab = () => (
     <div className="grid md:grid-cols-2 gap-4">
-      <FormField label="City" name="city" />
-      <FormField label="Zip/Postal Code" name="zip_postal_code" />
+      <FormField label="City" name="city" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Zip/Postal Code" name="zip_postal_code" formData={formData} handleInputChange={handleInputChange} />
       <div className="md:col-span-2">
-        <FormField label="Address" name="address" />
+        <FormField label="Address" name="address" formData={formData} handleInputChange={handleInputChange} />
       </div>
       <FormField
         label="Ref. Source"
         name="ref_source"
         type="select"
+        formData={formData}
+        handleInputChange={handleInputChange}
         options={[
           { value: 'Ext. source', label: 'Ext. source' },
           { value: 'Website', label: 'Website' },
@@ -298,6 +300,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
         label="Lead Rating"
         name="lead_rating"
         type="select"
+        formData={formData}
+        handleInputChange={handleInputChange}
         options={[
           { value: 'Not selected', label: 'Not selected' },
           { value: 'Hot', label: 'Hot' },
@@ -309,6 +313,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
         label="Lead Source"
         name="lead_source"
         type="select"
+        formData={formData}
+        handleInputChange={handleInputChange}
         options={[
           { value: 'Not selected', label: 'Not selected' },
           { value: 'Website', label: 'Website' },
@@ -320,6 +326,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
         label="Lead Type"
         name="lead_type"
         type="select"
+        formData={formData}
+        handleInputChange={handleInputChange}
         options={[
           { value: 'Not selected', label: 'Not selected' },
           { value: 'Buyer', label: 'Buyer' },
