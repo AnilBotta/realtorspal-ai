@@ -190,7 +190,14 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle, onPipelineChange })
       </div>
 
       <div className="space-y-1.5 text-xs text-slate-600 mb-3">
-        <div className="flex items-center gap-1"><DollarSign size={12}/> ${priceMin?.toLocaleString()} - ${priceMax?.toLocaleString()}</div>
+        {(priceMin || priceMax) && (
+          <div className="flex items-center gap-1">
+            <DollarSign size={12}/>
+            {priceMin && priceMax ? `$${priceMin.toLocaleString()} - $${priceMax.toLocaleString()}` : 
+             priceMin ? `$${priceMin.toLocaleString()}+` : 
+             priceMax ? `Up to $${priceMax.toLocaleString()}` : 'Price not set'}
+          </div>
+        )}
         <div className="flex items-center gap-1"><MapPin size={12}/> {neighborhood}</div>
         <div className="flex items-center gap-1"><Calendar size={12}/> {createdAt}</div>
       </div>
