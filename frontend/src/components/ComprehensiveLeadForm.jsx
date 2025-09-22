@@ -146,14 +146,14 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
     }
   }, [lead]);
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = useCallback((field, value) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-  };
+  }, []);
 
-  const handleCustomFieldChange = (key, value) => {
+  const handleCustomFieldChange = useCallback((key, value) => {
     setFormData(prev => ({
       ...prev,
       custom_fields: {
@@ -161,7 +161,7 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
         [key]: value
       }
     }));
-  };
+  }, []);
 
   const handleAddCustomField = (customFieldDef) => {
     const fieldName = customFieldDef.name;
