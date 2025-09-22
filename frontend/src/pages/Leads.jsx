@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Filter, Mail, Phone, MapPin, Calendar, User, Edit, Trash2 } from 'lucide-react';
+import { Search, Plus, Filter, Mail, Phone, MapPin, Calendar, User, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { getLeads, createLead, updateLead, deleteLead } from '../api';
 import AddLeadModal from '../components/AddLeadModal';
 import ImportLeadsModal from '../components/ImportLeadsModal';
