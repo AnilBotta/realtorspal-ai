@@ -270,8 +270,8 @@ export default function Dashboard({ user }){
         getLeads(user.id)
       ]);
       setStats(a.data);
-      // only show leads where in_dashboard !== false (i.e., true or undefined)
-      setLeads(l.data.filter(x => x.in_dashboard !== false));
+      // Only show leads that are explicitly added to dashboard
+      setLeads(l.data.filter(x => x.in_dashboard === true));
     }
     load();
   }, [user.id]);
