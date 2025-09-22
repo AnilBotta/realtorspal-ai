@@ -154,20 +154,15 @@ export default function Leads({ user }) {
   };
 
   const handleCallLead = (lead) => {
-    setSelectedLead(lead);
-    // You can implement call functionality here
-    // For now, we'll use the existing communication system
-    // This could open a communication modal with call option
-    console.log('Call lead:', lead);
-    alert(`Calling ${lead.first_name} ${lead.last_name} at ${lead.phone || 'No phone number'}`);
+    setCommunicationLead(lead);
+    setCommunicationType('call');
+    setShowCommunicationModal(true);
   };
 
   const handleSMSLead = (lead) => {
-    setSelectedLead(lead);
-    // You can implement SMS functionality here
-    // For now, we'll use the existing communication system
-    console.log('SMS lead:', lead);
-    alert(`Sending SMS to ${lead.first_name} ${lead.last_name} at ${lead.phone || 'No phone number'}`);
+    setCommunicationLead(lead);
+    setCommunicationType('sms');
+    setShowCommunicationModal(true);
   };
 
   const handleImportComplete = () => {
