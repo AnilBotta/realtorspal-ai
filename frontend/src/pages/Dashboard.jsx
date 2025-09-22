@@ -126,8 +126,8 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle, onPipelineChange })
   const nameToShow = displayName(lead);
   const stage = lead.stage || 'Prospecting';
   const pipeline = lead.pipeline || 'Not set';
-  const propertyType = lead.property_type || (stage === 'Engagement' ? 'Townhouse' : '3BR Condo');
-  const neighborhood = lead.neighborhood || (stage === 'Engagement' ? 'Suburbs' : 'Downtown');
+  const propertyType = lead.property_type || 'Not specified';
+  const neighborhood = lead.neighborhood || lead.city || 'Not specified';
   const priceMin = lead.price_min ?? (stage === 'Engagement' ? 700000 : 400000);
   const priceMax = lead.price_max ?? (stage === 'Engagement' ? 900000 : 500000);
   const createdAt = lead.created_at || dayjs().format('M/D/YYYY');
