@@ -225,55 +225,55 @@ export default function Leads({ user }) {
   const LeadTableRow = ({ lead, index }) => (
     <tr className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
       {/* INFO */}
-      <td className="px-4 py-3 border-b">
+      <td className="px-3 py-3 border-b w-48">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-medium">
+          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
             {((lead.first_name || '').charAt(0) + (lead.last_name || '').charAt(0)).toUpperCase() || 'L'}
           </div>
-          <div>
-            <div className="font-medium text-gray-900">
+          <div className="min-w-0 flex-1">
+            <div className="font-medium text-gray-900 truncate">
               {lead.first_name || 'N/A'} {lead.last_name || ''}
             </div>
-            <div className="text-sm text-gray-500">{lead.email || 'No email'}</div>
-            <div className="text-sm text-gray-500">{lead.phone || 'No phone'}</div>
+            <div className="text-sm text-gray-500 truncate">{lead.email || 'No email'}</div>
+            <div className="text-sm text-gray-500 truncate">{lead.phone || 'No phone'}</div>
           </div>
         </div>
       </td>
 
       {/* PIPELINE/STATUS/TYPE */}
-      <td className="px-4 py-3 border-b">
+      <td className="px-3 py-3 border-b w-40">
         <div className="space-y-1">
-          <span className="block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+          <span className="block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 truncate">
             {lead.pipeline || 'Not set'}
           </span>
-          <span className={`block px-2 py-1 text-xs rounded-full ${getStatusColor(lead.status)}`}>
+          <span className={`block px-2 py-1 text-xs rounded-full ${getStatusColor(lead.status)} truncate`}>
             {lead.status || 'Open'}
           </span>
-          <span className="block text-xs text-gray-600">
+          <span className="block text-xs text-gray-600 truncate">
             {lead.lead_type || 'Not specified'}
           </span>
         </div>
       </td>
 
       {/* PERSONAL */}
-      <td className="px-4 py-3 border-b">
+      <td className="px-3 py-3 border-b w-48">
         <div className="text-sm text-gray-900">
-          <div><strong>Priority:</strong> 
+          <div className="mb-1"><strong>Priority:</strong> 
             <span className={`ml-1 px-2 py-1 text-xs rounded-full ${getPriorityColor(lead.priority)}`}>
               {lead.priority || 'Medium'}
             </span>
           </div>
-          <div className="mt-1"><strong>Source:</strong> {lead.ref_source || lead.lead_source || 'Not specified'}</div>
-          <div className="mt-1"><strong>Rating:</strong> {lead.lead_rating || 'Not selected'}</div>
+          <div className="mb-1 truncate"><strong>Source:</strong> {lead.ref_source || lead.lead_source || 'Not specified'}</div>
+          <div className="truncate"><strong>Rating:</strong> {lead.lead_rating || 'Not selected'}</div>
         </div>
       </td>
 
       {/* PROPERTY */}
-      <td className="px-4 py-3 border-b">
+      <td className="px-3 py-3 border-b w-44">
         <div className="text-sm text-gray-900">
-          <div><strong>Type:</strong> {lead.property_type || 'Not specified'}</div>
-          <div><strong>Location:</strong> {lead.city || lead.neighborhood || 'Not specified'}</div>
-          <div><strong>Budget:</strong> 
+          <div className="mb-1 truncate"><strong>Type:</strong> {lead.property_type || 'Not specified'}</div>
+          <div className="mb-1 truncate"><strong>Location:</strong> {lead.city || lead.neighborhood || 'Not specified'}</div>
+          <div className="truncate"><strong>Budget:</strong> 
             {lead.price_min || lead.price_max ? 
               `$${(lead.price_min || 0).toLocaleString()} - $${(lead.price_max || 0).toLocaleString()}` : 
               'Not specified'}
@@ -282,48 +282,48 @@ export default function Leads({ user }) {
       </td>
 
       {/* TIMELINE */}
-      <td className="px-4 py-3 border-b">
+      <td className="px-3 py-3 border-b w-40">
         <div className="text-sm text-gray-900">
-          <div><strong>Created:</strong> {formatDate(lead.created_at)}</div>
-          <div><strong>Buying In:</strong> {lead.buying_in || 'Not specified'}</div>
-          <div><strong>Selling In:</strong> {lead.selling_in || 'Not specified'}</div>
+          <div className="mb-1 truncate"><strong>Created:</strong> {formatDate(lead.created_at)}</div>
+          <div className="mb-1 truncate"><strong>Buying In:</strong> {lead.buying_in || 'Not specified'}</div>
+          <div className="truncate"><strong>Selling In:</strong> {lead.selling_in || 'Not specified'}</div>
         </div>
       </td>
 
       {/* ACTIVITY */}
-      <td className="px-4 py-3 border-b">
-        <div className="flex gap-2 text-xs">
-          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+      <td className="px-3 py-3 border-b w-32">
+        <div className="flex flex-col gap-1 text-xs">
+          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-center">
             📞 {lead.call_count || 0}
           </span>
-          <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
+          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-center">
             ✉️ {lead.email_count || 0}
           </span>
-          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
+          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-center">
             💬 {lead.sms_count || 0}
           </span>
         </div>
       </td>
 
       {/* DASHBOARD STATUS */}
-      <td className="px-4 py-3 border-b">
+      <td className="px-3 py-3 border-b w-36">
         {lead.in_dashboard ? (
-          <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">
+          <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800 block text-center">
             📊 On Dashboard
           </span>
         ) : (
-          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
+          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600 block text-center">
             Not on Dashboard
           </span>
         )}
       </td>
 
       {/* ACTIONS */}
-      <td className="px-4 py-3 border-b">
-        <div className="flex gap-2">
+      <td className="px-3 py-3 border-b w-60">
+        <div className="flex flex-wrap gap-1">
           <button
             onClick={() => handleViewLead(lead)}
-            className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+            className="px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
             title="View Details"
           >
             View
@@ -333,7 +333,7 @@ export default function Leads({ user }) {
           {lead.in_dashboard ? (
             <button
               onClick={() => handleRemoveFromDashboard(lead)}
-              className="px-3 py-1 bg-orange-600 text-white text-xs font-medium rounded hover:bg-orange-700 transition-colors"
+              className="px-2 py-1 bg-orange-600 text-white text-xs font-medium rounded hover:bg-orange-700 transition-colors"
               title="Remove from Dashboard"
             >
               Remove
@@ -341,7 +341,7 @@ export default function Leads({ user }) {
           ) : (
             <button
               onClick={() => handleAddToDashboard(lead)}
-              className="px-3 py-1 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 transition-colors"
+              className="px-2 py-1 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 transition-colors"
               title="Add to Dashboard"
             >
               Add
@@ -351,7 +351,7 @@ export default function Leads({ user }) {
           {lead.email && (
             <button
               onClick={() => handleEmailLead(lead)}
-              className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors"
+              className="px-2 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors"
               title="Send Email"
             >
               Email
@@ -360,7 +360,7 @@ export default function Leads({ user }) {
           
           <button
             onClick={() => handleDeleteLead(lead)}
-            className="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 transition-colors"
+            className="px-2 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 transition-colors"
             title="Delete Lead"
           >
             Delete
