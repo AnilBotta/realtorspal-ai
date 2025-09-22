@@ -185,6 +185,13 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log('Form submitted with data:', formData);
+    
+    // Basic validation
+    if (!formData.first_name || !formData.last_name) {
+      alert('Please fill in the required fields: First Name and Last Name');
+      return;
+    }
     
     // Clean up data before submission
     const submitData = {
@@ -195,6 +202,7 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
       price_max: formData.price_max ? parseInt(formData.price_max) : null,
     };
     
+    console.log('Submitting data:', submitData);
     onSave(submitData);
   };
 
