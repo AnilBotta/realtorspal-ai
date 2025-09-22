@@ -26,6 +26,31 @@ export default function Leads({ user }) {
     loadLeads();
   }, [user]);
 
+  // Add event listener for when leads page becomes visible (e.g., tab switch)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadLeads(); // Refresh leads when page becomes visible
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user]);
+
+  // Also refresh leads when the component mounts/remounts
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      if (user) {
+        loadLeads();
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [user]);
+
   const loadLeads = async () => {
     if (!user) return;
     try {
