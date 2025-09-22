@@ -122,7 +122,7 @@ function displayName(lead){
   return composed || lead.name || 'Lead';
 }
 
-function LeadCard({ lead, onOpen, onCommunicate, dragHandle }){
+function LeadCard({ lead, onOpen, onCommunicate, dragHandle, onPipelineChange }){
   const nameToShow = displayName(lead);
   const stage = lead.stage || 'Prospecting';
   const pipeline = lead.pipeline || 'Not set';
@@ -134,6 +134,21 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle }){
   const priority = (lead.priority || (stage === 'Prospecting' ? 'high' : stage === 'Engagement' ? 'medium' : 'low')).toLowerCase();
   const tags = lead.source_tags || (stage === 'Engagement' ? ["Referral","Lead Generator AI"] : ["Website","Lead Generator AI"]);
 
+  // All 15 pipeline options
+  const pipelineOptions = [
+    'Not set', 'New Lead', 'Tried to contact', 'not responsive', 'made contact',
+    'cold/not ready', 'warm / nurturing', 'Hot/ Ready', 'set meeting',
+    'signed agreement', 'showing', 'sold', 'past client', 'sphere of influence', 'archive'
+  ];
+
+  const handlePipelineChange = (e) => {
+    e.stopPropagation(); // Prevent triggering the card click
+    const newPipeline = e.target.value;
+    if (newPipeline !== pipeline && onPipelineChange) {
+      onPipelineChange(lead.id, newPipeline);
+    }
+  };
+
   return (
     <div className={`bg-white rounded-2xl border p-3 shadow-sm`}>
       <div className="flex items-start justify-between">
@@ -144,7 +159,21 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle }){
           <div>
             <div className="font-semibold text-slate-800 leading-none">{nameToShow}</div>
             <div className="text-xs text-slate-500 mt-1">{propertyType} - {neighborhood}</div>
-            <div className="text-xs text-blue-600 mt-1 font-medium">{pipeline}</div>
+            {/* Pipeline Dropdown */}
+            <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+              <select
+                value={pipeline}
+                onChange={handlePipelineChange}
+                className="text-xs text-blue-600 font-medium bg-transparent border-none p-0 focus:ring-0 focus:outline-none cursor-pointer hover:bg-blue-50 rounded px-1"
+                style={{ appearance: 'none' }}
+              >
+                {pipelineOptions.map(option => (
+                  <option key={option} value={option} className="text-gray-900 bg-white">
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
