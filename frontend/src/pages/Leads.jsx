@@ -57,7 +57,8 @@ export default function Leads({ user }) {
 
   const handleCreateLead = async (leadData) => {
     try {
-      const newLead = await createLead({ ...leadData, user_id: user.id });
+      // Create lead but don't add to dashboard automatically - user chooses
+      const newLead = await createLead({ ...leadData, user_id: user.id, in_dashboard: false });
       if (newLead) {
         setLeads(prev => Array.isArray(prev) ? [newLead, ...prev] : [newLead]);
       }
