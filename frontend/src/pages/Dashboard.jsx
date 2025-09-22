@@ -131,7 +131,7 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle, onPipelineChange })
   const priceMin = lead.price_min ?? (stage === 'Engagement' ? 700000 : 400000);
   const priceMax = lead.price_max ?? (stage === 'Engagement' ? 900000 : 500000);
   const createdAt = lead.created_at || dayjs().format('M/D/YYYY');
-  const priority = (lead.priority || (stage === 'Prospecting' ? 'high' : stage === 'Engagement' ? 'medium' : 'low')).toLowerCase();
+  const priority = ((lead.priority || (stage === 'Prospecting' ? 'high' : stage === 'Engagement' ? 'medium' : 'low')) || 'low').toString().toLowerCase();
   const tags = lead.source_tags || (stage === 'Engagement' ? ["Referral","Lead Generator AI"] : ["Website","Lead Generator AI"]);
 
   // Mock communication counts - in a real app, these would come from the backend
