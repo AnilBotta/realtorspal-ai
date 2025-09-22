@@ -337,9 +337,24 @@ export default function Dashboard({ user }){
     setCommType('call');
   };
 
-  const closeEmail = () => {
-    setOpenEmail(false);
-    setEmailLead(null);
+  // Handle pipeline change from dropdown on lead card
+  const handlePipelineChange = async (leadId, newPipeline) => {
+    try {
+      // Update the lead's pipeline
+      const updatedLead = await updateLead(leadId, { pipeline: newPipeline });
+      
+      // Update local state to trigger re-render and automatic movement
+      setLeads(prevLeads => 
+        prevLeads.map(lead => 
+          lead.id === leadId 
+            ? { ...lead, pipeline: newPipeline }
+            : lead
+        )
+      );
+    } catch (error) {
+      console.error('Failed to update pipeline:', error);
+      alert('Failed to update pipeline status');
+    }
   };
 
   const openDetails = (lead) => { setActiveLead(lead); setOpenDrawer(true); };
