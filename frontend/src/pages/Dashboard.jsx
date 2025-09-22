@@ -128,8 +128,8 @@ function LeadCard({ lead, onOpen, onCommunicate, dragHandle, onPipelineChange })
   const pipeline = lead.pipeline || 'Not set';
   const propertyType = lead.property_type || 'Not specified';
   const neighborhood = lead.neighborhood || lead.city || 'Not specified';
-  const priceMin = lead.price_min ?? (stage === 'Engagement' ? 700000 : 400000);
-  const priceMax = lead.price_max ?? (stage === 'Engagement' ? 900000 : 500000);
+  const priceMin = lead.price_min || null;
+  const priceMax = lead.price_max || null;
   const createdAt = lead.created_at || dayjs().format('M/D/YYYY');
   const priority = ((lead.priority || (stage === 'Prospecting' ? 'high' : stage === 'Engagement' ? 'medium' : 'low')) || 'low').toString().toLowerCase();
   const tags = lead.source_tags || [lead.ref_source || lead.lead_source || 'Not specified'].filter(Boolean);
