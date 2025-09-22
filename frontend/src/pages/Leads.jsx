@@ -326,6 +326,13 @@ export default function Leads({ user }) {
         </div>
         <div className="flex gap-3">
           <button
+            onClick={loadLeads}
+            className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+          >
+            <RefreshCw size={16} />
+            Refresh
+          </button>
+          <button
             onClick={() => setShowImportModal(true)}
             className="px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
           >
