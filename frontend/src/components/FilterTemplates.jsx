@@ -141,6 +141,9 @@ const FilterTemplates = ({ onApplyFilter }) => {
     const updatedTemplates = [...savedTemplates, newTemplate];
     saveTemplates(updatedTemplates);
     
+    // Dispatch event to notify header dropdown of template update
+    window.dispatchEvent(new CustomEvent('templateUpdated'));
+    
     setFilterName('');
     setSelectedFilters([]);
     setActiveTab('saved');
