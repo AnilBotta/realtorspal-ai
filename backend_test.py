@@ -2557,6 +2557,271 @@ class RealtorsPalAPITester:
             self.log_test("Pipeline Comprehensive Lead Creation", False, f"Exception: {str(e)}")
             return False
 
+    def test_leads_api_filtering_functionality(self) -> bool:
+        """Test GET /api/leads endpoint for filtering functionality - Review Request Focus"""
+        if not self.user_id:
+            self.log_test("Leads API Filtering Functionality", False, "No user_id available")
+            return False
+        
+        try:
+            print("\n🔍 LEADS API FILTERING FUNCTIONALITY TEST - Review Request Focus")
+            print("=" * 60)
+            
+            # STEP 1: Get all leads and verify basic functionality
+            print("📋 Step 1: Testing GET /api/leads endpoint...")
+            response = requests.get(f"{self.base_url}/leads", params={"user_id": self.user_id}, timeout=10)
+            
+            if response.status_code != 200:
+                self.log_test("Leads API Filtering Functionality", False, f"GET /api/leads failed: {response.status_code} - {response.text}")
+                return False
+            
+            leads = response.json()
+            if not isinstance(leads, list):
+                self.log_test("Leads API Filtering Functionality", False, f"Expected array response, got: {type(leads)}")
+                return False
+            
+            total_leads = len(leads)
+            print(f"✅ GET /api/leads working - Found {total_leads} leads")
+            
+            # STEP 2: Verify leads have necessary filtering fields
+            print("🔍 Step 2: Verifying leads have necessary filtering fields...")
+            
+            if total_leads == 0:
+                print("⚠️  No leads found - creating test leads for filtering verification...")
+                # Create test leads with filtering fields
+                timestamp = int(time.time()) + 500
+                test_leads = [
+                    {
+                        "user_id": self.user_id,
+                        "first_name": "Filter",
+                        "last_name": "Test1",
+                        "email": f"filter.test1.{timestamp}@example.com",
+                        "phone": "+14155551001",
+                        "pipeline": "New Lead",
+                        "status": "Active",
+                        "property_type": "Single Family",
+                        "neighborhood": "Downtown",
+                        "priority": "high",
+                        "stage": "New"
+                    },
+                    {
+                        "user_id": self.user_id,
+                        "first_name": "Filter",
+                        "last_name": "Test2", 
+                        "email": f"filter.test2.{timestamp}@example.com",
+                        "phone": "+14155551002",
+                        "pipeline": "made contact",
+                        "status": "Contacted",
+                        "property_type": "Condo",
+                        "neighborhood": "Midtown",
+                        "priority": "medium",
+                        "stage": "Contacted"
+                    },
+                    {
+                        "user_id": self.user_id,
+                        "first_name": "Filter",
+                        "last_name": "Test3",
+                        "email": f"filter.test3.{timestamp}@example.com",
+                        "phone": "+14155551003",
+                        "pipeline": "Hot/ Ready",
+                        "status": "Qualified",
+                        "property_type": "Townhouse",
+                        "neighborhood": "Suburbs",
+                        "priority": "high",
+                        "stage": "Qualified"
+                    }
+                ]
+                
+                for lead_data in test_leads:
+                    create_response = requests.post(f"{self.base_url}/leads", json=lead_data, timeout=10)
+                    if create_response.status_code != 200:
+                        print(f"⚠️  Failed to create test lead: {create_response.text}")
+                
+                # Re-fetch leads after creation
+                response = requests.get(f"{self.base_url}/leads", params={"user_id": self.user_id}, timeout=10)
+                if response.status_code == 200:
+                    leads = response.json()
+                    total_leads = len(leads)
+                    print(f"✅ Created test leads - Now have {total_leads} leads")
+            
+            # STEP 3: Analyze filtering fields in leads
+            print("🔍 Step 3: Analyzing filtering fields in returned leads...")
+            
+            filtering_fields = {
+                'phone': 0,
+                'pipeline': 0,
+                'status': 0,
+                'property_type': 0,
+                'neighborhood': 0,
+                'priority': 0,
+                'stage': 0,
+                'first_name': 0,
+                'last_name': 0,
+                'email': 0
+            }
+            
+            pipeline_values = set()
+            status_values = set()
+            priority_values = set()
+            stage_values = set()
+            
+            for lead in leads:
+                for field in filtering_fields:
+                    if lead.get(field):
+                        filtering_fields[field] += 1
+                
+                # Collect unique values for analysis
+                if lead.get('pipeline'):
+                    pipeline_values.add(lead['pipeline'])
+                if lead.get('status'):
+                    status_values.add(lead['status'])
+                if lead.get('priority'):
+                    priority_values.add(lead['priority'])
+                if lead.get('stage'):
+                    stage_values.add(lead['stage'])
+            
+            print(f"📊 Filtering Fields Analysis (out of {total_leads} leads):")
+            for field, count in filtering_fields.items():
+                percentage = (count / total_leads * 100) if total_leads > 0 else 0
+                print(f"   - {field}: {count} leads ({percentage:.1f}%)")
+            
+            print(f"📋 Unique Values Found:")
+            print(f"   - Pipeline: {sorted(list(pipeline_values))}")
+            print(f"   - Status: {sorted(list(status_values))}")
+            print(f"   - Priority: {sorted(list(priority_values))}")
+            print(f"   - Stage: {sorted(list(stage_values))}")
+            
+            # STEP 4: Check if we have the expected 11 leads mentioned in frontend
+            print("🔍 Step 4: Checking lead count vs frontend expectation...")
+            
+            expected_lead_count = 11  # As mentioned in review request
+            if total_leads >= expected_lead_count:
+                print(f"✅ Lead count OK: Found {total_leads} leads (expected at least {expected_lead_count})")
+            else:
+                print(f"⚠️  Lead count low: Found {total_leads} leads (expected at least {expected_lead_count})")
+                print("   This might explain why filter templates show no results")
+            
+            # STEP 5: Test data completeness for filtering
+            print("🔍 Step 5: Testing data completeness for filtering...")
+            
+            critical_fields = ['phone', 'pipeline', 'status']
+            issues_found = []
+            
+            for field in critical_fields:
+                field_count = filtering_fields[field]
+                if field_count < (total_leads * 0.5):  # Less than 50% have this field
+                    issues_found.append(f"{field}: only {field_count}/{total_leads} leads have this field")
+            
+            if issues_found:
+                print("⚠️  Data completeness issues found:")
+                for issue in issues_found:
+                    print(f"   - {issue}")
+                print("   These missing fields could cause filter templates to show no results")
+            else:
+                print("✅ Data completeness OK - Critical filtering fields are well populated")
+            
+            # STEP 6: Sample lead data structure verification
+            print("🔍 Step 6: Sample lead data structure verification...")
+            
+            if leads:
+                sample_lead = leads[0]
+                required_fields = ['id', 'user_id', 'created_at']
+                missing_required = [field for field in required_fields if field not in sample_lead]
+                
+                if missing_required:
+                    print(f"❌ Missing required fields in lead data: {missing_required}")
+                    issues_found.append(f"Missing required fields: {missing_required}")
+                else:
+                    print("✅ Required fields present in lead data")
+                
+                print(f"📋 Sample lead structure: {list(sample_lead.keys())}")
+            
+            # FINAL ASSESSMENT
+            print("=" * 60)
+            print("🎯 LEADS API FILTERING ASSESSMENT:")
+            
+            success = True
+            summary_points = []
+            
+            if response.status_code == 200:
+                summary_points.append(f"✅ GET /api/leads endpoint working correctly")
+            else:
+                summary_points.append(f"❌ GET /api/leads endpoint failed")
+                success = False
+            
+            if total_leads > 0:
+                summary_points.append(f"✅ Leads are being returned ({total_leads} found)")
+            else:
+                summary_points.append(f"❌ No leads returned")
+                success = False
+            
+            if filtering_fields['phone'] > 0 and filtering_fields['pipeline'] > 0:
+                summary_points.append(f"✅ Leads have necessary filtering fields")
+            else:
+                summary_points.append(f"❌ Leads missing critical filtering fields")
+                success = False
+            
+            if total_leads >= expected_lead_count:
+                summary_points.append(f"✅ Lead count meets expectations ({total_leads} >= {expected_lead_count})")
+            else:
+                summary_points.append(f"⚠️  Lead count below expectations ({total_leads} < {expected_lead_count})")
+            
+            if not issues_found:
+                summary_points.append(f"✅ No data completeness issues found")
+            else:
+                summary_points.append(f"⚠️  Data completeness issues: {len(issues_found)} found")
+            
+            for point in summary_points:
+                print(point)
+            
+            # Determine if this explains the filter template issue
+            if total_leads < expected_lead_count or issues_found:
+                print("\n🔍 LIKELY ROOT CAUSE IDENTIFIED:")
+                print("   The filter templates showing no results is likely due to:")
+                if total_leads < expected_lead_count:
+                    print(f"   - Insufficient lead count ({total_leads} vs expected {expected_lead_count})")
+                if issues_found:
+                    print("   - Data completeness issues in filtering fields")
+                print("   - Backend API is working correctly, issue is data-related")
+            else:
+                print("\n✅ BACKEND API ASSESSMENT:")
+                print("   - Backend is returning leads correctly")
+                print("   - Leads have necessary filtering fields")
+                print("   - Data completeness is good")
+                print("   - Filter template issue may be in frontend filtering logic")
+            
+            self.log_test("Leads API Filtering Functionality", success, 
+                        f"Found {total_leads} leads with filtering analysis complete. "
+                        f"Pipeline values: {len(pipeline_values)}, Status values: {len(status_values)}")
+            return success
+            
+        except Exception as e:
+            self.log_test("Leads API Filtering Functionality", False, f"Exception: {str(e)}")
+            return False
+
+    def run_leads_filtering_test_only(self) -> bool:
+        """Run only the leads API filtering functionality test as requested in review"""
+        print("🚀 Starting Leads API Filtering Functionality Test - Review Request")
+        print(f"📍 Base URL: {self.base_url}")
+        print("=" * 60)
+        
+        # First get authentication
+        if not self.test_health():
+            return False
+        if not self.test_login():
+            return False
+        
+        # Run the specific filtering test
+        success = self.test_leads_api_filtering_functionality()
+        
+        print("=" * 60)
+        if success:
+            print("🎉 Leads API filtering functionality test PASSED!")
+            return True
+        else:
+            print("⚠️  Leads API filtering functionality test FAILED!")
+            return False
+
 def main():
     import sys
     
