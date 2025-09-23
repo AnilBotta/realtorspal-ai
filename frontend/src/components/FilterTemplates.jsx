@@ -173,7 +173,13 @@ const FilterTemplates = ({ onApplyFilter }) => {
     <div className="relative">
       {/* Filter Templates Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          console.log('Filter Templates button clicked, current isOpen:', isOpen);
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+          console.log('After click, isOpen should be:', !isOpen);
+        }}
         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
       >
         <Filter size={16} />
