@@ -30,9 +30,12 @@ export default function Layout({ children, user, onLogout }) {
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-2">
               <GlobalSearch user={user} />
-              <FilterTemplates onApplyFilter={(filters) => {
-                console.log('Apply filters:', filters);
-                // This will be handled by individual pages
+              <SavedFilterTemplatesDropdown onApplyFilter={(filters) => {
+                console.log('Apply filters from header:', filters);
+                // Dispatch event for pages to listen to
+                window.dispatchEvent(new CustomEvent('applyGlobalFilters', { 
+                  detail: { filters } 
+                }));
               }} />
               <button className="px-3 py-1.5 rounded-md border bg-white text-slate-600 hover:bg-slate-50 text-sm flex items-center gap-1"><Bell size={16}/> Alerts</button>
             </div>
