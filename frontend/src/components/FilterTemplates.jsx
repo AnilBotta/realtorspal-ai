@@ -159,6 +159,8 @@ const FilterTemplates = ({ onApplyFilter }) => {
     if (window.confirm('Are you sure you want to delete this template?')) {
       const updatedTemplates = savedTemplates.filter(t => t.id !== templateId);
       saveTemplates(updatedTemplates);
+      // Dispatch event to notify header dropdown of template update
+      window.dispatchEvent(new CustomEvent('templateUpdated'));
     }
   };
 
