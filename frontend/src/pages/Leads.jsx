@@ -184,19 +184,126 @@ export default function Leads({ user }) {
     setShowImportModal(false);
   };
 
+  // Smart search function - searches across all fields
+  const searchAllFields = (lead, query) => {
+    if (!query) return true;
+    
+    const searchTerm = query.toLowerCase();
+    const searchableFields = [
+      // Contact Info (100% weight)
+      `${lead.first_name || ''} ${lead.last_name || ''}`,
+      lead.email || '',
+      lead.phone || '',
+      lead.work_phone || '',
+      lead.home_phone || '',
+      
+      // Location (80% weight)
+      lead.city || '',
+      lead.neighborhood || '',
+      lead.address || '',
+      lead.zip_postal_code || '',
+      
+      // Property & Budget (70% weight)
+      lead.property_type || '',
+      lead.price_min?.toString() || '',
+      lead.price_max?.toString() || '',
+      
+      // Lead Details (60% weight)
+      lead.lead_type || '',
+      lead.lead_source || '',
+      lead.ref_source || '',
+      lead.pipeline || '',
+      lead.status || '',
+      lead.priority || '',
+      lead.lead_rating || '',
+      
+      // Additional Info
+      lead.lead_description || '',
+      lead.spouse_first_name || '',
+      lead.spouse_last_name || '',
+      lead.main_agent || ''
+    ];
+    
+    return searchableFields.some(field => 
+      field.toLowerCase().includes(searchTerm)
+    );
+  };
+
+  // Lead temperature classification
+  const getLeadTemperature = (lead) => {
+    const hotPipelines = ['signed agreement', 'showing', 'Hot/ Ready', 'set meeting'];
+    const warmPipelines = ['warm / nurturing', 'made contact'];
+    const coldPipelines = ['cold/not ready', 'not responsive', 'archive'];
+    
+    if (hotPipelines.includes(lead.pipeline)) return 'hot';
+    if (warmPipelines.includes(lead.pipeline)) return 'warm';
+    if (coldPipelines.includes(lead.pipeline)) return 'cold';
+    return 'new'; // For 'Not set', 'New Lead', 'Tried to contact'
+  };
+
+  // Quick filter logic
+  const applyQuickFilter = (lead, filterType) => {
+    const now = new Date();
+    const leadDate = new Date(lead.created_at);
+    const daysDiff = Math.floor((now - leadDate) / (1000 * 60 * 60 * 24));
+    
+    switch (filterType) {
+      case 'call-today':
+        return lead.pipeline === 'Tried to contact' || lead.pipeline === 'not responsive';
+      case 'show-ready':
+        return ['Hot/ Ready', 'set meeting', 'showing'].includes(lead.pipeline);
+      case 'new-leads':
+        return daysDiff <= 7 || lead.pipeline === 'New Lead' || lead.pipeline === 'Not set';
+      case 'hot-prospects':
+        return getLeadTemperature(lead) === 'hot' || lead.priority === 'high';
+      default:
+        return true;
+    }
+  };
+
+  // Budget filter logic
+  const applyBudgetFilter = (lead) => {
+    if (!budgetRange.min && !budgetRange.max) return true;
+    
+    const leadMin = lead.price_min || 0;
+    const leadMax = lead.price_max || Infinity;
+    const filterMin = budgetRange.min ? parseInt(budgetRange.min) : 0;
+    const filterMax = budgetRange.max ? parseInt(budgetRange.max) : Infinity;
+    
+    return (leadMin <= filterMax && leadMax >= filterMin);
+  };
+
+  // Timeline filter logic
+  const applyTimelineFilter = (lead) => {
+    if (timelineFilter === 'all') return true;
+    
+    switch (timelineFilter) {
+      case 'urgent':
+        return lead.buying_in === '0-3 months' || lead.selling_in === '0-3 months';
+      case 'soon':
+        return lead.buying_in === '3-6 months' || lead.selling_in === '3-6 months';
+      case 'later':
+        return lead.buying_in === '6-12 months' || lead.selling_in === '6-12 months';
+      case 'future':
+        return lead.buying_in === '12+ months' || lead.selling_in === '12+ months';
+      default:
+        return true;
+    }
+  };
+
   // Filter and sort leads
   const filteredLeads = (Array.isArray(leads) ? leads : []).filter(lead => {
-    const matchesSearch = searchQuery === '' || 
-      `${lead.first_name || ''} ${lead.last_name || ''}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lead.phone?.includes(searchQuery) ||
-      lead.property_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lead.city?.toLowerCase().includes(searchQuery.toLowerCase());
-
+    // Apply all filters
+    const matchesSearch = searchAllFields(lead, searchQuery);
     const matchesStatus = filterStatus === 'all' || lead.status === filterStatus;
     const matchesPriority = filterPriority === 'all' || lead.priority === filterPriority;
+    const matchesQuickFilter = applyQuickFilter(lead, activeQuickFilter);
+    const matchesTemperature = temperatureFilter === 'all' || getLeadTemperature(lead) === temperatureFilter;
+    const matchesBudget = applyBudgetFilter(lead);
+    const matchesTimeline = applyTimelineFilter(lead);
 
-    return matchesSearch && matchesStatus && matchesPriority;
+    return matchesSearch && matchesStatus && matchesPriority && matchesQuickFilter && 
+           matchesTemperature && matchesBudget && matchesTimeline;
   }).sort((a, b) => {
     let aValue = a[sortBy];
     let bValue = b[sortBy];
