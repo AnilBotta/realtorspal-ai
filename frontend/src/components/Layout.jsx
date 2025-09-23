@@ -1,6 +1,8 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { CircleCheck, Bell, Search, Filter, User2 } from "lucide-react";
+import { CircleCheck, Bell, User2 } from "lucide-react";
+import GlobalSearch from "./GlobalSearch";
+import FilterTemplates from "./FilterTemplates";
 
 export default function Layout({ children, user, onLogout }) {
   const tabs = [
