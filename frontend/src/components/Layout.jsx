@@ -29,8 +29,11 @@ export default function Layout({ children, user, onLogout }) {
           </div>
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-2">
-              <button className="px-3 py-1.5 rounded-md border bg-white text-slate-600 hover:bg-slate-50 text-sm flex items-center gap-1"><Search size={16}/> Search</button>
-              <button className="px-3 py-1.5 rounded-md border bg-white text-slate-600 hover:bg-slate-50 text-sm flex items-center gap-1"><Filter size={16}/> Filters</button>
+              <GlobalSearch user={user} />
+              <FilterTemplates onApplyFilter={(filters) => {
+                console.log('Apply filters:', filters);
+                // This will be handled by individual pages
+              }} />
               <button className="px-3 py-1.5 rounded-md border bg-white text-slate-600 hover:bg-slate-50 text-sm flex items-center gap-1"><Bell size={16}/> Alerts</button>
             </div>
             <div className="flex items-center gap-2 pl-2 border-l">
