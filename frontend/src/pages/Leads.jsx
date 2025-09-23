@@ -22,6 +22,7 @@ export default function Leads({ user }) {
   const [budgetRange, setBudgetRange] = useState({ min: '', max: '' });
   const [timelineFilter, setTimelineFilter] = useState('all');
   const [showAdvancedPanel, setShowAdvancedPanel] = useState(false);
+  const [appliedTemplateFilters, setAppliedTemplateFilters] = useState([]);
   
   // Advanced Panel Filters
   const [locationFilter, setLocationFilter] = useState('');
@@ -29,6 +30,12 @@ export default function Leads({ user }) {
   const [leadSourceFilter, setLeadSourceFilter] = useState('all');
   const [lastContactFilter, setLastContactFilter] = useState('all');
   const [communicationFilter, setCommunicationFilter] = useState('all');
+
+  // Handle template filters from FilterTemplates component
+  const handleApplyTemplateFilters = (templateFilters) => {
+    setAppliedTemplateFilters(templateFilters);
+    console.log('Applied template filters:', templateFilters);
+  };
   
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
