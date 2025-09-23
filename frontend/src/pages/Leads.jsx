@@ -16,6 +16,20 @@ export default function Leads({ user }) {
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
   
+  // Advanced Filtering States
+  const [activeQuickFilter, setActiveQuickFilter] = useState('all');
+  const [temperatureFilter, setTemperatureFilter] = useState('all');
+  const [budgetRange, setBudgetRange] = useState({ min: '', max: '' });
+  const [timelineFilter, setTimelineFilter] = useState('all');
+  const [showAdvancedPanel, setShowAdvancedPanel] = useState(false);
+  
+  // Advanced Panel Filters
+  const [locationFilter, setLocationFilter] = useState('');
+  const [propertyTypeFilter, setPropertyTypeFilter] = useState('all');
+  const [leadSourceFilter, setLeadSourceFilter] = useState('all');
+  const [lastContactFilter, setLastContactFilter] = useState('all');
+  const [communicationFilter, setCommunicationFilter] = useState('all');
+  
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
