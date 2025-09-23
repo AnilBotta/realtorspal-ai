@@ -301,9 +301,24 @@ export default function Leads({ user }) {
     const matchesTemperature = temperatureFilter === 'all' || getLeadTemperature(lead) === temperatureFilter;
     const matchesBudget = applyBudgetFilter(lead);
     const matchesTimeline = applyTimelineFilter(lead);
+    
+    // Advanced panel filters (only apply if advanced panel is open)
+    let matchesAdvanced = true;
+    if (showAdvancedPanel) {
+      const matchesLocation = !locationFilter || 
+        (lead.city?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+         lead.neighborhood?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+         lead.zip_postal_code?.includes(locationFilter));
+      
+      const matchesPropertyType = propertyTypeFilter === 'all' || lead.property_type === propertyTypeFilter;
+      const matchesLeadSource = leadSourceFilter === 'all' || 
+        lead.lead_source === leadSourceFilter || lead.ref_source === leadSourceFilter;
+      
+      matchesAdvanced = matchesLocation && matchesPropertyType && matchesLeadSource;
+    }
 
     return matchesSearch && matchesStatus && matchesPriority && matchesQuickFilter && 
-           matchesTemperature && matchesBudget && matchesTimeline;
+           matchesTemperature && matchesBudget && matchesTimeline && matchesAdvanced;
   }).sort((a, b) => {
     let aValue = a[sortBy];
     let bValue = b[sortBy];
