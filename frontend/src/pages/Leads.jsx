@@ -68,6 +68,20 @@ export default function Leads({ user }) {
     };
   }, [user]);
 
+  // Listen for global filter events from header dropdown
+  useEffect(() => {
+    const handleGlobalFilters = (event) => {
+      const { filters } = event.detail;
+      console.log('Received global filters:', filters);
+      setAppliedTemplateFilters(filters);
+    };
+
+    window.addEventListener('applyGlobalFilters', handleGlobalFilters);
+    return () => {
+      window.removeEventListener('applyGlobalFilters', handleGlobalFilters);
+    };
+  }, []);
+
   const loadLeads = async () => {
     if (!user) return;
     try {
