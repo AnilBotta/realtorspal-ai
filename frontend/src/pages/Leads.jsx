@@ -585,63 +585,225 @@ export default function Leads({ user }) {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg border p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Search */}
+      {/* Advanced Filtering System */}
+      <div className="bg-white rounded-lg border p-6">
+        {/* Search Everything Box */}
+        <div className="mb-6">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search leads..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Search everything... (name, email, phone, location, budget, etc.)"
+              className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+        </div>
 
-          {/* Status Filter */}
-          <select
-            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="all">All Status</option>
-            <option value="Open">Open</option>
-            <option value="Contacted">Contacted</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Closed">Closed</option>
-          </select>
+        {/* Quick Action Buttons */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Actions</h3>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setActiveQuickFilter(activeQuickFilter === 'all' ? 'all' : 'all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeQuickFilter === 'all' 
+                  ? 'bg-gray-600 text-white' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All Leads ({filteredLeads.length})
+            </button>
+            <button
+              onClick={() => setActiveQuickFilter(activeQuickFilter === 'call-today' ? 'all' : 'call-today')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeQuickFilter === 'call-today' 
+                  ? 'bg-purple-600 text-white' 
+                  : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+              }`}
+            >
+              📞 Call Today
+            </button>
+            <button
+              onClick={() => setActiveQuickFilter(activeQuickFilter === 'show-ready' ? 'all' : 'show-ready')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeQuickFilter === 'show-ready' 
+                  ? 'bg-green-600 text-white' 
+                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+              }`}
+            >
+              🏠 Show Ready
+            </button>
+            <button
+              onClick={() => setActiveQuickFilter(activeQuickFilter === 'new-leads' ? 'all' : 'new-leads')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeQuickFilter === 'new-leads' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              }`}
+            >
+              ✨ New Leads
+            </button>
+            <button
+              onClick={() => setActiveQuickFilter(activeQuickFilter === 'hot-prospects' ? 'all' : 'hot-prospects')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeQuickFilter === 'hot-prospects' 
+                  ? 'bg-red-600 text-white' 
+                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+              }`}
+            >
+              🔥 Hot Prospects
+            </button>
+          </div>
+        </div>
 
-          {/* Priority Filter */}
-          <select
-            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            value={filterPriority}
-            onChange={(e) => setFilterPriority(e.target.value)}
-          >
-            <option value="all">All Priority</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
+        {/* Smart Filters Row */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Primary Filters</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Temperature Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Lead Temperature</label>
+              <select
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={temperatureFilter}
+                onChange={(e) => setTemperatureFilter(e.target.value)}
+              >
+                <option value="all">All Temperatures</option>
+                <option value="hot">🔥 Hot (Ready Now)</option>
+                <option value="warm">🟡 Warm (Interested)</option>
+                <option value="cold">🔵 Cold (Long Term)</option>
+                <option value="new">✨ New (Just Added)</option>
+              </select>
+            </div>
 
-          {/* Sort */}
-          <select
-            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            value={`${sortBy}-${sortOrder}`}
-            onChange={(e) => {
-              const [field, order] = e.target.value.split('-');
-              setSortBy(field);
-              setSortOrder(order);
-            }}
+            {/* Budget Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Budget Range</label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  placeholder="Min ($)"
+                  className="w-1/2 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={budgetRange.min}
+                  onChange={(e) => setBudgetRange(prev => ({ ...prev, min: e.target.value }))}
+                />
+                <input
+                  type="number"
+                  placeholder="Max ($)"
+                  className="w-1/2 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={budgetRange.max}
+                  onChange={(e) => setBudgetRange(prev => ({ ...prev, max: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            {/* Timeline Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Timeline</label>
+              <select
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={timelineFilter}
+                onChange={(e) => setTimelineFilter(e.target.value)}
+              >
+                <option value="all">All Timelines</option>
+                <option value="urgent">⚡ Urgent (0-3 months)</option>
+                <option value="soon">📅 Soon (3-6 months)</option>
+                <option value="later">🕒 Later (6-12 months)</option>
+                <option value="future">🔮 Future (12+ months)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Advanced Panel Toggle */}
+        <div className="border-t pt-4">
+          <button
+            onClick={() => setShowAdvancedPanel(!showAdvancedPanel)}
+            className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
           >
-            <option value="created_at-desc">Newest First</option>
-            <option value="created_at-asc">Oldest First</option>
-            <option value="first_name-asc">Name A-Z</option>
-            <option value="first_name-desc">Name Z-A</option>
-            <option value="status-asc">Status A-Z</option>
-            <option value="priority-desc">High Priority First</option>
-          </select>
+            <Filter size={16} />
+            {showAdvancedPanel ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
+            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+              {showAdvancedPanel ? 'Collapse' : 'Expand'}
+            </span>
+          </button>
+
+          {/* Advanced Panel */}
+          {showAdvancedPanel && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <h4 className="text-sm font-medium text-gray-800 mb-3">Advanced Filters</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Location Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <input
+                    type="text"
+                    placeholder="City, neighborhood, zip..."
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                  />
+                </div>
+
+                {/* Property Type Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
+                  <select
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={propertyTypeFilter}
+                    onChange={(e) => setPropertyTypeFilter(e.target.value)}
+                  >
+                    <option value="all">All Property Types</option>
+                    <option value="Condo">Condo</option>
+                    <option value="House">House</option>
+                    <option value="Townhouse">Townhouse</option>
+                    <option value="Apartment">Apartment</option>
+                    <option value="Commercial">Commercial</option>
+                  </select>
+                </div>
+
+                {/* Lead Source Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Lead Source</label>
+                  <select
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={leadSourceFilter}
+                    onChange={(e) => setLeadSourceFilter(e.target.value)}
+                  >
+                    <option value="all">All Sources</option>
+                    <option value="Website">Website</option>
+                    <option value="Referral">Referral</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Ext. source">External Source</option>
+                    <option value="Advertisement">Advertisement</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Clear All Filters Button */}
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setActiveQuickFilter('all');
+                    setTemperatureFilter('all');
+                    setBudgetRange({ min: '', max: '' });
+                    setTimelineFilter('all');
+                    setLocationFilter('');
+                    setPropertyTypeFilter('all');
+                    setLeadSourceFilter('all');
+                    setFilterStatus('all');
+                    setFilterPriority('all');
+                  }}
+                  className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
