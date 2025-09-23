@@ -299,6 +299,123 @@ export default function Leads({ user }) {
     }
   };
 
+  // Template filter logic
+  const applyTemplateFilters = (lead) => {
+    if (!appliedTemplateFilters || appliedTemplateFilters.length === 0) return true;
+    
+    // All template filters must match for the lead to pass
+    return appliedTemplateFilters.every(filter => {
+      if (!filter.value) return true; // Skip filters without values
+      
+      let leadValue = '';
+      const filterValue = filter.value.toLowerCase();
+      
+      // Map filter fields to lead object properties
+      switch (filter.field) {
+        case 'Phone Validity':
+          leadValue = lead.phone ? 'valid' : 'invalid';
+          break;
+        case 'Pipeline':
+          leadValue = (lead.pipeline || '').toLowerCase();
+          break;
+        case 'Pipeline Status':
+          leadValue = (lead.status || '').toLowerCase();
+          break;
+        case 'Lead Type':
+          leadValue = (lead.lead_type || '').toLowerCase();
+          break;
+        case 'Rating Status':
+          leadValue = (lead.lead_rating || '').toLowerCase();
+          break;
+        case 'Source':
+          leadValue = (lead.lead_source || lead.ref_source || '').toLowerCase();
+          break;
+        case 'Main Agent':
+          leadValue = (lead.main_agent || '').toLowerCase();
+          break;
+        case 'Listing Agent':
+          leadValue = (lead.list_agent || '').toLowerCase();
+          break;
+        case 'Mortgage Agent':
+          leadValue = (lead.mort_agent || '').toLowerCase();
+          break;
+        case "Lead's City":
+        case 'Buying City':
+          leadValue = (lead.city || '').toLowerCase();
+          break;
+        case "Lead's Postal/Zip Code":
+          leadValue = (lead.zip_postal_code || '').toLowerCase();
+          break;
+        case 'Email Validity':
+          leadValue = lead.email ? 'valid' : 'invalid';
+          break;
+        case 'Price':
+        case 'Buying Price':
+          leadValue = (lead.price_min || lead.price_max || '').toString().toLowerCase();
+          break;
+        case 'Buying Timeframe':
+          leadValue = (lead.buying_in || '').toLowerCase();
+          break;
+        case 'Selling Timeframe':
+          leadValue = (lead.selling_in || '').toLowerCase();
+          break;
+        case 'Name (including Additional Contacts)':
+          leadValue = (`${lead.first_name || ''} ${lead.last_name || ''} ${lead.spouse_first_name || ''} ${lead.spouse_last_name || ''}`).toLowerCase();
+          break;
+        case 'Keywords (Name, Additional Contacts, Email, …)':
+          leadValue = (`${lead.first_name || ''} ${lead.last_name || ''} ${lead.email || ''} ${lead.spouse_first_name || ''} ${lead.spouse_last_name || ''} ${lead.spouse_email || ''} ${lead.lead_description || ''}`).toLowerCase();
+          break;
+        case 'Tag':
+          leadValue = (lead.tags || '').toLowerCase();
+          break;
+        case 'Notes':
+          leadValue = (lead.lead_description || '').toLowerCase();
+          break;
+        case "Lead's Street Address":
+          leadValue = (lead.address || '').toLowerCase();
+          break;
+        case 'Mortgage Type':
+          leadValue = (lead.mortgage_type || '').toLowerCase();
+          break;
+        case 'Email 2':
+          leadValue = (lead.email_2 || '').toLowerCase();
+          break;
+        case 'Spouse First Name':
+          leadValue = (lead.spouse_first_name || '').toLowerCase();
+          break;
+        case 'Spouse Last Name':
+          leadValue = (lead.spouse_last_name || '').toLowerCase();
+          break;
+        case 'Spouse Email':
+          leadValue = (lead.spouse_email || '').toLowerCase();
+          break;
+        case 'Spouse Mobile Phone':
+          leadValue = (lead.spouse_mobile_phone || '').toLowerCase();
+          break;
+        default:
+          return true; // Skip unknown fields
+      }
+      
+      // Apply the operator
+      switch (filter.operator) {
+        case 'equals':
+          return leadValue === filterValue;
+        case 'contains':
+          return leadValue.includes(filterValue);
+        case 'startsWith':
+          return leadValue.startsWith(filterValue);
+        case 'endsWith':
+          return leadValue.endsWith(filterValue);
+        case 'greaterThan':
+          return parseFloat(leadValue) > parseFloat(filterValue);
+        case 'lessThan':
+          return parseFloat(leadValue) < parseFloat(filterValue);
+        default:
+          return true;
+      }
+    });
+  };
+
   // Filter and sort leads
   const filteredLeads = (Array.isArray(leads) ? leads : []).filter(lead => {
     // Apply all filters
