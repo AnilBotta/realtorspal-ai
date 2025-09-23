@@ -442,8 +442,11 @@ export default function Leads({ user }) {
       matchesAdvanced = matchesLocation && matchesPropertyType && matchesLeadSource;
     }
 
+    // Apply template filters
+    const matchesTemplateFilters = applyTemplateFilters(lead);
+
     return matchesSearch && matchesStatus && matchesPriority && matchesQuickFilter && 
-           matchesTemperature && matchesBudget && matchesTimeline && matchesAdvanced;
+           matchesTemperature && matchesBudget && matchesTimeline && matchesAdvanced && matchesTemplateFilters;
   }).sort((a, b) => {
     let aValue = a[sortBy];
     let bValue = b[sortBy];
