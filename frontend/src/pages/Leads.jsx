@@ -569,6 +569,7 @@ export default function Leads({ user }) {
           </p>
         </div>
         <div className="flex gap-3">
+          <FilterTemplates onApplyFilter={handleApplyTemplateFilters} />
           <button
             onClick={loadLeads}
             className="px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
