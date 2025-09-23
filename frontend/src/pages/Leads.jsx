@@ -684,9 +684,25 @@ export default function Leads({ user }) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {filteredLeads.length} of {Array.isArray(leads) ? leads.length : 0} leads
-          </p>
+          <div className="flex items-center gap-4 mt-1">
+            <p className="text-sm text-gray-500">
+              {filteredLeads.length} of {Array.isArray(leads) ? leads.length : 0} leads
+            </p>
+            {appliedTemplateFilters && appliedTemplateFilters.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                  Template Active: {appliedTemplateFilters.length} filter{appliedTemplateFilters.length !== 1 ? 's' : ''}
+                </span>
+                <button
+                  onClick={() => setAppliedTemplateFilters([])}
+                  className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                  title="Clear template filters"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex gap-3">
           <FilterTemplates onApplyFilter={handleApplyTemplateFilters} />
