@@ -2453,7 +2453,7 @@ async def handle_approval_decision(approval_id: str, decision: ApprovalDecision,
         update_data = {
             "status": decision.decision,
             "decision": decision.decision,
-            "resolved_at": datetime.utcnow(),
+            "resolved_at": datetime.utcnow().isoformat(),
             "resolved_by": user_id,
             "notes": decision.notes
         }
