@@ -2234,7 +2234,7 @@ class RealtorsPalAPITester:
                             
                             if phone_normalized and email_normalized and city_normalized:
                                 self.log_test("Lead Generation AI Webhook Valid New Lead", True, 
-                                            f"Lead created successfully with ID: {lead_id}. "
+                                            f"Lead processed successfully (result: {data.get('result')}) with ID: {lead_id}. "
                                             f"Phone normalized: {created_lead.get('phone')}, "
                                             f"City normalized: {created_lead.get('city')}")
                                 return True
