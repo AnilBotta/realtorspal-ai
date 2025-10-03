@@ -2152,6 +2152,636 @@ async def generic_webhook_handler(user_id: str, lead_data: GenericLeadWebhook):
     except Exception as e:
         print(f"Generic webhook error: {e}")
 # =============================================================================
+# AI AGENT SYSTEM - LLM SERVICE & AGENTS
+# =============================================================================
+
+class LLMService:
+    """Centralized LLM service for all AI agents"""
+    
+    def __init__(self):
+        self.emergent_llm_key = EMERGENT_LLM_KEY
+    
+    async def generate_completion(self, 
+                                prompt: str, 
+                                model: str = "gpt-4o", 
+                                provider: str = "emergent",
+                                system_prompt: str = "",
+                                temperature: float = 0.7,
+                                max_tokens: int = 1000) -> str:
+        """Generate LLM completion"""
+        try:
+            # Use emergentintegrations for LLM calls
+            client = get_llm_client(api_key=self.emergent_llm_key)
+            
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+            
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            print(f"LLM generation error: {e}")
+            return f"LLM Error: {str(e)}"
+
+    async def generate_structured_response(self,
+                                         prompt: str,
+                                         response_format: Dict[str, Any],
+                                         model: str = "gpt-4o",
+                                         system_prompt: str = "") -> Dict[str, Any]:
+        """Generate structured JSON response from LLM"""
+        try:
+            full_prompt = f"""
+{system_prompt}
+
+{prompt}
+
+IMPORTANT: Respond only with valid JSON in this exact format:
+{json.dumps(response_format, indent=2)}
+
+Do not include any other text or explanations. Only the JSON response.
+"""
+            
+            response = await self.generate_completion(
+                prompt=full_prompt,
+                model=model,
+                temperature=0.3,  # Lower temperature for structured responses
+                max_tokens=2000
+            )
+            
+            # Parse JSON response
+            try:
+                return json.loads(response)
+            except json.JSONDecodeError:
+                # Fallback if JSON parsing fails
+                return {"error": "Invalid JSON response", "raw_response": response}
+                
+        except Exception as e:
+            return {"error": f"Structured response error: {str(e)}"}
+
+# Initialize LLM service
+llm_service = LLMService()
+
+class BaseAIAgent:
+    """Base class for all AI agents"""
+    
+    def __init__(self, agent_id: str, name: str, system_prompt: str, model: str = "gpt-4o"):
+        self.agent_id = agent_id
+        self.name = name
+        self.system_prompt = system_prompt
+        self.model = model
+        self.llm_service = llm_service
+    
+    async def process_task(self, task_data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
+        """Base method to be overridden by specific agents"""
+        raise NotImplementedError("Each agent must implement process_task method")
+    
+    async def create_approval_request(self, 
+                                    task: str, 
+                                    proposal: Dict[str, Any], 
+                                    user_id: str,
+                                    lead_id: str = None,
+                                    priority: str = "medium") -> str:
+        """Create approval request and return approval_id"""
+        approval_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "agent_id": self.agent_id,
+            "agent_name": self.name,
+            "task": task,
+            "proposal": proposal,
+            "lead_id": lead_id,
+            "priority": priority,
+            "status": "pending",
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        await db.approval_requests.insert_one(approval_data)
+        return approval_data["id"]
+    
+    async def log_activity(self, 
+                          activity: str, 
+                          user_id: str,
+                          status: str = "completed",
+                          activity_type: str = "automated",
+                          details: Dict[str, Any] = None):
+        """Log agent activity"""
+        activity_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "agent_id": self.agent_id,
+            "agent_name": self.name,
+            "activity": activity,
+            "status": status,
+            "type": activity_type,
+            "timestamp": datetime.utcnow().isoformat(),
+            "details": details or {}
+        }
+        
+        await db.agent_activities.insert_one(activity_data)
+
+class LeadGeneratorAI(BaseAIAgent):
+    """AI Agent for sourcing and normalizing leads from social media"""
+    
+    def __init__(self):
+        super().__init__(
+            agent_id="lead-generator",
+            name="Lead Generator AI",
+            system_prompt="""You are a Lead Generator AI for RealtorsPal. Your responsibilities:
+1. Source and validate leads from social media platforms
+2. Normalize lead data into consistent format
+3. Detect and flag duplicate leads
+4. Classify leads by quality and potential
+5. Extract relevant information from social media profiles
+
+Always maintain high data quality standards and follow privacy regulations.""",
+            model="gpt-4o"
+        )
+    
+    async def process_task(self, task_data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
+        """Process lead generation task"""
+        try:
+            await self.log_activity("Processing lead generation request", user_id, "processing")
+            
+            # Get existing leads for duplicate detection
+            existing_leads = await db.leads.find({"user_id": user_id}).to_list(length=None)
+            existing_emails = {lead.get("email", "").lower() for lead in existing_leads if lead.get("email")}
+            
+            # Analyze new lead data
+            new_lead_data = task_data.get("lead_data", {})
+            
+            prompt = f"""
+Analyze this potential lead data and provide recommendations:
+
+Lead Data: {json.dumps(new_lead_data, indent=2)}
+
+Existing Emails in Database: {list(existing_emails)[:10]}  # Show first 10 for context
+
+Tasks:
+1. Validate the lead quality (score 1-10)
+2. Check for potential duplicates
+3. Extract and normalize contact information
+4. Suggest lead classification (hot/warm/cold)
+5. Identify any data quality issues
+6. Recommend next actions
+"""
+
+            response_format = {
+                "lead_quality_score": 0,
+                "duplicate_risk": "low|medium|high",
+                "duplicate_reason": "",
+                "normalized_data": {
+                    "first_name": "",
+                    "last_name": "", 
+                    "email": "",
+                    "phone": "",
+                    "city": "",
+                    "property_type": "",
+                    "budget_range": "",
+                    "timeline": ""
+                },
+                "classification": "hot|warm|cold",
+                "data_quality_issues": [],
+                "recommended_actions": [],
+                "confidence_level": 0.0
+            }
+            
+            analysis_result = await self.llm_service.generate_structured_response(
+                prompt=prompt,
+                response_format=response_format,
+                model=self.model,
+                system_prompt=self.system_prompt
+            )
+            
+            # Determine if human approval is needed
+            needs_approval = (
+                analysis_result.get("lead_quality_score", 0) < 7 or
+                analysis_result.get("duplicate_risk", "low") != "low" or
+                len(analysis_result.get("data_quality_issues", [])) > 2
+            )
+            
+            if needs_approval:
+                # Create approval request
+                proposal = {
+                    "title": "Lead Generation Review Required",
+                    "summary": [
+                        f"Lead quality score: {analysis_result.get('lead_quality_score', 0)}/10",
+                        f"Duplicate risk: {analysis_result.get('duplicate_risk', 'unknown')}",
+                        f"Classification: {analysis_result.get('classification', 'unknown')}"
+                    ],
+                    "risks": analysis_result.get("data_quality_issues", []),
+                    "action": "Add lead to CRM with normalizations",
+                    "analysis": analysis_result
+                }
+                
+                approval_id = await self.create_approval_request(
+                    task="Review and approve new lead data",
+                    proposal=proposal,
+                    user_id=user_id,
+                    priority="medium"
+                )
+                
+                await self.log_activity("Lead analysis complete - approval required", user_id, "pending_approval", "approval_required")
+                
+                return {
+                    "selected_agent": "LeadGeneratorAI",
+                    "task": "Analyze and validate new lead data",
+                    "rationale": "Lead requires human review due to quality or duplicate concerns",
+                    "agent_output": {
+                        "structured_fields": analysis_result,
+                        "drafts_or_sequences": [],
+                        "scores_or_flags": {
+                            "quality_score": analysis_result.get("lead_quality_score", 0),
+                            "confidence": analysis_result.get("confidence_level", 0),
+                            "duplicate_risk": analysis_result.get("duplicate_risk", "unknown")
+                        }
+                    },
+                    "human_approval": {
+                        "required": True,
+                        "title": proposal["title"],
+                        "summary": proposal["summary"],
+                        "risks": proposal["risks"],
+                        "choices": ["Approve", "Edit", "Reject"],
+                        "approval_id": approval_id
+                    },
+                    "data_patch": {
+                        "crm_updates": {"leads_analyzed": 1, "approval_required": True},
+                        "stage_suggestion": "validation"
+                    }
+                }
+            else:
+                # Auto-process high quality leads
+                await self.log_activity("High quality lead auto-processed", user_id, "completed")
+                
+                return {
+                    "selected_agent": "LeadGeneratorAI", 
+                    "task": "Process high-quality lead automatically",
+                    "rationale": "Lead meets quality standards for automatic processing",
+                    "agent_output": {
+                        "structured_fields": analysis_result,
+                        "drafts_or_sequences": ["Lead ready for immediate contact"],
+                        "scores_or_flags": {
+                            "quality_score": analysis_result.get("lead_quality_score", 0),
+                            "confidence": analysis_result.get("confidence_level", 0),
+                            "auto_processed": True
+                        }
+                    },
+                    "human_approval": {
+                        "required": False,
+                        "title": "High Quality Lead Processed",
+                        "summary": ["Lead automatically validated and added to CRM"],
+                        "risks": [],
+                        "choices": []
+                    },
+                    "data_patch": {
+                        "crm_updates": {"leads_processed": 1, "auto_approved": True},
+                        "stage_suggestion": "new_lead"
+                    }
+                }
+                
+        except Exception as e:
+            await self.log_activity(f"Error in lead generation: {str(e)}", user_id, "failed")
+            raise e
+
+class LeadNurturingAI(BaseAIAgent):
+    """AI Agent for creating personalized follow-up sequences"""
+    
+    def __init__(self):
+        super().__init__(
+            agent_id="lead-nurturing",
+            name="Lead Nurturing AI", 
+            system_prompt="""You are a Lead Nurturing AI for RealtorsPal. Your responsibilities:
+1. Create personalized follow-up email sequences
+2. Draft human-sounding messages tailored to lead profiles
+3. Suggest optimal timing for follow-ups
+4. Generate SMS and phone call talking points
+5. Adapt communication style based on lead temperature
+
+Always create authentic, helpful communications that build trust and provide value.""",
+            model="claude-3-sonnet"
+        )
+    
+    async def process_task(self, task_data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
+        """Process lead nurturing task"""
+        try:
+            await self.log_activity("Creating personalized nurturing sequence", user_id, "processing")
+            
+            leads_to_nurture = task_data.get("leads", [])
+            nurture_type = task_data.get("type", "follow_up")  # follow_up, welcome, re_engagement
+            
+            if not leads_to_nurture:
+                # Get leads that need nurturing
+                recent_leads = await db.leads.find({
+                    "user_id": user_id, 
+                    "pipeline": {"$in": ["new", "warm / nurturing", "contacted"]}
+                }).limit(5).to_list(length=None)
+                leads_to_nurture = recent_leads
+            
+            sequences = []
+            
+            for lead in leads_to_nurture:
+                lead_profile = {
+                    "name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+                    "email": lead.get("email", ""),
+                    "phone": lead.get("phone", ""),
+                    "city": lead.get("city", ""),
+                    "property_type": lead.get("property_type", ""),
+                    "budget": lead.get("price_range", ""),
+                    "timeline": lead.get("buying_in", ""),
+                    "source": lead.get("lead_source", ""),
+                    "pipeline": lead.get("pipeline", ""),
+                    "notes": lead.get("lead_description", "")
+                }
+                
+                prompt = f"""
+Create a personalized 3-email nurturing sequence for this lead:
+
+Lead Profile: {json.dumps(lead_profile, indent=2)}
+
+Nurturing Type: {nurture_type}
+
+Requirements:
+1. Each email should feel personal and authentic
+2. Provide genuine value in each touchpoint
+3. Use the lead's name and reference their specific interests
+4. Include soft call-to-actions
+5. Vary the timing and approach for each email
+6. Keep tone professional but friendly
+"""
+
+                response_format = {
+                    "email_1": {
+                        "subject": "",
+                        "body": "",
+                        "timing": "immediate|1_day|3_days|1_week",
+                        "tone": "friendly|professional|casual|formal",
+                        "cta": ""
+                    },
+                    "email_2": {
+                        "subject": "",
+                        "body": "",
+                        "timing": "3_days|1_week|2_weeks",
+                        "tone": "friendly|professional|casual|formal", 
+                        "cta": ""
+                    },
+                    "email_3": {
+                        "subject": "",
+                        "body": "",
+                        "timing": "1_week|2_weeks|1_month",
+                        "tone": "friendly|professional|casual|formal",
+                        "cta": ""
+                    },
+                    "sms_follow_up": "",
+                    "phone_talking_points": [],
+                    "personalization_notes": ""
+                }
+                
+                sequence = await self.llm_service.generate_structured_response(
+                    prompt=prompt,
+                    response_format=response_format,
+                    model=self.model,
+                    system_prompt=self.system_prompt
+                )
+                
+                sequence["lead_id"] = lead.get("id")
+                sequence["lead_name"] = lead_profile["name"]
+                sequences.append(sequence)
+            
+            # Always require approval for nurturing sequences
+            proposal = {
+                "title": "Lead Nurturing Sequence Approval",
+                "summary": [
+                    f"Created sequences for {len(sequences)} leads",
+                    f"Type: {nurture_type.replace('_', ' ').title()} campaign",
+                    "3 personalized emails + SMS + call points per lead"
+                ],
+                "risks": ["Messages may need personalization", "Timing might conflict with holidays"],
+                "action": "Send personalized nurturing sequences",
+                "sequences": sequences
+            }
+            
+            approval_id = await self.create_approval_request(
+                task="Review and approve nurturing sequences",
+                proposal=proposal,
+                user_id=user_id,
+                priority="medium"
+            )
+            
+            await self.log_activity("Nurturing sequences created - pending approval", user_id, "pending_approval", "approval_required")
+            
+            return {
+                "selected_agent": "LeadNurturingAI",
+                "task": "Create personalized follow-up sequences",
+                "rationale": f"Generated nurturing sequences for {len(sequences)} leads requiring human review",
+                "agent_output": {
+                    "structured_fields": {
+                        "sequences_created": len(sequences),
+                        "nurture_type": nurture_type,
+                        "leads_affected": len(leads_to_nurture)
+                    },
+                    "drafts_or_sequences": [f"Email sequence for {seq['lead_name']}" for seq in sequences],
+                    "scores_or_flags": {
+                        "confidence": 0.9,
+                        "personalization_level": "high",
+                        "approval_required": True
+                    }
+                },
+                "human_approval": {
+                    "required": True,
+                    "title": proposal["title"],
+                    "summary": proposal["summary"],
+                    "risks": proposal["risks"],
+                    "choices": ["Approve", "Edit", "Reject"],
+                    "approval_id": approval_id
+                },
+                "data_patch": {
+                    "crm_updates": {
+                        "sequences_created": len(sequences),
+                        "leads_in_nurturing": len(leads_to_nurture)
+                    },
+                    "stage_suggestion": "nurturing"
+                }
+            }
+            
+        except Exception as e:
+            await self.log_activity(f"Error in lead nurturing: {str(e)}", user_id, "failed")
+            raise e
+
+class CustomerServiceAI(BaseAIAgent):
+    """AI Agent for triaging inbound messages and drafting replies"""
+    
+    def __init__(self):
+        super().__init__(
+            agent_id="customer-service",
+            name="Customer Service AI",
+            system_prompt="""You are a Customer Service AI for RealtorsPal. Your responsibilities:
+1. Triage inbound messages by urgency and intent
+2. Draft appropriate responses to customer inquiries
+3. Detect sentiment and escalation triggers
+4. Provide helpful, accurate information
+5. Maintain professional tone while being empathetic
+
+Always prioritize customer satisfaction and timely responses.""",
+            model="gemini-pro"
+        )
+    
+    async def process_task(self, task_data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
+        """Process customer service task"""
+        try:
+            await self.log_activity("Triaging customer message", user_id, "processing")
+            
+            message_data = task_data.get("message", {})
+            customer_info = task_data.get("customer", {})
+            
+            prompt = f"""
+Analyze this customer message and provide triage recommendations:
+
+Customer Message: {message_data.get('content', '')}
+Customer Info: {json.dumps(customer_info, indent=2)}
+Message Source: {message_data.get('source', 'email')}
+Timestamp: {message_data.get('timestamp', '')}
+
+Analyze for:
+1. Intent classification
+2. Urgency level 
+3. Sentiment analysis
+4. Escalation triggers
+5. Draft appropriate response
+6. Next action recommendations
+"""
+
+            response_format = {
+                "intent": "inquiry|complaint|compliment|request|emergency|spam",
+                "urgency": "low|medium|high|urgent",
+                "sentiment": "positive|neutral|negative|angry",
+                "escalation_triggers": [],
+                "response_draft": "",
+                "response_tone": "professional|empathetic|apologetic|enthusiastic",
+                "next_actions": [],
+                "requires_human": False,
+                "estimated_resolution_time": "",
+                "confidence_score": 0.0
+            }
+            
+            analysis = await self.llm_service.generate_structured_response(
+                prompt=prompt,
+                response_format=response_format,
+                model=self.model,
+                system_prompt=self.system_prompt
+            )
+            
+            # Determine if human involvement needed
+            needs_human = (
+                analysis.get("urgency") in ["high", "urgent"] or
+                analysis.get("sentiment") in ["negative", "angry"] or
+                len(analysis.get("escalation_triggers", [])) > 0 or
+                analysis.get("intent") == "complaint" or
+                analysis.get("requires_human", False)
+            )
+            
+            if needs_human:
+                proposal = {
+                    "title": "Customer Service Escalation",
+                    "summary": [
+                        f"Intent: {analysis.get('intent', 'unknown')}",
+                        f"Urgency: {analysis.get('urgency', 'unknown')}",
+                        f"Sentiment: {analysis.get('sentiment', 'unknown')}"
+                    ],
+                    "risks": analysis.get("escalation_triggers", []),
+                    "action": "Send drafted response and escalate if needed",
+                    "analysis": analysis,
+                    "draft_response": analysis.get("response_draft", "")
+                }
+                
+                approval_id = await self.create_approval_request(
+                    task="Review customer service response",
+                    proposal=proposal,
+                    user_id=user_id,
+                    priority="high" if analysis.get("urgency") == "urgent" else "medium"
+                )
+                
+                await self.log_activity("Customer message triaged - escalation required", user_id, "pending_approval", "approval_required")
+                
+                return {
+                    "selected_agent": "CustomerServiceAI",
+                    "task": "Triage and respond to customer message",
+                    "rationale": "Message requires human review due to urgency or sentiment",
+                    "agent_output": {
+                        "structured_fields": analysis,
+                        "drafts_or_sequences": [analysis.get("response_draft", "")],
+                        "scores_or_flags": {
+                            "urgency_score": analysis.get("urgency", "low"),
+                            "sentiment_score": analysis.get("sentiment", "neutral"),
+                            "confidence": analysis.get("confidence_score", 0)
+                        }
+                    },
+                    "human_approval": {
+                        "required": True,
+                        "title": proposal["title"],
+                        "summary": proposal["summary"],
+                        "risks": proposal["risks"],
+                        "choices": ["Approve", "Edit", "Reject"],
+                        "approval_id": approval_id
+                    },
+                    "data_patch": {
+                        "crm_updates": {"messages_triaged": 1, "escalations": 1},
+                        "stage_suggestion": "customer_service"
+                    }
+                }
+            else:
+                # Auto-respond to simple inquiries
+                await self.log_activity("Simple inquiry auto-processed", user_id, "completed")
+                
+                return {
+                    "selected_agent": "CustomerServiceAI",
+                    "task": "Handle routine customer inquiry",
+                    "rationale": "Simple inquiry can be handled automatically",
+                    "agent_output": {
+                        "structured_fields": analysis,
+                        "drafts_or_sequences": [analysis.get("response_draft", "")],
+                        "scores_or_flags": {
+                            "urgency_score": analysis.get("urgency", "low"),
+                            "sentiment_score": analysis.get("sentiment", "neutral"),
+                            "auto_resolved": True
+                        }
+                    },
+                    "human_approval": {
+                        "required": False,
+                        "title": "Routine Inquiry Handled",
+                        "summary": ["Response automatically generated and sent"],
+                        "risks": [],
+                        "choices": []
+                    },
+                    "data_patch": {
+                        "crm_updates": {"messages_processed": 1, "auto_responses": 1},
+                        "stage_suggestion": "resolved"
+                    }
+                }
+                
+        except Exception as e:
+            await self.log_activity(f"Error in customer service: {str(e)}", user_id, "failed")
+            raise e
+
+# Initialize AI Agents
+lead_generator = LeadGeneratorAI()
+lead_nurturer = LeadNurturingAI()
+customer_service = CustomerServiceAI()
+
+# Agent registry for orchestrator
+AGENT_REGISTRY = {
+    "lead-generator": lead_generator,
+    "lead-nurturing": lead_nurturer,
+    "customer-service": customer_service
+}
+
+# =============================================================================
 # AI AGENT SYSTEM ENDPOINTS
 # =============================================================================
 
