@@ -564,6 +564,7 @@ export default function Dashboard({ user }){
       <LeadDrawer open={openDrawer} lead={activeLead} onClose={()=>setOpenDrawer(false)} onSave={handleLeadUpdate} onDelete={handleLeadDelete} />
       <CommunicationModal open={openComm} lead={commLead} type={commType} onClose={closeCommunication} user={user} />
       <EmailModal open={openEmail} lead={emailLead} onClose={closeEmail} user={user} />
+      <AIAgentModal open={openAIAgent} lead={aiAgentLead} onClose={closeAIAgent} onRunAgent={handleRunAgent} user={user} />
     </div>
   );
 }
