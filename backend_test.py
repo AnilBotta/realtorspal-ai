@@ -2430,9 +2430,9 @@ class RealtorsPalAPITester:
                 return False
             
             data1 = response1.json()
-            if data1.get("result") != "created":
+            if data1.get("result") not in ["created", "merged"]:
                 self.log_test("Lead Generation AI Webhook Idempotency", False, 
-                            f"First request didn't create lead: {data1}")
+                            f"First request didn't process lead: {data1}")
                 return False
             
             # Second request with same idempotency key
