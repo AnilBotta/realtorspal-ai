@@ -2,12 +2,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getLeads, getDashboardAnalytics, createLead, updateLeadStage, updateLead } from "../api";
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { DollarSign, MapPin, Calendar, Phone, Mail, MessageSquare, GripVertical } from "lucide-react";
+import { DollarSign, MapPin, Calendar, Phone, Mail, MessageSquare, GripVertical, Bot } from "lucide-react";
 import dayjs from "dayjs";
 import AddLeadModal from "../components/AddLeadModal";
 import LeadDrawer from "../components/LeadDrawer";
 import CommunicationModal from "../components/CommunicationModal";
 import EmailModal from "../components/EmailModal";
+import AIAgentModal from "../components/AIAgentModal";
 
 function Stat({ label, value, hint }){
   return (
