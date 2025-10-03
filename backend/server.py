@@ -4193,4 +4193,179 @@ async def process_lead_nurturing(task_data: Dict[str, Any], user_id: str):
 @app.post("/api/ai-agents/customer-service/process")
 async def process_customer_service(task_data: Dict[str, Any], user_id: str):
     """Process customer service task directly"""
+
+# --- Nurturing AI Endpoints ---
+
+@app.post("/api/nurturing-ai/generate-plan/{user_id}")
+async def generate_nurturing_plan(user_id: str, lead_id: str):
+    """Generate nurturing plan for a specific lead"""
+    try:
+        # Get lead data
+        lead = await db.leads.find_one({"id": lead_id, "user_id": user_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Extract lead context
+        context = NurturingAI.get_lead_context(lead)
+        context['user_id'] = user_id
+        context['lead_id'] = lead_id
+        
+        # Determine nurturing strategy
+        strategy = NurturingAI.determine_nurturing_strategy(context)
+        
+        # Generate activity schedule
+        activities = NurturingAI.generate_activity_schedule(strategy, context)
+        
+        # Draft messages for each activity
+        for activity in activities:
+            message_data = await NurturingAI.draft_message(context, activity.action, activity.channel)
+            activity.draft_content = message_data.get('content', '')
+            activity.subject = message_data.get('subject', '')
+        
+        # Create nurturing plan
+        next_review_date = (datetime.now() + timedelta(days=14)).strftime('%Y-%m-%d')
+        
+        nurturing_plan = NurturingPlan(
+            lead_id=lead_id,
+            user_id=user_id,
+            activity_board=[activity.dict() for activity in activities],
+            lead_updates={
+                "stage_suggestion": "qualified" if context.get('pipeline') == 'New Lead' else context.get('pipeline'),
+                "engagement_score": min(context.get('engagement_score', 50) + 10, 100)
+            },
+            next_review=next_review_date,
+            engagement_score=context.get('engagement_score', 50),
+            strategy_notes=f"Nurturing strategy: {strategy['frequency']} frequency, {strategy['touches_per_week']} touches/week, primary channel: {strategy['primary_channel']}"
+        )
+        
+        # Save activities to database
+        for activity in activities:
+            await db.nurturing_activities.insert_one(activity.dict())
+        
+        return nurturing_plan.dict()
+        
+    except Exception as e:
+        print(f"Error generating nurturing plan: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
+
+@app.get("/api/nurturing-ai/activities/{user_id}")
+async def get_nurturing_activities(user_id: str, date: Optional[str] = None, status: Optional[str] = None):
+    """Get nurturing activities for user, optionally filtered by date and status"""
+    try:
+        query = {"user_id": user_id}
+        
+        if date:
+            query["date"] = date
+        
+        if status:
+            query["status"] = status
+        
+        activities = await db.nurturing_activities.find(query).sort("date", 1).to_list(length=100)
+        
+        # Remove MongoDB ObjectId for JSON serialization
+        clean_activities = []
+        for activity in activities:
+            clean_activity = {k: v for k, v in activity.items() if k != "_id"}
+            clean_activities.append(clean_activity)
+        
+        return {
+            "status": "success",
+            "activities": clean_activities,
+            "count": len(clean_activities)
+        }
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
+
+@app.put("/api/nurturing-ai/activities/{activity_id}")
+async def update_activity_status(activity_id: str, status: str, user_id: str, notes: Optional[str] = None):
+    """Update activity status (mark as completed, rescheduled, etc.)"""
+    try:
+        update_data = {
+            "status": status,
+            "completed_at": datetime.utcnow().isoformat() if status == "completed" else None
+        }
+        
+        if notes:
+            update_data["notes"] = notes
+        
+        result = await db.nurturing_activities.update_one(
+            {"id": activity_id, "user_id": user_id},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Activity not found")
+        
+        return {"status": "success", "message": "Activity updated"}
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
+
+@app.post("/api/nurturing-ai/analyze-reply")
+async def analyze_reply(user_id: str, lead_id: str, reply_text: str):
+    """Analyze lead reply and suggest next action"""
+    try:
+        # Simple rule-based analysis (can be enhanced with LLM)
+        reply_lower = reply_text.lower()
+        
+        # Sentiment analysis
+        positive_words = ['yes', 'interested', 'great', 'perfect', 'sounds good', 'let me know', 'call me']
+        negative_words = ['no', 'not interested', 'stop', 'remove', 'unsubscribe', 'not ready']
+        neutral_words = ['maybe', 'later', 'think about it', 'busy', 'timing']
+        
+        if any(word in reply_lower for word in positive_words):
+            sentiment = 'positive'
+            suggested_action = 'Schedule immediate follow-up call or meeting'
+            intent = 'interested'
+        elif any(word in reply_lower for word in negative_words):
+            sentiment = 'negative'
+            suggested_action = 'Mark as not interested, reduce frequency or pause nurturing'
+            intent = 'not_interested'
+        elif any(word in reply_lower for word in neutral_words):
+            sentiment = 'neutral'
+            suggested_action = 'Continue nurturing with lower frequency'
+            intent = 'not_ready'
+        else:
+            sentiment = 'neutral'
+            suggested_action = 'Follow up with clarifying question'
+            intent = 'unclear'
+        
+        analysis = ReplyAnalysis(
+            reply_text=reply_text,
+            sentiment=sentiment,
+            intent=intent,
+            suggested_action=suggested_action,
+            confidence=0.7  # Simple rule-based, so moderate confidence
+        )
+        
+        # Log the interaction
+        interaction_log = {
+            "id": str(uuid.uuid4()),
+            "lead_id": lead_id,
+            "user_id": user_id,
+            "type": "reply_received",
+            "content": reply_text,
+            "analysis": analysis.dict(),
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        await db.lead_interactions.insert_one(interaction_log)
+        
+        return analysis.dict()
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
     return await customer_service.process_task(task_data, user_id)
