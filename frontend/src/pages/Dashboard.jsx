@@ -578,6 +578,14 @@ export default function Dashboard({ user }){
         <Stat label="Response Time" value={`3 min`} />
       </div>
 
+      {/* Activity Board */}
+      {showActivityBoard && (
+        <ActivityBoard 
+          user={user} 
+          onGenerateActivities={handleGenerateActivities}
+        />
+      )}
+
       {/* Lead Pipeline */}
       <div className="bg-white rounded-xl border p-4">
         <div className="text-sm font-semibold mb-3">Lead Pipeline</div>
