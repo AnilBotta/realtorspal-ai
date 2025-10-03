@@ -230,6 +230,25 @@ function LeadCard({ lead, onOpen, onCommunicate, onAIAgent, dragHandle, onPipeli
         >
           <MessageSquare size={12}/> SMS ({communicationCounts.sms})
         </button>
+        <button 
+          className={`px-2 py-1 rounded border flex items-center gap-1 whitespace-nowrap ${
+            lead.ai_status === 'processing' 
+              ? 'bg-purple-100 border-purple-300 text-purple-700' 
+              : 'hover:bg-purple-50 hover:border-purple-200'
+          }`}
+          onClick={(e) => { e.stopPropagation(); onAIAgent && onAIAgent(lead); }}
+          title={lead.ai_status === 'processing' ? `AI ${lead.ai_agent} is working...` : 'Run AI Agent'}
+        >
+          <Bot size={12}/> 
+          {lead.ai_status === 'processing' ? (
+            <>
+              <span className="animate-pulse">Working...</span>
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-ping ml-1" />
+            </>
+          ) : (
+            'AI Agent'
+          )}
+        </button>
       </div>
     </div>
   );
