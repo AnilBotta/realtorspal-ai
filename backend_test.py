@@ -2614,12 +2614,13 @@ class RealtorsPalAPITester:
         
         try:
             timestamp = int(time.time()) + 506
+            unique_phone = f"310555{timestamp % 10000:04d}"
             
             # Test payload with various normalization scenarios
             payload = {
                 "full_name": "mary jane watson",  # Should split and title case
-                "email": "MARY.WATSON@GMAIL.COM",  # Should lowercase
-                "phone": "13105551234",  # Should normalize to E.164
+                "email": f"mary.watson.unique.{timestamp}@gmail.com",  # Should lowercase
+                "phone": unique_phone,  # Should normalize to E.164
                 "consent_marketing": False,  # Can be false
                 "city": "los angeles",  # Should title case
                 "budget_min": "450000",  # String number should convert
