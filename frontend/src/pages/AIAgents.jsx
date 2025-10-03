@@ -677,7 +677,7 @@ const AIAgents = ({ user }) => {
             </div>
             
             <div className="h-96 overflow-y-auto p-4">
-              {liveStream.length === 0 ? (
+              {liveActivityStream.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-gray-500">
                   <div className="text-center">
                     <Activity size={48} className="mx-auto mb-4 text-gray-300" />
@@ -687,38 +687,93 @@ const AIAgents = ({ user }) => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {liveStream.map(activity => (
-                    <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${getAgentColor(activity.agent.color)}`}>
-                        <activity.agent.icon size={16} />
+                  {liveActivityStream.map((run, index) => (
+                    <div key={run.id || index} className="border-l-4 border-blue-500 pl-4 pb-4">
+                      {/* Agent Run Header */}
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className={`w-8 h-8 rounded-full ${getColorForAgent(run.agent_code)} flex items-center justify-center flex-shrink-0`}>
+                          {React.createElement(getIconForAgent(run.agent_code), { 
+                            size: 16, 
+                            className: "text-white" 
+                          })}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-sm">{run.agent_code}</span>
+                            <span className="text-xs text-gray-500">•</span>
+                            <span className="text-sm text-gray-700">{run.lead_name}</span>
+                            <span className="text-xs text-gray-500">
+                              {new Date(run.started_at).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              run.status === 'succeeded' ? 'bg-green-100 text-green-800' :
+                              run.status === 'failed' ? 'bg-red-100 text-red-800' :
+                              run.status === 'running' ? 'bg-blue-100 text-blue-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {run.status}
+                            </span>
+                            {run.step && (
+                              <span className="text-xs text-gray-500">
+                                Step: {run.step}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm">{activity.agent.name}</span>
-                          <span className="text-xs text-gray-500">
-                            {new Date(activity.timestamp).toLocaleTimeString()}
-                          </span>
-                          {activity.type === 'approval_required' && (
-                            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded-full">
-                              Approval Required
-                            </span>
-                          )}
-                          {activity.type === 'human_decision' && (
-                            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
-                              Human Decision
-                            </span>
+
+                      {/* Events */}
+                      {run.events && run.events.length > 0 && (
+                        <div className="ml-11 space-y-1">
+                          {run.events.slice(0, 3).map((event, eventIndex) => (
+                            <div key={event.id || eventIndex} className="text-sm">
+                              <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
+                                event.type === 'ERROR' ? 'bg-red-400' :
+                                event.type === 'MSG.DRAFTED' ? 'bg-purple-400' :
+                                event.type === 'CRM.UPDATE' ? 'bg-blue-400' :
+                                'bg-gray-400'
+                              }`}></span>
+                              <span className="text-gray-600">
+                                {event.type}: {event.payload?.msg || JSON.stringify(event.payload).slice(0, 50)}...
+                              </span>
+                              <span className="text-xs text-gray-400 ml-2">
+                                {new Date(event.ts).toLocaleTimeString()}
+                              </span>
+                            </div>
+                          ))}
+                          {run.events.length > 3 && (
+                            <div className="text-xs text-gray-500 ml-4">
+                              +{run.events.length - 3} more events
+                            </div>
                           )}
                         </div>
-                        <div className="text-sm text-gray-700">{activity.activity}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`w-2 h-2 rounded-full ${
-                            activity.status === 'completed' ? 'bg-green-500' :
-                            activity.status === 'processing' ? 'bg-yellow-500 animate-pulse' :
-                            'bg-gray-400'
-                          }`}></span>
-                          <span className="text-xs text-gray-500 capitalize">{activity.status}</span>
+                      )}
+
+                      {/* Tasks Created */}
+                      {run.tasks && run.tasks.length > 0 && (
+                        <div className="ml-11 mt-2">
+                          <div className="text-xs font-medium text-gray-600 mb-1">
+                            Tasks Created: {run.tasks.length}
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {run.tasks.slice(0, 3).map((task, taskIndex) => (
+                              <span key={task.id || taskIndex} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                                {task.channel === 'sms' && <MessageSquare size={10} className="mr-1" />}
+                                {task.channel === 'email' && <Users size={10} className="mr-1" />}
+                                {task.channel === 'call' && <Phone size={10} className="mr-1" />}
+                                {task.title?.slice(0, 20)}...
+                              </span>
+                            ))}
+                            {run.tasks.length > 3 && (
+                              <span className="text-xs text-gray-500">
+                                +{run.tasks.length - 3} more
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
