@@ -695,7 +695,10 @@ const AIAgents = ({ user }) => {
             <div>
               <h4 className="font-medium mb-2">Actions</h4>
               <div className="space-y-2">
-                <button className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                <button 
+                  onClick={() => openAgentConfig(selectedAgent)}
+                  className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                >
                   Configure Agent
                 </button>
                 <button className="w-full px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50">
