@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { getLeads } from '../api';
 
 const GlobalSearch = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
