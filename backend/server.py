@@ -2841,6 +2841,107 @@ class NurturingAI:
         }
     
     @staticmethod
+    async def execute_nurturing_agent(lead_id: str, user_id: str, lead_context: Dict[str, Any]) -> AgentResponse:
+        """Execute Nurturing AI with proper logging"""
+        # Create agent run
+        agent_run = await MainOrchestratorAI.create_agent_run(
+            agent_code="NurturingAI",
+            lead_id=lead_id,
+            user_id=user_id,
+            step="analyze_lead_context"
+        )
+        
+        try:
+            # Log start event
+            await MainOrchestratorAI.log_agent_event(
+                run_id=agent_run.id,
+                event_type="INFO",
+                payload={"msg": f"Starting nurturing analysis for lead: {lead_context.get('name', 'Unknown')}"}
+            )
+            
+            # Determine strategy
+            strategy = NurturingAI.determine_nurturing_strategy(lead_context)
+            await MainOrchestratorAI.log_agent_event(
+                run_id=agent_run.id,
+                event_type="INFO",
+                payload={"msg": f"Determined strategy: {strategy['frequency']} frequency, {strategy['primary_channel']} channel"}
+            )
+            
+            # Generate activity schedule
+            activities = NurturingAI.generate_activity_schedule(strategy, lead_context)
+            
+            # Create tasks for each activity
+            created_tasks = []
+            for activity in activities:
+                # Draft message
+                message_data = await NurturingAI.draft_message(lead_context, activity.action, activity.channel)
+                
+                # Log draft event
+                await MainOrchestratorAI.log_agent_event(
+                    run_id=agent_run.id,
+                    event_type="MSG.DRAFTED",
+                    payload={
+                        "channel": activity.channel,
+                        "content": message_data.get('content', ''),
+                        "subject": message_data.get('subject', '')
+                    }
+                )
+                
+                # Create task
+                task = await MainOrchestratorAI.create_agent_task(
+                    run_id=agent_run.id,
+                    lead_id=lead_id,
+                    user_id=user_id,
+                    agent_code="NurturingAI",
+                    due_at=(datetime.now() + timedelta(days=1)).isoformat(),
+                    channel=activity.channel,
+                    title=f"Send {activity.action.replace('_', ' ')} to {lead_context.get('name', 'Lead')}",
+                    draft={
+                        "subject": message_data.get('subject', ''),
+                        "body": message_data.get('content', '')
+                    }
+                )
+                created_tasks.append(task.dict())
+            
+            # Complete the run
+            await MainOrchestratorAI.complete_agent_run(agent_run.id, "succeeded")
+            
+            # Log completion
+            await MainOrchestratorAI.log_agent_event(
+                run_id=agent_run.id,
+                event_type="INFO",
+                payload={"msg": f"Successfully created {len(created_tasks)} nurturing tasks"}
+            )
+            
+            return AgentResponse(
+                agent_code="NurturingAI",
+                lead_id=lead_id,
+                run={
+                    "status": "succeeded",
+                    "step": "nurturing_sequence_created",
+                    "events": [
+                        {"type": "INFO", "payload": {"msg": "Nurturing sequence analysis completed"}},
+                        {"type": "CRM.UPDATE", "payload": {"tasks_created": len(created_tasks)}}
+                    ],
+                    "tasks": created_tasks
+                },
+                lead_updates={
+                    "stage_suggestion": "contacted" if lead_context.get('pipeline') == 'New Lead' else lead_context.get('pipeline'),
+                    "engagement_score": min(lead_context.get('engagement_score', 50) + 10, 100)
+                }
+            )
+            
+        except Exception as e:
+            # Mark run as failed
+            await MainOrchestratorAI.complete_agent_run(agent_run.id, "failed")
+            await MainOrchestratorAI.log_agent_event(
+                run_id=agent_run.id,
+                event_type="ERROR",
+                payload={"msg": str(e), "error_type": "nurturing_execution_error"}
+            )
+            raise e
+    
+    @staticmethod
     async def draft_message(lead_context: Dict[str, Any], activity_type: str, channel: str) -> Dict[str, str]:
         """Draft message content using LLM"""
         try:
