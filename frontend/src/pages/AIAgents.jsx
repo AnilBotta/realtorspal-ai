@@ -88,9 +88,7 @@ const AIAgents = ({ user }) => {
   // Load real data from API
   useEffect(() => {
     if (user?.id) {
-      loadAgentsData();
-      loadActivitiesData();
-      loadApprovalQueue();
+      loadData();
       
       // Start live streaming
       startLiveStream();
