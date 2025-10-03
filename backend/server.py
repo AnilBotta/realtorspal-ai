@@ -2123,16 +2123,20 @@ class LeadGenerationAI:
         normalized['zip_postal_code'] = payload.zip_postal_code.strip() if payload.zip_postal_code else None
         normalized['address'] = payload.address.strip() if payload.address else None
         
-        # Handle budget
+        # Handle budget (map to Lead model fields)
         try:
-            normalized['budget_min'] = int(float(payload.budget_min)) if payload.budget_min else 0
+            normalized['price_min'] = int(float(payload.budget_min)) if payload.budget_min else None
         except (ValueError, TypeError):
-            normalized['budget_min'] = 0
+            normalized['price_min'] = None
         
         try:
-            normalized['budget_max'] = int(float(payload.budget_max)) if payload.budget_max else 0
+            normalized['price_max'] = int(float(payload.budget_max)) if payload.budget_max else None
         except (ValueError, TypeError):
-            normalized['budget_max'] = 0
+            normalized['price_max'] = None
+        
+        # Also set budget_min/budget_max for webhook response
+        normalized['budget_min'] = normalized['price_min']
+        normalized['budget_max'] = normalized['price_max']
         
         # Map dropdown fields with defaults
         dropdown_mappings = {
