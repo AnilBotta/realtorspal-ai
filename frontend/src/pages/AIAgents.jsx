@@ -80,20 +80,107 @@ const AIAgents = ({ user }) => {
     }
   ];
 
-  // Initialize agents
+  // Load real data from API
   useEffect(() => {
-    setAgents(agentDefinitions);
-    setSelectedAgent(agentDefinitions[0]);
-    
-    // Start live streaming
-    startLiveStream();
+    if (user?.id) {
+      loadAgentsData();
+      loadActivitiesData();
+      loadApprovalQueue();
+      
+      // Start live streaming
+      startLiveStream();
+    }
     
     return () => {
       if (streamRef.current) {
         clearInterval(streamRef.current);
       }
     };
-  }, []);
+  }, [user?.id]);
+
+  const loadAgentsData = async () => {
+    try {
+      const response = await getAIAgents(user.id);
+      const apiAgents = response.data.agents.map(agent => ({
+        ...agent,
+        icon: getIconForAgent(agent.id),
+        color: getColorForAgent(agent.id),
+        lastActivity: agent.lastActivity || 'Waiting for tasks',
+        performance: agent.performance_metrics || { successRate: 0, avgResponse: 0, tasksCompleted: 0 }
+      }));
+      setAgents(apiAgents);
+      if (apiAgents.length > 0) {
+        setSelectedAgent(apiAgents[0]);
+      }
+    } catch (error) {
+      console.error('Error loading agents:', error);
+      // Fallback to local definitions
+      setAgents(agentDefinitions);
+      setSelectedAgent(agentDefinitions[0]);
+    }
+  };
+
+  const loadActivitiesData = async () => {
+    try {
+      const response = await getAgentActivities(user.id, 50);
+      const activities = response.data.activities.map(activity => ({
+        ...activity,
+        agent: {
+          name: activity.agent_name,
+          color: getColorForAgent(activity.agent_id),
+          icon: getIconForAgent(activity.agent_id)
+        },
+        timestamp: new Date(activity.timestamp)
+      }));
+      setLiveStream(activities);
+    } catch (error) {
+      console.error('Error loading activities:', error);
+    }
+  };
+
+  const loadApprovalQueue = async () => {
+    try {
+      const response = await getApprovalQueue(user.id);
+      const approvals = response.data.approvals.map(approval => ({
+        ...approval,
+        agent: {
+          name: approval.agent_name,
+          color: getColorForAgent(approval.agent_id),
+          icon: getIconForAgent(approval.agent_id)
+        },
+        timestamp: new Date(approval.created_at)
+      }));
+      setApprovalQueue(approvals);
+    } catch (error) {
+      console.error('Error loading approval queue:', error);
+    }
+  };
+
+  const getIconForAgent = (agentId) => {
+    const iconMap = {
+      'orchestrator': Brain,
+      'lead-generator': Users,
+      'lead-nurturing': MessageSquare,
+      'customer-service': Phone,
+      'onboarding': CheckCircle,
+      'call-analyst': BarChart3,
+      'human-supervisor': Eye
+    };
+    return iconMap[agentId] || Brain;
+  };
+
+  const getColorForAgent = (agentId) => {
+    const colorMap = {
+      'orchestrator': 'purple',
+      'lead-generator': 'blue',
+      'lead-nurturing': 'green',
+      'customer-service': 'orange',
+      'onboarding': 'emerald',
+      'call-analyst': 'indigo',
+      'human-supervisor': 'gray'
+    };
+    return colorMap[agentId] || 'gray';
+  };
 
   // Simulate live streaming with WebSocket-style updates
   const startLiveStream = () => {
