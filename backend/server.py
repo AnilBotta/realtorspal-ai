@@ -2041,7 +2041,7 @@ class MainOrchestratorAI:
     
     @staticmethod
     async def create_agent_task(run_id: str, lead_id: str, user_id: str, agent_code: str, 
-                               due_at: str, channel: str, title: str, draft: Dict[str, str] = None) -> AgentTask:
+                               due_at: str, channel: str, title: str, draft: Dict[str, str] = None) -> "AgentTask":
         """Create an actionable task for humans"""
         task = AgentTask(
             run_id=run_id,
