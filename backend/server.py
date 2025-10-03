@@ -2017,7 +2017,7 @@ class MainOrchestratorAI:
     """Main Orchestrator AI for coordinating sub-agents and logging"""
     
     @staticmethod
-    async def create_agent_run(agent_code: str, lead_id: str, user_id: str, step: str = None) -> AgentRun:
+    async def create_agent_run(agent_code: str, lead_id: str, user_id: str, step: str = None) -> "AgentRun":
         """Create a new agent run"""
         agent_run = AgentRun(
             agent_code=agent_code,
