@@ -182,57 +182,76 @@ const AIAgents = ({ user }) => {
     return colorMap[agentId] || 'gray';
   };
 
-  // Simulate live streaming with WebSocket-style updates
+  // Live streaming with periodic API updates and simulated activities
   const startLiveStream = () => {
     setIsStreaming(true);
     
-    // Simulate real-time updates every 2-3 seconds
-    streamRef.current = setInterval(() => {
-      const activities = [
-        'Processing new lead from Facebook integration',
-        'Analyzing customer sentiment in recent inquiry',
-        'Drafting personalized follow-up email sequence',
-        'Updating lead scoring based on engagement',
-        'Generating onboarding checklist for new client',
-        'Extracting insights from call transcript',
-        'Optimizing lead distribution across agents',
-        'Monitoring system performance metrics',
-        'Validating lead data quality and duplicates',
-        'Creating automated response templates'
-      ];
-      
-      const newActivity = {
-        id: Date.now(),
-        agent: agentDefinitions[Math.floor(Math.random() * agentDefinitions.length)],
-        activity: activities[Math.floor(Math.random() * activities.length)],
-        timestamp: new Date(),
-        status: Math.random() > 0.1 ? 'completed' : 'processing',
-        type: Math.random() > 0.7 ? 'approval_required' : 'automated'
-      };
-
-      setLiveStream(prev => [newActivity, ...prev.slice(0, 49)]);
-      
-      // Add to approval queue if approval required
-      if (newActivity.type === 'approval_required') {
-        const approvalItem = {
-          id: newActivity.id,
-          agent: newActivity.agent,
-          task: newActivity.activity,
-          proposal: {
-            title: `${newActivity.agent.name} Recommendation`,
-            summary: [
-              'AI agent has analyzed the situation',
-              'Proposed action will be executed',
-              'Human approval required before proceeding'
-            ],
-            risks: ['Potential false positive', 'May require manual adjustment'],
-            action: newActivity.activity
-          },
-          timestamp: newActivity.timestamp
-        };
-        setApprovalQueue(prev => [approvalItem, ...prev]);
+    // Refresh data periodically and simulate some activities
+    streamRef.current = setInterval(async () => {
+      // Refresh approval queue
+      if (user?.id) {
+        try {
+          await loadApprovalQueue();
+        } catch (error) {
+          console.error('Error refreshing approval queue:', error);
+        }
       }
-    }, 2500);
+      
+      // Simulate some agent activities for demonstration
+      if (Math.random() > 0.3) {  // 70% chance to add simulated activity
+        const activities = [
+          'Processing new lead from Facebook integration',
+          'Analyzing customer sentiment in recent inquiry',
+          'Drafting personalized follow-up email sequence',
+          'Updating lead scoring based on engagement',
+          'Generating onboarding checklist for new client',
+          'Extracting insights from call transcript',
+          'Optimizing lead distribution across agents',
+          'Monitoring system performance metrics',
+          'Validating lead data quality and duplicates',
+          'Creating automated response templates'
+        ];
+        
+        const agentIds = ['orchestrator', 'lead-generator', 'lead-nurturing', 'customer-service', 'onboarding', 'call-analyst'];
+        const randomAgentId = agentIds[Math.floor(Math.random() * agentIds.length)];
+        
+        const newActivity = {
+          id: Date.now(),
+          agent: {
+            name: agentDefinitions.find(a => a.id === randomAgentId)?.name || 'AI Agent',
+            color: getColorForAgent(randomAgentId),
+            icon: getIconForAgent(randomAgentId)
+          },
+          activity: activities[Math.floor(Math.random() * activities.length)],
+          timestamp: new Date(),
+          status: Math.random() > 0.1 ? 'completed' : 'processing',
+          type: Math.random() > 0.8 ? 'approval_required' : 'automated'
+        };
+
+        setLiveStream(prev => [newActivity, ...prev.slice(0, 49)]);
+        
+        // Add to approval queue if approval required
+        if (newActivity.type === 'approval_required' && user?.id) {
+          const approvalItem = {
+            id: newActivity.id,
+            agent: newActivity.agent,
+            task: newActivity.activity,
+            proposal: {
+              title: `${newActivity.agent.name} Recommendation`,
+              summary: [
+                'AI agent has analyzed the situation',
+                'Proposed action will be executed',
+                'Human approval required before proceeding'
+              ],
+              risks: ['Potential false positive', 'May require manual adjustment'],
+              action: newActivity.activity
+            },
+            timestamp: newActivity.timestamp
+          };
+          setApprovalQueue(prev => [approvalItem, ...prev]);
+        }
+      }
+    }, 3000);  // Check every 3 seconds
   };
 
   const stopLiveStream = () => {
