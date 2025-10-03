@@ -2475,7 +2475,7 @@ async def handle_approval_decision(approval_id: str, decision: ApprovalDecision,
             "activity": f"{decision.decision.upper()}: Approval request {approval_id}",
             "status": "completed",
             "type": "human_decision",
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.utcnow().isoformat(),
             "details": {"approval_id": approval_id, "notes": decision.notes}
         }
         await db.agent_activities.insert_one(activity_data)
