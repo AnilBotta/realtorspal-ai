@@ -161,6 +161,11 @@ class Lead(BaseModel):
     source_tags: Optional[List[str]] = None
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     in_dashboard: Optional[bool] = True
+    
+    # Lead Generation AI fields for deduplication
+    hash_email: Optional[str] = None  # SHA256 hash of lowercase email
+    hash_phone: Optional[str] = None  # SHA256 hash of E.164 phone
+    phone_e164: Optional[str] = None  # Normalized E.164 phone format
 
 class CreateLeadRequest(BaseModel):
     user_id: str
