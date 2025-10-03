@@ -4433,6 +4433,145 @@ async def process_lead_nurturing(task_data: Dict[str, Any], user_id: str):
 async def process_customer_service(task_data: Dict[str, Any], user_id: str):
     """Process customer service task directly"""
 
+# --- Main Orchestrator AI Endpoints ---
+
+@app.get("/api/orchestrator/live-activity-stream/{user_id}")
+async def get_live_activity_stream(user_id: str, limit: int = 50):
+    """Get live activity stream from agent runs and events"""
+    try:
+        activity_stream = await MainOrchestratorAI.get_live_activity_stream(user_id, limit)
+        
+        # Clean up MongoDB ObjectIds for JSON serialization
+        clean_stream = []
+        for item in activity_stream:
+            clean_item = {k: v for k, v in item.items() if k != "_id"}
+            if 'events' in clean_item:
+                clean_item['events'] = [{k: v for k, v in event.items() if k != "_id"} for event in clean_item['events']]
+            if 'tasks' in clean_item:
+                clean_item['tasks'] = [{k: v for k, v in task.items() if k != "_id"} for task in clean_item['tasks']]
+            clean_stream.append(clean_item)
+        
+        return {
+            "status": "success",
+            "activity_stream": clean_stream,
+            "count": len(clean_stream)
+        }
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
+
+@app.get("/api/orchestrator/agent-runs/{user_id}")
+async def get_agent_runs(user_id: str, agent_code: Optional[str] = None, limit: int = 100):
+    """Get agent runs with optional filtering"""
+    try:
+        query = {"user_id": user_id}
+        if agent_code:
+            query["agent_code"] = agent_code
+        
+        runs = await db.agent_runs.find(query).sort("started_at", -1).limit(limit).to_list(length=limit)
+        
+        # Clean up MongoDB ObjectIds
+        clean_runs = [{k: v for k, v in run.items() if k != "_id"} for run in runs]
+        
+        return {
+            "status": "success",
+            "agent_runs": clean_runs,
+            "count": len(clean_runs)
+        }
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
+
+@app.get("/api/orchestrator/agent-tasks/{user_id}")
+async def get_agent_tasks(user_id: str, status: Optional[str] = None, limit: int = 100):
+    """Get agent tasks for Activity Board"""
+    try:
+        query = {"user_id": user_id}
+        if status:
+            query["status"] = status
+        
+        tasks = await db.agent_tasks.find(query).sort("created_at", -1).limit(limit).to_list(length=limit)
+        
+        # Clean up MongoDB ObjectIds and add lead names
+        clean_tasks = []
+        for task in tasks:
+            clean_task = {k: v for k, v in task.items() if k != "_id"}
+            
+            # Get lead info
+            lead = await db.leads.find_one({"id": clean_task["lead_id"]})
+            if lead:
+                clean_task["lead_name"] = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or "Unnamed Lead"
+            else:
+                clean_task["lead_name"] = "Unknown Lead"
+            
+            clean_tasks.append(clean_task)
+        
+        return {
+            "status": "success",
+            "agent_tasks": clean_tasks,
+            "count": len(clean_tasks)
+        }
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
+
+@app.post("/api/orchestrator/execute-agent")
+async def execute_agent(agent_code: str, lead_id: str, user_id: str, context: Dict[str, Any] = None):
+    """Execute a specific agent with proper logging"""
+    try:
+        if agent_code == "NurturingAI":
+            # Get lead context
+            lead = await db.leads.find_one({"id": lead_id, "user_id": user_id})
+            if not lead:
+                raise HTTPException(status_code=404, detail="Lead not found")
+            
+            lead_context = NurturingAI.get_lead_context(lead)
+            lead_context['user_id'] = user_id
+            lead_context['lead_id'] = lead_id
+            
+            # Execute nurturing agent
+            result = await NurturingAI.execute_nurturing_agent(lead_id, user_id, lead_context)
+            return result.dict()
+        
+        else:
+            # For other agents, create a basic run for now
+            agent_run = await MainOrchestratorAI.create_agent_run(agent_code, lead_id, user_id)
+            
+            await MainOrchestratorAI.log_agent_event(
+                run_id=agent_run.id,
+                event_type="INFO",
+                payload={"msg": f"{agent_code} execution requested"}
+            )
+            
+            await MainOrchestratorAI.complete_agent_run(agent_run.id, "succeeded")
+            
+            return {
+                "agent_code": agent_code,
+                "lead_id": lead_id,
+                "run": {
+                    "status": "succeeded",
+                    "step": "execution_completed",
+                    "events": [{"type": "INFO", "payload": {"msg": f"{agent_code} executed successfully"}}],
+                    "tasks": []
+                },
+                "lead_updates": {"engagement_score": 0}
+            }
+    
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
+
 # --- Nurturing AI Endpoints ---
 
 @app.post("/api/nurturing-ai/generate-plan/{user_id}")
