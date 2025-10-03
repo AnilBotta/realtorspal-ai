@@ -8,6 +8,8 @@ const AIAgents = ({ user }) => {
   const [liveStream, setLiveStream] = useState([]);
   const [approvalQueue, setApprovalQueue] = useState([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [configAgent, setConfigAgent] = useState(null);
   const streamRef = useRef(null);
 
   // Agent definitions matching the user's requirements
