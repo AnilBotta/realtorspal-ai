@@ -826,6 +826,180 @@ The Filter Templates functionality is **FULLY FUNCTIONAL** and working exactly a
 
 ---
 
+## Nurturing AI System Testing
+
+### Test Summary
+Comprehensive testing of the Nurturing AI system has been completed. The system is **MOSTLY FUNCTIONAL** with 8 out of 10 core features working correctly, but has **2 CRITICAL ISSUES** in the sentiment analysis logic that need immediate attention.
+
+### Tests Performed
+
+#### 1. Generate Nurturing Plan with Valid Lead ✅
+- **Status**: PASSED
+- **Description**: Tested POST `/api/nurturing-ai/generate-plan/{user_id}` with comprehensive lead data
+- **Test Case**: Created lead with detailed information (name, contact, property preferences, pipeline stage, budget, timeline)
+- **Result**: Successfully generated nurturing plan with 6 activities over 2-week period
+- **Verification**: 
+  - Plan structure includes all required fields (lead_id, user_id, activity_board, lead_updates, next_review, engagement_score, strategy_notes)
+  - Activities have proper structure (id, lead_id, user_id, date, action, channel, status)
+  - Activity types are valid (voice_call, sms, email)
+  - Channels are appropriate (phone, sms, email)
+  - Strategy notes indicate proper frequency and channel selection
+- **User ID**: "03f82986-51af-460c-a549-1c5077e67fb0" (demo user as requested)
+
+#### 2. Generate Nurturing Plan with Invalid Lead ✅
+- **Status**: PASSED
+- **Description**: Tested error handling when lead ID doesn't exist
+- **Test Case**: Used non-existent lead ID "non-existent-lead-id"
+- **Result**: Proper 404 error returned with message "Lead not found"
+- **Verification**: Error handling working correctly for invalid lead scenarios
+
+#### 3. Get Nurturing Activities ✅
+- **Status**: PASSED
+- **Description**: Tested GET `/api/nurturing-ai/activities/{user_id}` to retrieve activities
+- **Result**: Successfully retrieved 6 activities with proper response structure
+- **Verification**:
+  - Response includes status: "success", activities array, and count field
+  - Activity count matches array length
+  - Activities have all required fields (id, lead_id, user_id, date, action, channel, status)
+
+#### 4. Get Activities with Filters ✅
+- **Status**: PASSED
+- **Description**: Tested GET `/api/nurturing-ai/activities/{user_id}` with date and status filters
+- **Test Cases**:
+  - Date filter: Retrieved activities for specific date
+  - Status filter: Retrieved activities with "pending" status (6 activities)
+  - Combined filters: Date + status filtering
+- **Result**: All filter combinations working correctly
+- **Verification**: API properly handles optional query parameters for filtering
+
+#### 5. Update Activity Status ✅
+- **Status**: PASSED
+- **Description**: Tested PUT `/api/nurturing-ai/activities/{activity_id}` to mark activities as completed
+- **Test Case**: Updated activity status from "pending" to "completed" with notes
+- **Result**: Activity successfully updated with proper response
+- **Verification**: Status update working with completion timestamp and notes
+
+#### 6. Update Activity with Invalid ID ✅
+- **Status**: PASSED
+- **Description**: Tested error handling for non-existent activity ID
+- **Test Case**: Used invalid activity ID "non-existent-activity-id"
+- **Result**: Proper 404 error returned with message "Activity not found"
+- **Verification**: Error handling working correctly for invalid activity scenarios
+
+#### 7. Analyze Reply - Positive Sentiment ✅
+- **Status**: PASSED
+- **Description**: Tested POST `/api/nurturing-ai/analyze-reply` with positive lead replies
+- **Test Cases**:
+  - "Yes, I'm very interested! Please call me."
+  - "That sounds great! Let me know more details."
+  - "Perfect timing, I was just looking for something like this."
+- **Result**: All positive replies correctly classified as sentiment: "positive", intent: "interested"
+- **Verification**: Positive sentiment detection working correctly with appropriate suggested actions
+
+#### 8. Analyze Reply - Negative Sentiment ❌
+- **Status**: **CRITICAL FAILURE**
+- **Description**: Tested POST `/api/nurturing-ai/analyze-reply` with negative lead replies
+- **Test Cases**:
+  - "No, I'm not interested anymore." → Expected: negative, Got: **positive**
+  - "Please stop contacting me." → Expected: negative, Got: **positive**
+  - "Not ready to buy anything right now." → Expected: negative, Got: **positive**
+- **Critical Issue**: Sentiment analysis logic is flawed - negative replies are being classified as positive
+- **Root Cause**: The word "interested" in "not interested" is matching the positive word list before checking negative phrases
+- **Impact**: HIGH - This will cause inappropriate follow-up actions for leads who have explicitly declined interest
+
+#### 9. Analyze Reply - Neutral Sentiment ❌
+- **Status**: **CRITICAL FAILURE**
+- **Description**: Tested POST `/api/nurturing-ai/analyze-reply` with neutral lead replies
+- **Test Cases**:
+  - "Maybe later, I need to think about it." → Expected: neutral, Got: **negative**
+  - "I'm pretty busy right now." → Expected: neutral, Got: **negative**
+  - "Let me get back to you on this." → Expected: neutral, Got: **negative**
+- **Critical Issue**: Sentiment analysis logic incorrectly classifies neutral responses as negative
+- **Root Cause**: Word matching logic is not properly prioritizing neutral phrases
+- **Impact**: HIGH - This will cause inappropriate nurturing frequency adjustments for leads who are simply not ready yet
+
+#### 10. Comprehensive Workflow Test ✅
+- **Status**: PASSED
+- **Description**: End-to-end workflow test covering the complete nurturing process
+- **Workflow Steps**:
+  1. **Lead Creation**: Created comprehensive test lead with detailed property preferences
+  2. **Plan Generation**: Generated nurturing plan with 6 activities
+  3. **Activity Retrieval**: Retrieved 12 total activities via API
+  4. **Status Update**: Successfully updated activity to completed status
+  5. **Reply Analysis**: Analyzed positive reply (working correctly)
+- **Result**: Complete workflow functional except for sentiment analysis issues
+- **Verification**: All core nurturing features integrate properly
+
+### API Endpoint Verification
+- **Generate Plan**: `POST /api/nurturing-ai/generate-plan/{user_id}` ✅ Working
+- **Get Activities**: `GET /api/nurturing-ai/activities/{user_id}` ✅ Working
+- **Update Activity**: `PUT /api/nurturing-ai/activities/{activity_id}` ✅ Working
+- **Analyze Reply**: `POST /api/nurturing-ai/analyze-reply` ⚠️ Working but with critical sentiment analysis bugs
+- **Authentication**: Demo user session working correctly with user ID "03f82986-51af-460c-a549-1c5077e67fb0"
+
+### Key Findings
+1. **Core Functionality**: Lead context extraction, nurturing strategy determination, and activity generation working correctly
+2. **Activity Scheduling**: 2-week activity schedules generated properly with appropriate frequency (3 touches/week for high-priority leads)
+3. **Channel Selection**: Primary/secondary channel logic working (SMS for new leads, phone for hot leads)
+4. **Message Drafting**: LLM-powered message creation integrated (though not extensively tested due to focus on API endpoints)
+5. **Database Integration**: Activities properly stored in nurturing_activities collection
+6. **Error Handling**: Proper 404 responses for invalid lead/activity IDs
+
+### Critical Issues Requiring Immediate Fix
+
+#### Issue 1: Negative Sentiment Misclassification
+- **Problem**: Replies like "No, I'm not interested anymore." are classified as positive
+- **Cause**: Word "interested" matches positive list before "not interested" is checked in negative list
+- **Fix Required**: Implement phrase-based matching or reorder logic to check negative phrases first
+- **Priority**: **CRITICAL** - Could lead to harassment of leads who have declined interest
+
+#### Issue 2: Neutral Sentiment Misclassification  
+- **Problem**: Neutral replies like "I'm pretty busy right now." are classified as negative
+- **Cause**: Sentiment analysis logic not properly handling neutral indicators
+- **Fix Required**: Improve word matching logic to properly identify neutral sentiment
+- **Priority**: **CRITICAL** - Could lead to inappropriate nurturing frequency changes
+
+### Backend System Health
+- **Health Check**: ✅ PASSED
+- **Authentication**: ✅ PASSED (Demo session with user ID "03f82986-51af-460c-a549-1c5077e67fb0")
+- **Database Connectivity**: ✅ PASSED (MongoDB operations successful with nurturing_activities collection)
+- **API Routing**: ✅ PASSED (All nurturing AI endpoints responding correctly)
+- **LLM Integration**: ✅ PASSED (Emergent LLM API working for message drafting)
+
+## Overall Assessment - Nurturing AI System
+The Nurturing AI system is **80% FUNCTIONAL** with core features working correctly, but has **CRITICAL SENTIMENT ANALYSIS BUGS** that must be fixed before production use:
+
+### ✅ **Working Features (8/10)**:
+- **Lead Context Extraction**: Properly extracts name, contact info, property preferences, pipeline stage, budget, and timeline
+- **Nurturing Strategy**: Correctly determines frequency (high/medium/low) and channel preferences based on lead data
+- **Activity Generation**: Creates appropriate 2-week schedules with voice_call, sms, and email activities
+- **Activity Management**: Full CRUD operations for activities with proper status tracking
+- **Database Integration**: Activities stored and retrieved correctly from nurturing_activities collection
+- **Error Handling**: Proper 404 responses for invalid IDs
+- **API Integration**: All endpoints responding correctly with proper JSON structures
+- **Workflow Integration**: End-to-end process works seamlessly
+
+### ❌ **Critical Issues (2/10)**:
+- **Negative Sentiment Analysis**: Incorrectly classifies negative replies as positive (CRITICAL BUG)
+- **Neutral Sentiment Analysis**: Incorrectly classifies neutral replies as negative (CRITICAL BUG)
+
+### **Production Readiness**: 
+**NOT READY** - The sentiment analysis bugs are critical and could lead to:
+1. Inappropriate follow-up with leads who have declined interest
+2. Incorrect nurturing frequency adjustments
+3. Poor lead experience and potential complaints
+4. Reduced conversion rates due to mismatched communication strategies
+
+### **Recommended Actions**:
+1. **IMMEDIATE**: Fix sentiment analysis logic to properly handle negative and neutral phrases
+2. **HIGH PRIORITY**: Add comprehensive sentiment analysis testing with edge cases
+3. **MEDIUM PRIORITY**: Consider implementing LLM-based sentiment analysis for better accuracy
+4. **LOW PRIORITY**: Add more sophisticated intent classification beyond the current rule-based approach
+
+**The core nurturing functionality is solid, but the sentiment analysis must be fixed before production deployment.**
+
+---
+
 ## AI Agent Button Functionality Testing
 
 ### Test Summary
