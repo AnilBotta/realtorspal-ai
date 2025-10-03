@@ -2441,7 +2441,9 @@ async def create_approval_request(approval: Dict[str, Any], user_id: str):
         }
         
         await db.approval_requests.insert_one(approval_data)
-        return {"status": "success", "approval": approval_data}
+        # Return a copy without MongoDB's _id field
+        return_data = {k: v for k, v in approval_data.items() if k != "_id"}
+        return {"status": "success", "approval": return_data}
         
     except Exception as e:
         print(f"Error creating approval request: {e}")
