@@ -17,7 +17,7 @@ import {
   Edit,
   X
 } from 'lucide-react';
-import { getNurturingActivities, updateActivityStatus, generateNurturingPlan } from '../api';
+import { getNurturingActivities, updateActivityStatus, generateNurturingPlan, getLeads } from '../api';
 
 const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
   const [activities, setActivities] = useState([]);
