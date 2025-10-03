@@ -298,7 +298,6 @@ class AIAgentTester:
         try:
             # Create a test approval request
             approval_payload = {
-                "user_id": self.demo_user_id,
                 "agent_id": "lead-nurturing",
                 "agent_name": "Lead Nurturing AI",
                 "task": "Send personalized follow-up email to high-value lead",
@@ -315,7 +314,7 @@ class AIAgentTester:
                 "priority": "high"
             }
             
-            response = requests.post(f"{self.base_url}/ai-agents/approvals", json=approval_payload, timeout=10)
+            response = requests.post(f"{self.base_url}/ai-agents/approvals", json=approval_payload, params={"user_id": self.demo_user_id}, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
