@@ -2362,7 +2362,17 @@ async def get_agent_activities(user_id: str, limit: int = 50):
         ).sort("timestamp", -1).limit(limit)
         
         activities = await activities_cursor.to_list(length=None)
-        return {"activities": activities}
+        
+        # Convert MongoDB documents to JSON-serializable format
+        converted_activities = []
+        for activity in activities:
+            activity_dict = {k: v for k, v in activity.items() if k != "_id"}
+            # Convert datetime objects to ISO strings if they exist
+            if "timestamp" in activity_dict and hasattr(activity_dict["timestamp"], "isoformat"):
+                activity_dict["timestamp"] = activity_dict["timestamp"].isoformat()
+            converted_activities.append(activity_dict)
+        
+        return {"activities": converted_activities}
         
     except Exception as e:
         print(f"Error getting agent activities: {e}")
