@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Filter, Mail, Phone, MapPin, Calendar, User, Edit, Trash2, RefreshCw, LayoutDashboard, X } from 'lucide-react';
-import { getLeads, createLead, updateLead, deleteLead } from '../api';
+import { Search, Plus, Filter, Mail, Phone, MapPin, Calendar, User, Edit, Trash2, RefreshCw, LayoutDashboard, X, Bot } from 'lucide-react';
+import { getLeads, createLead, updateLead, deleteLead, orchestrateAgents, createAgentActivity } from '../api';
 import AddLeadModal from '../components/AddLeadModal';
 import ImportLeadsModal from '../components/ImportLeadsModal';
 import LeadDrawer from '../components/LeadDrawer';
 import EmailModal from '../components/EmailModal';
 import CommunicationModal from '../components/CommunicationModal';
 import FilterTemplates from '../components/FilterTemplates';
+import AIAgentModal from '../components/AIAgentModal';
 
 export default function Leads({ user }) {
   const [leads, setLeads] = useState([]);
