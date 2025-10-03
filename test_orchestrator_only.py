@@ -149,13 +149,12 @@ class OrchestratorTester:
                 return False
             
             # Now execute NurturingAI agent
-            execute_payload = {
+            execute_params = {
                 "agent_code": "NurturingAI",
                 "lead_id": lead_id,
-                "user_id": self.demo_user_id,
-                "context": {"test_execution": True}
+                "user_id": self.demo_user_id
             }
-            response = requests.post(f"{self.base_url}/orchestrator/execute-agent", json=execute_payload, timeout=15)
+            response = requests.post(f"{self.base_url}/orchestrator/execute-agent", params=execute_params, timeout=15)
             
             if response.status_code == 200:
                 data = response.json()
