@@ -285,6 +285,7 @@ export default function Dashboard({ user }){
   const [emailLead, setEmailLead] = useState(null);
   const [openAIAgent, setOpenAIAgent] = useState(false);
   const [aiAgentLead, setAIAgentLead] = useState(null);
+  const [showActivityBoard, setShowActivityBoard] = useState(true);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   useEffect(() => {
