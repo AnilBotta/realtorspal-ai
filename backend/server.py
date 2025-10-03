@@ -807,7 +807,7 @@ async def generate_access_token(token_request: AccessTokenRequest):
             )
             
             # Get base URL for TwiML endpoints
-            base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://smart-agent-hub-26.preview.emergentagent.com')
+            base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://aicrm-realtor.preview.emergentagent.com')
             
             # Create voice grant with our TwiML endpoints
             voice_grant = VoiceGrant(
@@ -897,7 +897,7 @@ async def initiate_webrtc_call(call_data: TwilioWebRTCCallRequest):
             return {"status": "error", "message": "Failed to initialize Twilio client"}
         
         # Create TwiML URL with parameters for WebRTC connection
-        base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://smart-agent-hub-26.preview.emergentagent.com')
+        base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://aicrm-realtor.preview.emergentagent.com')
         agent_identity = f"agent_{lead['user_id']}"
         
         # URL encode parameters for TwiML endpoint
@@ -1018,7 +1018,7 @@ async def initiate_call(call_data: TwilioCallRequest):
         encoded_message = quote(call_data.message)
         
         # Create voice webhook URL with parameters
-        base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://smart-agent-hub-26.preview.emergentagent.com')
+        base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://aicrm-realtor.preview.emergentagent.com')
         voice_webhook_url = f"{base_url}/api/twilio/voice?agent_phone={clean_twilio_phone}&lead_phone={clean_lead_phone}&message={encoded_message}"
         
         print(f"Initiating call from {twilio_phone} to {lead['phone']} with webhook: {voice_webhook_url}")
