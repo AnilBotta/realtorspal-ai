@@ -15,6 +15,10 @@ from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from pymongo.errors import DuplicateKeyError
+from emergentintegrations.llms import get_llm_client
+import json
+import asyncio
+from typing import AsyncGenerator
 
 # Load environment from backend/.env if present
 load_dotenv()
