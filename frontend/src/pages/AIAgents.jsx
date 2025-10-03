@@ -10,6 +10,7 @@ const AIAgents = ({ user }) => {
   const [liveActivityStream, setLiveActivityStream] = useState([]);
   const [agentRuns, setAgentRuns] = useState([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [configAgent, setConfigAgent] = useState(null);
   const streamRef = useRef(null);
