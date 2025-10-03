@@ -2310,7 +2310,7 @@ class RealtorsPalAPITester:
                 "first_name": "Jane",
                 "last_name": "Doe",
                 "email": duplicate_email,  # Same email
-                "phone": "4155552222",     # Same phone
+                "phone": unique_phone,     # Same phone
                 "consent_marketing": True,
                 "property_type": "Single Family Home",  # Different property type
                 "city": "san francisco",   # Different city
