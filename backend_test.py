@@ -2229,6 +2229,15 @@ class RealtorsPalAPITester:
             self.test_email_history,
             self.test_email_send_setup_required,
             self.test_smtp_settings_integration,
+            
+            # Lead Generation AI Webhook System Tests
+            self.test_lead_generation_ai_webhook_valid_new_lead,
+            self.test_lead_generation_ai_webhook_duplicate_merge,
+            self.test_lead_generation_ai_webhook_invalid_payload,
+            self.test_lead_generation_ai_webhook_idempotency,
+            self.test_lead_generation_ai_test_endpoint,
+            self.test_lead_generation_ai_audit_logs,
+            self.test_lead_generation_ai_data_normalization,
         ]
         
         for test in tests:
