@@ -263,6 +263,7 @@ function DraggableLeadCard({ lead, onOpen, onCommunicate, onAIAgent, onPipelineC
         lead={lead} 
         onOpen={onOpen} 
         onCommunicate={onCommunicate} 
+        onAIAgent={onAIAgent}
         onPipelineChange={onPipelineChange}
         dragHandle={<div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing"><GripVertical size={16}/></div>} 
       />
