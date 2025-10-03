@@ -160,6 +160,78 @@ const AIAgents = ({ user }) => {
     }
   };
 
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load agents
+      const agentsResponse = await getAIAgents(user.id);
+      if (agentsResponse?.data?.agents) {
+        const apiAgents = agentsResponse.data.agents.map(agent => ({
+          ...agent,
+          icon: getIconForAgent(agent.id),
+          color: getColorForAgent(agent.id),
+          lastActivity: agent.lastActivity || 'Waiting for tasks',
+          performance: agent.performance_metrics || { successRate: 0, avgResponse: 0, tasksCompleted: 0 }
+        }));
+        setAgents(apiAgents);
+        if (apiAgents.length > 0) {
+          setSelectedAgent(apiAgents[0]);
+        }
+      }
+
+      // Load activities (legacy)
+      const activitiesResponse = await getAgentActivities(user.id, 50);
+      if (activitiesResponse?.data?.activities) {
+        const activities = activitiesResponse.data.activities.map(activity => ({
+          ...activity,
+          agent: {
+            name: activity.agent_name,
+            color: getColorForAgent(activity.agent_id),
+            icon: getIconForAgent(activity.agent_id)
+          },
+          timestamp: new Date(activity.timestamp)
+        }));
+        setLiveStream(activities);
+      }
+
+      // Load approval queue
+      const approvalsResponse = await getApprovalQueue(user.id);
+      if (approvalsResponse?.data?.approvals) {
+        const approvals = approvalsResponse.data.approvals.map(approval => ({
+          ...approval,
+          agent: {
+            name: approval.agent_name,
+            color: getColorForAgent(approval.agent_id),
+            icon: getIconForAgent(approval.agent_id)
+          },
+          timestamp: new Date(approval.created_at)
+        }));
+        setApprovalQueue(approvals);
+      }
+
+      // Load Live Activity Stream (new)
+      const streamResponse = await getLiveActivityStream(user.id, 50);
+      if (streamResponse?.data?.activity_stream) {
+        setLiveActivityStream(streamResponse.data.activity_stream);
+      }
+
+      // Load Agent Runs
+      const runsResponse = await getAgentRuns(user.id, null, 100);
+      if (runsResponse?.data?.agent_runs) {
+        setAgentRuns(runsResponse.data.agent_runs);
+      }
+
+    } catch (error) {
+      console.error('Failed to load AI Agents data:', error);
+      // Fallback to local definitions for agents
+      setAgents(agentDefinitions);
+      setSelectedAgent(agentDefinitions[0]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getIconForAgent = (agentId) => {
     const iconMap = {
       'orchestrator': Brain,
