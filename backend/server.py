@@ -2336,7 +2336,7 @@ async def get_ai_agents(user_id: str):
 async def update_ai_agent(agent_id: str, agent_config: Dict[str, Any], user_id: str):
     """Update AI agent configuration"""
     try:
-        agent_config["updated_at"] = datetime.utcnow()
+        agent_config["updated_at"] = datetime.utcnow().isoformat()
         
         result = await db.ai_agents.update_one(
             {"id": agent_id, "user_id": user_id},
