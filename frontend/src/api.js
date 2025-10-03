@@ -57,4 +57,19 @@ export const createApprovalRequest = (approval, user_id) => api.post(`/ai-agents
 export const handleApprovalDecision = (approval_id, decision, user_id) => api.put(`/ai-agents/approvals/${approval_id}`, decision, { params: { user_id } });
 export const orchestrateAgents = (task_data, user_id) => api.post(`/ai-agents/orchestrate`, task_data, { params: { user_id } });
 
+// Nurturing AI APIs
+export const generateNurturingPlan = (user_id, lead_id) => api.post(`/nurturing-ai/generate-plan/${user_id}`, null, { params: { lead_id } });
+export const getNurturingActivities = (user_id, date = null, status = null) => {
+  const params = { user_id };
+  if (date) params.date = date;
+  if (status) params.status = status;
+  return api.get(`/nurturing-ai/activities/${user_id}`, { params });
+};
+export const updateActivityStatus = (activity_id, status, user_id, notes = null) => {
+  const params = { status, user_id };
+  if (notes) params.notes = notes;
+  return api.put(`/nurturing-ai/activities/${activity_id}`, null, { params });
+};
+export const analyzeReply = (user_id, lead_id, reply_text) => api.post(`/nurturing-ai/analyze-reply`, null, { params: { user_id, lead_id, reply_text } });
+
 export default api;
