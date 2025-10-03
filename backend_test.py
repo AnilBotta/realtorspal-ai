@@ -2180,6 +2180,521 @@ class RealtorsPalAPITester:
             print("⚠️  Some comprehensive lead model tests FAILED!")
             return False
 
+    def test_lead_generation_ai_webhook_valid_new_lead(self) -> bool:
+        """Test POST /api/webhooks/lead-intake with valid new lead data"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            timestamp = int(time.time()) + 500
+            payload = {
+                "first_name": "John",
+                "last_name": "Smith", 
+                "email": f"john.smith.{timestamp}@example.com",
+                "phone": "4155551234",  # 10-digit format to test normalization
+                "consent_marketing": True,
+                "property_type": "Single Family Home",
+                "city": "san francisco",  # lowercase to test title case normalization
+                "budget_min": 500000,
+                "budget_max": 750000,
+                "lead_source": "website",
+                "source": "website",
+                "custom_fields": {
+                    "user_id": demo_user_id,
+                    "campaign": "spring_2024"
+                }
+            }
+            
+            headers = {
+                "X-Source": "website",
+                "Idempotency-Key": f"test-{timestamp}"
+            }
+            
+            response = requests.post(f"{self.base_url}/webhooks/lead-intake", json=payload, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "accepted" and 
+                    data.get("result") == "created" and
+                    "lead_id" in data and
+                    "summary" in data):
+                    
+                    # Verify the lead was actually created
+                    lead_id = data["lead_id"]
+                    verify_response = requests.get(f"{self.base_url}/leads", params={"user_id": demo_user_id}, timeout=10)
+                    
+                    if verify_response.status_code == 200:
+                        leads = verify_response.json()
+                        created_lead = next((l for l in leads if l.get("id") == lead_id), None)
+                        
+                        if created_lead:
+                            # Check normalization
+                            phone_normalized = created_lead.get("phone") == "+14155551234"
+                            email_normalized = created_lead.get("email") == f"john.smith.{timestamp}@example.com"
+                            city_normalized = created_lead.get("city") == "San Francisco"
+                            
+                            if phone_normalized and email_normalized and city_normalized:
+                                self.log_test("Lead Generation AI Webhook Valid New Lead", True, 
+                                            f"Lead created successfully with ID: {lead_id}. "
+                                            f"Phone normalized: {created_lead.get('phone')}, "
+                                            f"City normalized: {created_lead.get('city')}")
+                                return True
+                            else:
+                                self.log_test("Lead Generation AI Webhook Valid New Lead", False, 
+                                            f"Normalization failed. Phone: {created_lead.get('phone')}, "
+                                            f"Email: {created_lead.get('email')}, City: {created_lead.get('city')}")
+                                return False
+                        else:
+                            self.log_test("Lead Generation AI Webhook Valid New Lead", False, 
+                                        f"Lead with ID {lead_id} not found in database")
+                            return False
+                    else:
+                        self.log_test("Lead Generation AI Webhook Valid New Lead", False, 
+                                    f"Failed to verify lead creation: {verify_response.text}")
+                        return False
+                else:
+                    self.log_test("Lead Generation AI Webhook Valid New Lead", False, 
+                                f"Unexpected webhook response: {data}")
+                    return False
+            else:
+                self.log_test("Lead Generation AI Webhook Valid New Lead", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Lead Generation AI Webhook Valid New Lead", False, f"Exception: {str(e)}")
+            return False
+
+    def test_lead_generation_ai_webhook_duplicate_merge(self) -> bool:
+        """Test POST /api/webhooks/lead-intake with duplicate email that should merge"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            timestamp = int(time.time()) + 501
+            duplicate_email = f"duplicate.merge.{timestamp}@example.com"
+            
+            # First, create an initial lead
+            initial_payload = {
+                "first_name": "Jane",
+                "last_name": "Doe",
+                "email": duplicate_email,
+                "phone": "4155552222",
+                "consent_marketing": True,
+                "property_type": "Condo",
+                "city": "oakland",
+                "budget_min": 300000,
+                "source": "fb_lead_ad",
+                "custom_fields": {"user_id": demo_user_id}
+            }
+            
+            headers1 = {"Idempotency-Key": f"initial-{timestamp}"}
+            response1 = requests.post(f"{self.base_url}/webhooks/lead-intake", json=initial_payload, headers=headers1, timeout=10)
+            
+            if response1.status_code != 200:
+                self.log_test("Lead Generation AI Webhook Duplicate Merge", False, 
+                            f"Failed to create initial lead: {response1.text}")
+                return False
+            
+            initial_data = response1.json()
+            if initial_data.get("result") != "created":
+                self.log_test("Lead Generation AI Webhook Duplicate Merge", False, 
+                            f"Initial lead not created: {initial_data}")
+                return False
+            
+            initial_lead_id = initial_data["lead_id"]
+            
+            # Now send a duplicate with additional information
+            duplicate_payload = {
+                "first_name": "Jane",
+                "last_name": "Doe",
+                "email": duplicate_email,  # Same email
+                "phone": "4155552222",     # Same phone
+                "consent_marketing": True,
+                "property_type": "Single Family Home",  # Different property type
+                "city": "san francisco",   # Different city
+                "budget_max": 800000,      # Additional budget info
+                "lead_description": "Follow-up inquiry about larger properties",
+                "source": "chatbot",
+                "custom_fields": {"user_id": demo_user_id}
+            }
+            
+            headers2 = {"Idempotency-Key": f"duplicate-{timestamp}"}
+            response2 = requests.post(f"{self.base_url}/webhooks/lead-intake", json=duplicate_payload, headers=headers2, timeout=10)
+            
+            if response2.status_code == 200:
+                data = response2.json()
+                if (data.get("status") == "accepted" and 
+                    data.get("result") == "merged" and
+                    data.get("lead_id") == initial_lead_id):
+                    
+                    # Verify the lead was merged correctly
+                    verify_response = requests.get(f"{self.base_url}/leads", params={"user_id": demo_user_id}, timeout=10)
+                    
+                    if verify_response.status_code == 200:
+                        leads = verify_response.json()
+                        merged_lead = next((l for l in leads if l.get("id") == initial_lead_id), None)
+                        
+                        if merged_lead:
+                            # Check that new information was added while preserving existing
+                            has_budget_max = merged_lead.get("budget_max") == 800000
+                            has_description = "Follow-up inquiry" in merged_lead.get("lead_description", "")
+                            
+                            self.log_test("Lead Generation AI Webhook Duplicate Merge", True, 
+                                        f"Lead merged successfully. ID: {initial_lead_id}, "
+                                        f"Budget max added: {has_budget_max}, "
+                                        f"Description appended: {has_description}")
+                            return True
+                        else:
+                            self.log_test("Lead Generation AI Webhook Duplicate Merge", False, 
+                                        f"Merged lead not found in database")
+                            return False
+                    else:
+                        self.log_test("Lead Generation AI Webhook Duplicate Merge", False, 
+                                    f"Failed to verify merge: {verify_response.text}")
+                        return False
+                else:
+                    self.log_test("Lead Generation AI Webhook Duplicate Merge", False, 
+                                f"Expected merge result, got: {data}")
+                    return False
+            else:
+                self.log_test("Lead Generation AI Webhook Duplicate Merge", False, 
+                            f"Status: {response2.status_code}, Response: {response2.text}")
+                return False
+        except Exception as e:
+            self.log_test("Lead Generation AI Webhook Duplicate Merge", False, f"Exception: {str(e)}")
+            return False
+
+    def test_lead_generation_ai_webhook_invalid_payload(self) -> bool:
+        """Test POST /api/webhooks/lead-intake with invalid payload (missing required fields)"""
+        try:
+            timestamp = int(time.time()) + 502
+            
+            # Missing required fields: no name fields and no contact info
+            invalid_payload = {
+                "property_type": "House",
+                "city": "Los Angeles",
+                "budget_min": 400000,
+                "source": "website"
+                # Missing: first_name/last_name/full_name, email/phone, consent_marketing
+            }
+            
+            headers = {"Idempotency-Key": f"invalid-{timestamp}"}
+            response = requests.post(f"{self.base_url}/webhooks/lead-intake", json=invalid_payload, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "accepted" and 
+                    data.get("result") == "rejected" and
+                    "reason" in data and
+                    ("Missing required field" in data["reason"] or "validation" in data["reason"].lower())):
+                    
+                    self.log_test("Lead Generation AI Webhook Invalid Payload", True, 
+                                f"Invalid payload properly rejected: {data['reason']}")
+                    return True
+                else:
+                    self.log_test("Lead Generation AI Webhook Invalid Payload", False, 
+                                f"Expected rejection, got: {data}")
+                    return False
+            else:
+                self.log_test("Lead Generation AI Webhook Invalid Payload", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Lead Generation AI Webhook Invalid Payload", False, f"Exception: {str(e)}")
+            return False
+
+    def test_lead_generation_ai_webhook_idempotency(self) -> bool:
+        """Test POST /api/webhooks/lead-intake idempotency (same key should return cached result)"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            timestamp = int(time.time()) + 503
+            idempotency_key = f"idempotency-test-{timestamp}"
+            
+            payload = {
+                "first_name": "Idempotent",
+                "last_name": "Test",
+                "email": f"idempotent.test.{timestamp}@example.com",
+                "phone": "4155553333",
+                "consent_marketing": True,
+                "property_type": "Townhouse",
+                "source": "chatbot",
+                "custom_fields": {"user_id": demo_user_id}
+            }
+            
+            headers = {"Idempotency-Key": idempotency_key}
+            
+            # First request
+            response1 = requests.post(f"{self.base_url}/webhooks/lead-intake", json=payload, headers=headers, timeout=10)
+            
+            if response1.status_code != 200:
+                self.log_test("Lead Generation AI Webhook Idempotency", False, 
+                            f"First request failed: {response1.text}")
+                return False
+            
+            data1 = response1.json()
+            if data1.get("result") != "created":
+                self.log_test("Lead Generation AI Webhook Idempotency", False, 
+                            f"First request didn't create lead: {data1}")
+                return False
+            
+            # Second request with same idempotency key
+            response2 = requests.post(f"{self.base_url}/webhooks/lead-intake", json=payload, headers=headers, timeout=10)
+            
+            if response2.status_code == 200:
+                data2 = response2.json()
+                if (data2.get("status") == "already_processed" and
+                    "result" in data2):
+                    
+                    self.log_test("Lead Generation AI Webhook Idempotency", True, 
+                                f"Idempotency working correctly. First: {data1.get('result')}, "
+                                f"Second: {data2.get('status')}")
+                    return True
+                else:
+                    self.log_test("Lead Generation AI Webhook Idempotency", False, 
+                                f"Expected already_processed, got: {data2}")
+                    return False
+            else:
+                self.log_test("Lead Generation AI Webhook Idempotency", False, 
+                            f"Second request status: {response2.status_code}, Response: {response2.text}")
+                return False
+        except Exception as e:
+            self.log_test("Lead Generation AI Webhook Idempotency", False, f"Exception: {str(e)}")
+            return False
+
+    def test_lead_generation_ai_test_endpoint(self) -> bool:
+        """Test POST /api/lead-generation-ai/test for validation without processing"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            timestamp = int(time.time()) + 504
+            
+            # Test with valid payload
+            valid_payload = {
+                "first_name": "Test",
+                "last_name": "Validation",
+                "email": f"test.validation.{timestamp}@example.com",
+                "phone": "4155554444",
+                "consent_marketing": True,
+                "property_type": "Condo",
+                "city": "berkeley",
+                "budget_min": 350000,
+                "source": "website"
+            }
+            
+            response = requests.post(f"{self.base_url}/lead-generation-ai/test", 
+                                   json=valid_payload, 
+                                   params={"user_id": demo_user_id}, 
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "success" and
+                    data.get("validation") == "passed" and
+                    "normalized_data" in data and
+                    "hashes" in data and
+                    "duplicate_check" in data):
+                    
+                    # Check normalization
+                    normalized = data["normalized_data"]
+                    hashes = data["hashes"]
+                    duplicate_check = data["duplicate_check"]
+                    
+                    phone_normalized = normalized.get("phone_e164") == "+14155554444"
+                    email_normalized = normalized.get("email") == f"test.validation.{timestamp}@example.com"
+                    city_normalized = normalized.get("city") == "Berkeley"
+                    has_email_hash = hashes.get("email_hash") is not None
+                    has_phone_hash = hashes.get("phone_hash") is not None
+                    operation_determined = duplicate_check.get("operation") in ["create", "merge"]
+                    
+                    if (phone_normalized and email_normalized and city_normalized and 
+                        has_email_hash and has_phone_hash and operation_determined):
+                        
+                        self.log_test("Lead Generation AI Test Endpoint", True, 
+                                    f"Test endpoint working correctly. "
+                                    f"Normalized phone: {normalized.get('phone_e164')}, "
+                                    f"Normalized city: {normalized.get('city')}, "
+                                    f"Operation: {duplicate_check.get('operation')}")
+                        return True
+                    else:
+                        self.log_test("Lead Generation AI Test Endpoint", False, 
+                                    f"Validation issues. Phone: {phone_normalized}, "
+                                    f"Email: {email_normalized}, City: {city_normalized}, "
+                                    f"Hashes: {has_email_hash}/{has_phone_hash}, "
+                                    f"Operation: {operation_determined}")
+                        return False
+                else:
+                    self.log_test("Lead Generation AI Test Endpoint", False, 
+                                f"Unexpected test response structure: {data}")
+                    return False
+            else:
+                self.log_test("Lead Generation AI Test Endpoint", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Lead Generation AI Test Endpoint", False, f"Exception: {str(e)}")
+            return False
+
+    def test_lead_generation_ai_audit_logs(self) -> bool:
+        """Test GET /api/lead-generation-ai/audit-logs/{user_id} for tracking"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, create a lead via webhook to generate audit log
+            timestamp = int(time.time()) + 505
+            payload = {
+                "first_name": "Audit",
+                "last_name": "Test",
+                "email": f"audit.test.{timestamp}@example.com",
+                "phone": "4155555555",
+                "consent_marketing": True,
+                "property_type": "House",
+                "source": "website",
+                "custom_fields": {"user_id": demo_user_id}
+            }
+            
+            headers = {"Idempotency-Key": f"audit-{timestamp}"}
+            webhook_response = requests.post(f"{self.base_url}/webhooks/lead-intake", 
+                                           json=payload, headers=headers, timeout=10)
+            
+            if webhook_response.status_code != 200:
+                self.log_test("Lead Generation AI Audit Logs", False, 
+                            f"Failed to create lead for audit test: {webhook_response.text}")
+                return False
+            
+            # Now test the audit logs endpoint
+            response = requests.get(f"{self.base_url}/lead-generation-ai/audit-logs/{demo_user_id}", 
+                                  params={"limit": 10}, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "success" and
+                    "logs" in data and
+                    "count" in data and
+                    isinstance(data["logs"], list)):
+                    
+                    logs = data["logs"]
+                    count = data["count"]
+                    
+                    # Look for our test audit log
+                    test_log_found = False
+                    for log in logs:
+                        if (log.get("idempotency_key") == f"audit-{timestamp}" and
+                            log.get("user_id") == demo_user_id and
+                            log.get("intake_result") in ["created", "merged"] and
+                            log.get("raw_source") == "website"):
+                            test_log_found = True
+                            break
+                    
+                    if test_log_found:
+                        self.log_test("Lead Generation AI Audit Logs", True, 
+                                    f"Audit logs working correctly. Found {count} logs, "
+                                    f"including our test log with key: audit-{timestamp}")
+                        return True
+                    else:
+                        self.log_test("Lead Generation AI Audit Logs", False, 
+                                    f"Test audit log not found. Logs: {logs}")
+                        return False
+                else:
+                    self.log_test("Lead Generation AI Audit Logs", False, 
+                                f"Unexpected audit logs response structure: {data}")
+                    return False
+            else:
+                self.log_test("Lead Generation AI Audit Logs", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Lead Generation AI Audit Logs", False, f"Exception: {str(e)}")
+            return False
+
+    def test_lead_generation_ai_data_normalization(self) -> bool:
+        """Test comprehensive data normalization (names, phone, email, defaults)"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            timestamp = int(time.time()) + 506
+            
+            # Test payload with various normalization scenarios
+            payload = {
+                "full_name": "mary jane watson",  # Should split and title case
+                "email": "MARY.WATSON@GMAIL.COM",  # Should lowercase
+                "phone": "13105551234",  # Should normalize to E.164
+                "consent_marketing": False,  # Can be false
+                "city": "los angeles",  # Should title case
+                "budget_min": "450000",  # String number should convert
+                "budget_max": "750000.50",  # Float string should convert
+                "source": "fb_lead_ad",
+                "custom_fields": {"user_id": demo_user_id}
+            }
+            
+            headers = {"Idempotency-Key": f"normalize-{timestamp}"}
+            response = requests.post(f"{self.base_url}/webhooks/lead-intake", 
+                                   json=payload, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("result") == "created":
+                    lead_id = data["lead_id"]
+                    
+                    # Verify the lead was created with proper normalization
+                    verify_response = requests.get(f"{self.base_url}/leads", 
+                                                 params={"user_id": demo_user_id}, timeout=10)
+                    
+                    if verify_response.status_code == 200:
+                        leads = verify_response.json()
+                        created_lead = next((l for l in leads if l.get("id") == lead_id), None)
+                        
+                        if created_lead:
+                            # Check all normalizations
+                            first_name_ok = created_lead.get("first_name") == "Mary"
+                            last_name_ok = created_lead.get("last_name") == "Jane Watson"
+                            email_ok = created_lead.get("email") == "mary.watson@gmail.com"
+                            phone_ok = created_lead.get("phone") == "+13105551234"
+                            city_ok = created_lead.get("city") == "Los Angeles"
+                            budget_min_ok = created_lead.get("budget_min") == 450000
+                            budget_max_ok = created_lead.get("budget_max") == 750000
+                            pipeline_default = created_lead.get("pipeline") == "New Lead"
+                            status_default = created_lead.get("status") == "Open"
+                            
+                            all_normalized = (first_name_ok and last_name_ok and email_ok and 
+                                            phone_ok and city_ok and budget_min_ok and 
+                                            budget_max_ok and pipeline_default and status_default)
+                            
+                            if all_normalized:
+                                self.log_test("Lead Generation AI Data Normalization", True, 
+                                            f"All data normalized correctly. "
+                                            f"Name: {created_lead.get('first_name')} {created_lead.get('last_name')}, "
+                                            f"Email: {created_lead.get('email')}, "
+                                            f"Phone: {created_lead.get('phone')}, "
+                                            f"City: {created_lead.get('city')}")
+                                return True
+                            else:
+                                self.log_test("Lead Generation AI Data Normalization", False, 
+                                            f"Normalization failed. "
+                                            f"First: {created_lead.get('first_name')} ({first_name_ok}), "
+                                            f"Last: {created_lead.get('last_name')} ({last_name_ok}), "
+                                            f"Email: {created_lead.get('email')} ({email_ok}), "
+                                            f"Phone: {created_lead.get('phone')} ({phone_ok}), "
+                                            f"City: {created_lead.get('city')} ({city_ok})")
+                                return False
+                        else:
+                            self.log_test("Lead Generation AI Data Normalization", False, 
+                                        f"Created lead not found in database")
+                            return False
+                    else:
+                        self.log_test("Lead Generation AI Data Normalization", False, 
+                                    f"Failed to verify lead: {verify_response.text}")
+                        return False
+                else:
+                    self.log_test("Lead Generation AI Data Normalization", False, 
+                                f"Lead not created: {data}")
+                    return False
+            else:
+                self.log_test("Lead Generation AI Data Normalization", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Lead Generation AI Data Normalization", False, f"Exception: {str(e)}")
+            return False
+
     def run_all_tests(self) -> bool:
         """Run all backend API tests"""
         print("🚀 Starting RealtorsPal AI Backend API Tests")
