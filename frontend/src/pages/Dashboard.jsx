@@ -262,6 +262,8 @@ export default function Dashboard({ user }){
   const [commLead, setCommLead] = useState(null);
   const [openEmail, setOpenEmail] = useState(false);
   const [emailLead, setEmailLead] = useState(null);
+  const [openAIAgent, setOpenAIAgent] = useState(false);
+  const [aiAgentLead, setAIAgentLead] = useState(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   useEffect(() => {
