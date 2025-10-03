@@ -2391,7 +2391,9 @@ async def create_agent_activity(activity: Dict[str, Any], user_id: str):
         }
         
         await db.agent_activities.insert_one(activity_data)
-        return {"status": "success", "activity": activity_data}
+        # Return a copy without MongoDB's _id field
+        return_data = {k: v for k, v in activity_data.items() if k != "_id"}
+        return {"status": "success", "activity": return_data}
         
     except Exception as e:
         print(f"Error creating agent activity: {e}")
