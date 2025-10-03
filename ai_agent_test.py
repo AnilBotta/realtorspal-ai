@@ -162,7 +162,6 @@ class AIAgentTester:
         try:
             # Test orchestrate endpoint with automate mode
             orchestrate_payload = {
-                "user_id": self.demo_user_id,
                 "agent_id": "orchestrator",
                 "task_type": "lead_nurturing",
                 "lead_data": {
@@ -177,7 +176,7 @@ class AIAgentTester:
                 "priority": "medium"
             }
             
-            response = requests.post(f"{self.base_url}/ai-agents/orchestrate", json=orchestrate_payload, timeout=15)
+            response = requests.post(f"{self.base_url}/ai-agents/orchestrate", json=orchestrate_payload, params={"user_id": self.demo_user_id}, timeout=15)
             
             if response.status_code == 200:
                 data = response.json()
