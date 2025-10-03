@@ -15,7 +15,7 @@ from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from pymongo.errors import DuplicateKeyError
-from emergentintegrations.llms import get_llm_client
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 import json
 import asyncio
 from typing import AsyncGenerator
