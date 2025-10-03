@@ -7,6 +7,8 @@ const AIAgents = ({ user }) => {
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [liveStream, setLiveStream] = useState([]);
   const [approvalQueue, setApprovalQueue] = useState([]);
+  const [liveActivityStream, setLiveActivityStream] = useState([]);
+  const [agentRuns, setAgentRuns] = useState([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [configAgent, setConfigAgent] = useState(null);
