@@ -390,7 +390,6 @@ class AIAgentTester:
         try:
             # Test lead nurturing processing
             task_payload = {
-                "user_id": self.demo_user_id,
                 "task_type": "create_follow_up_sequence",
                 "lead_data": {
                     "first_name": "Sarah",
@@ -406,7 +405,7 @@ class AIAgentTester:
                 "priority": "high"
             }
             
-            response = requests.post(f"{self.base_url}/ai-agents/lead-nurturing/process", json=task_payload, timeout=15)
+            response = requests.post(f"{self.base_url}/ai-agents/lead-nurturing/process", json=task_payload, params={"user_id": self.demo_user_id}, timeout=15)
             
             if response.status_code == 200:
                 data = response.json()
