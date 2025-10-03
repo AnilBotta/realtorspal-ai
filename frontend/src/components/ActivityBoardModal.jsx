@@ -33,8 +33,19 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
   useEffect(() => {
     if (open) {
       loadActivities();
+      loadLeads();
     }
   }, [user.id, filter, open]);
+
+  const loadLeads = async () => {
+    try {
+      const response = await getLeads(user.id);
+      setLeads(response.data || []);
+    } catch (error) {
+      console.error('Failed to load leads:', error);
+      setLeads([]);
+    }
+  };
 
   const loadActivities = async () => {
     try {
