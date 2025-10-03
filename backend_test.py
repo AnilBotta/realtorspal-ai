@@ -3431,6 +3431,9 @@ def main():
         elif sys.argv[1] == "--leads-filtering":
             tester = RealtorsPalAPITester()
             success = tester.run_leads_filtering_test_only()
+        elif sys.argv[1] == "--ai-agents":
+            tester = RealtorsPalAPITester()
+            success = tester.run_ai_agent_tests_only()
         else:
             tester = RealtorsPalAPITester()
             success = tester.run_all_tests()
