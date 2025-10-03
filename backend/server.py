@@ -3124,52 +3124,119 @@ async def handle_approval_decision(approval_id: str, decision: ApprovalDecision,
         print(f"Error handling approval decision: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Master Orchestrator Agent endpoint
+# Master Orchestrator Agent endpoint  
 @app.post("/api/ai-agents/orchestrate")
 async def orchestrate_agents(task_data: Dict[str, Any], user_id: str):
-    """Main orchestrator endpoint for coordinating agents"""
+    """Main orchestrator endpoint for coordinating agents with LLM integration"""
     try:
-        # This will be implemented with actual LLM integration
-        # For now, return a structured response
+        # Get current CRM context
+        leads = await db.leads.find({"user_id": user_id}).to_list(length=None)
+        recent_activities = await db.agent_activities.find({"user_id": user_id}).sort("timestamp", -1).limit(10).to_list(length=None)
         
-        orchestrator_response = {
-            "selected_agent": "LeadNurturingAI",
-            "task": "Create follow-up sequence for new leads",
-            "rationale": "Multiple new leads require personalized nurturing sequences",
-            "agent_output": {
-                "structured_fields": {
-                    "lead_count": task_data.get("lead_count", 0),
-                    "priority_level": "medium"
-                },
-                "drafts_or_sequences": [
-                    "Initial contact email draft",
-                    "Follow-up sequence (3 emails)",
-                    "Phone call talking points"
-                ],
-                "scores_or_flags": {
-                    "confidence": 0.92,
-                    "risk_level": "low"
-                }
-            },
-            "human_approval": {
-                "required": True,
-                "title": "Lead Nurturing Sequence Approval",
-                "summary": [
-                    "Create personalized follow-up for 5 new leads",
-                    "Generate email templates and call scripts",
-                    "Schedule automated sequence delivery"
-                ],
-                "risks": ["Template may need personalization", "Timing might conflict with holidays"],
-                "choices": ["Approve", "Edit", "Reject"]
-            },
-            "data_patch": {
-                "crm_updates": {
-                    "leads_affected": task_data.get("lead_count", 0),
-                    "actions_scheduled": 3
-                },
-                "stage_suggestion": "nurturing"
-            }
+        # Prepare context for orchestrator
+        crm_context = {
+            "total_leads": len(leads),
+            "new_leads": len([l for l in leads if l.get("pipeline") in ["new", "New Lead"]]),
+            "warm_leads": len([l for l in leads if l.get("pipeline") == "warm / nurturing"]),
+            "contacted_leads": len([l for l in leads if l.get("pipeline") == "contacted"]),
+            "recent_activities": [{"agent": a.get("agent_name"), "activity": a.get("activity")} for a in recent_activities[:5]],
+            "task_request": task_data
         }
+        
+        # Enhanced orchestrator prompt
+        orchestrator_prompt = f"""
+You are the Main Orchestrator AI for RealtorsPal CRM. Analyze the current situation and decide which AI agent should handle the task.
+
+Current CRM State:
+{json.dumps(crm_context, indent=2)}
+
+Available Agents:
+1. LeadGeneratorAI - Sources/validates leads from social media
+2. LeadNurturingAI - Creates personalized follow-up sequences  
+3. CustomerServiceAI - Triages messages and drafts replies
+4. OnboardingAgentAI - Converts qualified leads to clients
+5. CallLogAnalystAI - Analyzes transcripts and extracts insights
+
+Task Request: {task_data.get('type', 'general')}
+Priority: {task_data.get('priority', 'medium')}
+
+Select the best agent and provide detailed reasoning.
+"""
+
+        response_format = {
+            "selected_agent": "LeadGeneratorAI|LeadNurturingAI|CustomerServiceAI|OnboardingAgentAI|CallLogAnalystAI",
+            "task": "",
+            "rationale": "",
+            "estimated_impact": "low|medium|high",
+            "risk_assessment": "low|medium|high", 
+            "human_approval_needed": True,
+            "priority_level": "low|medium|high|urgent",
+            "success_probability": 0.0
+        }
+        
+        # Get LLM decision
+        orchestrator_decision = await llm_service.generate_structured_response(
+            prompt=orchestrator_prompt,
+            response_format=response_format,
+            model="gpt-4o",
+            system_prompt="""You are the Main Orchestrator AI for RealtorsPal. Make strategic decisions about which AI agent should handle each task based on:
+1. Current CRM state and lead pipeline
+2. Agent capabilities and expertise
+3. Task complexity and requirements
+4. Risk assessment and approval needs
+5. Overall system efficiency
+
+Always provide clear reasoning for your decisions."""
+        )
+        
+        # Execute task with selected agent if available
+        selected_agent_id = orchestrator_decision.get("selected_agent", "").lower().replace("ai", "").replace("agent", "").strip()
+        
+        if selected_agent_id in AGENT_REGISTRY:
+            # Execute task with the selected agent
+            agent = AGENT_REGISTRY[selected_agent_id]
+            agent_result = await agent.process_task(task_data, user_id)
+            
+            # Combine orchestrator decision with agent result
+            orchestrator_response = {
+                **agent_result,
+                "orchestrator_decision": orchestrator_decision,
+                "selected_by_orchestrator": True
+            }
+        else:
+            # Fallback to orchestrator-only response
+            orchestrator_response = {
+                "selected_agent": orchestrator_decision.get("selected_agent", "LeadNurturingAI"),
+                "task": orchestrator_decision.get("task", "Process CRM task"),
+                "rationale": orchestrator_decision.get("rationale", "Selected based on current CRM state"),
+                "agent_output": {
+                    "structured_fields": {
+                        "orchestrator_confidence": orchestrator_decision.get("success_probability", 0.8),
+                        "impact_level": orchestrator_decision.get("estimated_impact", "medium"),
+                        "risk_level": orchestrator_decision.get("risk_assessment", "low")
+                    },
+                    "drafts_or_sequences": ["Task routed to appropriate agent"],
+                    "scores_or_flags": {
+                        "confidence": orchestrator_decision.get("success_probability", 0.8),
+                        "priority": orchestrator_decision.get("priority_level", "medium")
+                    }
+                },
+                "human_approval": {
+                    "required": orchestrator_decision.get("human_approval_needed", True),
+                    "title": "Orchestrator Task Assignment",
+                    "summary": [
+                        f"Selected: {orchestrator_decision.get('selected_agent', 'Unknown Agent')}",
+                        f"Impact: {orchestrator_decision.get('estimated_impact', 'medium')}",
+                        f"Risk: {orchestrator_decision.get('risk_assessment', 'low')}"
+                    ],
+                    "risks": ["Task complexity may require human oversight"],
+                    "choices": ["Approve", "Edit", "Reject"]
+                },
+                "data_patch": {
+                    "crm_updates": {"tasks_orchestrated": 1},
+                    "stage_suggestion": "processing"
+                }
+            }
         
         # Log orchestrator activity
         activity_data = {
@@ -3177,24 +3244,27 @@ async def orchestrate_agents(task_data: Dict[str, Any], user_id: str):
             "user_id": user_id,
             "agent_id": "orchestrator",
             "agent_name": "Main Orchestrator AI",
-            "activity": f"Orchestrated task: {orchestrator_response['task']}",
-            "status": "pending_approval",
-            "type": "approval_required",
+            "activity": f"Orchestrated: {orchestrator_response.get('task', 'CRM task')}",
+            "status": "completed" if not orchestrator_response.get("human_approval", {}).get("required") else "pending_approval",
+            "type": "approval_required" if orchestrator_response.get("human_approval", {}).get("required") else "automated",
             "timestamp": datetime.utcnow().isoformat(),
-            "details": orchestrator_response
+            "details": {
+                "selected_agent": orchestrator_decision.get("selected_agent"),
+                "reasoning": orchestrator_decision.get("rationale")
+            }
         }
         await db.agent_activities.insert_one(activity_data)
         
         # Create approval request if required
-        if orchestrator_response["human_approval"]["required"]:
+        if orchestrator_response.get("human_approval", {}).get("required"):
             approval_data = {
                 "id": str(uuid.uuid4()),
                 "user_id": user_id,
-                "agent_id": "orchestrator", 
-                "agent_name": "Main Orchestrator AI",
-                "task": orchestrator_response["task"],
-                "proposal": orchestrator_response["human_approval"],
-                "priority": "medium",
+                "agent_id": "orchestrator",
+                "agent_name": "Main Orchestrator AI", 
+                "task": orchestrator_response.get("task", "CRM task orchestration"),
+                "proposal": orchestrator_response.get("human_approval", {}),
+                "priority": orchestrator_decision.get("priority_level", "medium"),
                 "status": "pending",
                 "created_at": datetime.utcnow().isoformat()
             }
@@ -3205,4 +3275,20 @@ async def orchestrate_agents(task_data: Dict[str, Any], user_id: str):
     except Exception as e:
         print(f"Error in agent orchestration: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Individual Agent Task Endpoints
+@app.post("/api/ai-agents/lead-generator/process")
+async def process_lead_generation(task_data: Dict[str, Any], user_id: str):
+    """Process lead generation task directly"""
+    return await lead_generator.process_task(task_data, user_id)
+
+@app.post("/api/ai-agents/lead-nurturing/process")  
+async def process_lead_nurturing(task_data: Dict[str, Any], user_id: str):
+    """Process lead nurturing task directly"""
+    return await lead_nurturer.process_task(task_data, user_id)
+
+@app.post("/api/ai-agents/customer-service/process")
+async def process_customer_service(task_data: Dict[str, Any], user_id: str):
+    """Process customer service task directly"""
+    return await customer_service.process_task(task_data, user_id)
         return {"status": "error", "message": str(e)}
