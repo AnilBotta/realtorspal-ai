@@ -2158,6 +2158,9 @@ class LeadGenerationAI:
         normalized['pipeline'] = 'New Lead'
         normalized['status'] = 'Open'
         
+        # Map phone_e164 to phone for Lead model compatibility
+        normalized['phone'] = normalized['phone_e164']
+        
         # Handle other fields
         normalized['ref_source'] = payload.ref_source or 'Ext. source'
         normalized['buying_in'] = payload.buying_in or ''
