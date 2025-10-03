@@ -7,6 +7,7 @@ import Leads from "./pages/Leads";
 import Analytics from "./pages/Analytics";
 import DataPage from "./pages/Data";
 import AIAgents from "./pages/AIAgents";
+import AgentConfig from "./pages/AgentConfig";
 import Settings from "./pages/Settings";
 import { demoLogin } from "./api";
 
