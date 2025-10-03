@@ -4318,23 +4318,42 @@ async def analyze_reply(user_id: str, lead_id: str, reply_text: str):
         # Simple rule-based analysis (can be enhanced with LLM)
         reply_lower = reply_text.lower()
         
-        # Sentiment analysis
-        positive_words = ['yes', 'interested', 'great', 'perfect', 'sounds good', 'let me know', 'call me']
-        negative_words = ['no', 'not interested', 'stop', 'remove', 'unsubscribe', 'not ready']
-        neutral_words = ['maybe', 'later', 'think about it', 'busy', 'timing']
+        # Sentiment analysis with phrase-based matching (order matters!)
         
-        if any(word in reply_lower for word in positive_words):
-            sentiment = 'positive'
-            suggested_action = 'Schedule immediate follow-up call or meeting'
-            intent = 'interested'
-        elif any(word in reply_lower for word in negative_words):
+        # Check negative phrases first (most specific)
+        negative_phrases = [
+            'not interested', 'no longer interested', 'stop contacting', 'please stop', 
+            'remove me', 'unsubscribe', 'don\'t call', 'don\'t contact', 'not ready',
+            'no thank you', 'no thanks', 'not now', 'already found', 'working with another'
+        ]
+        
+        # Check neutral phrases second
+        neutral_phrases = [
+            'maybe later', 'think about it', 'need to think', 'get back to you',
+            'pretty busy', 'very busy', 'busy right now', 'not the right time',
+            'timing isn\'t right', 'maybe in the future', 'call me later', 'contact me later'
+        ]
+        
+        # Check positive phrases last (least specific)
+        positive_phrases = [
+            'yes', 'interested', 'great', 'perfect', 'sounds good', 'let me know',
+            'call me', 'tell me more', 'more details', 'schedule', 'when can we',
+            'that works', 'looking forward', 'excited', 'exactly what'
+        ]
+        
+        # Use phrase-based matching in priority order
+        if any(phrase in reply_lower for phrase in negative_phrases):
             sentiment = 'negative'
             suggested_action = 'Mark as not interested, reduce frequency or pause nurturing'
             intent = 'not_interested'
-        elif any(word in reply_lower for word in neutral_words):
+        elif any(phrase in reply_lower for phrase in neutral_phrases):
             sentiment = 'neutral'
             suggested_action = 'Continue nurturing with lower frequency'
             intent = 'not_ready'
+        elif any(phrase in reply_lower for phrase in positive_phrases):
+            sentiment = 'positive'
+            suggested_action = 'Schedule immediate follow-up call or meeting'
+            intent = 'interested'
         else:
             sentiment = 'neutral'
             suggested_action = 'Follow up with clarifying question'
