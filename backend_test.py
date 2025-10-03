@@ -2272,14 +2272,15 @@ class RealtorsPalAPITester:
         
         try:
             timestamp = int(time.time()) + 501
-            duplicate_email = f"duplicate.merge.{timestamp}@example.com"
+            duplicate_email = f"duplicate.merge.unique.{timestamp}@example.com"
+            unique_phone = f"415555{(timestamp + 1) % 10000:04d}"
             
             # First, create an initial lead
             initial_payload = {
                 "first_name": "Jane",
                 "last_name": "Doe",
                 "email": duplicate_email,
-                "phone": "4155552222",
+                "phone": unique_phone,
                 "consent_marketing": True,
                 "property_type": "Condo",
                 "city": "oakland",
