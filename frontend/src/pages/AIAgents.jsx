@@ -303,6 +303,51 @@ const AIAgents = ({ user }) => {
     }
   };
 
+  const openGlobalConfig = () => {
+    setShowConfigModal(true);
+    setConfigAgent(null); // Global config
+  };
+
+  const openAgentConfig = (agent) => {
+    setConfigAgent(agent);
+    setShowConfigModal(true);
+  };
+
+  const saveAgentConfig = async (agentId, config) => {
+    try {
+      await updateAIAgent(agentId, config, user.id);
+      
+      // Update local agent state
+      setAgents(prev => prev.map(agent => 
+        agent.id === agentId ? { ...agent, ...config } : agent
+      ));
+      
+      if (selectedAgent?.id === agentId) {
+        setSelectedAgent(prev => ({ ...prev, ...config }));
+      }
+      
+      setShowConfigModal(false);
+      
+      // Add activity to stream
+      const configActivity = {
+        id: Date.now(),
+        agent: {
+          name: 'Human Supervisor',
+          color: 'gray',
+          icon: Settings
+        },
+        activity: `Updated configuration for ${agents.find(a => a.id === agentId)?.name || 'agent'}`,
+        timestamp: new Date(),
+        status: 'completed',
+        type: 'configuration'
+      };
+      setLiveStream(prev => [configActivity, ...prev.slice(0, 49)]);
+      
+    } catch (error) {
+      console.error('Error updating agent config:', error);
+    }
+  };
+
   // Live streaming with periodic API updates and simulated activities
   const startLiveStream = () => {
     setIsStreaming(true);
