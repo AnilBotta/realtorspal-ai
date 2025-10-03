@@ -1911,6 +1911,100 @@ class GenericLeadWebhook(BaseModel):
     timestamp: Optional[str] = None  # Added for compatibility
     custom_fields: Optional[Dict[str, Any]] = None
 
+# --- Lead Generation AI Models ---
+
+class LeadIntakeWebhook(BaseModel):
+    """Lead Generation AI intake model with all possible fields"""
+    # Contact Information
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    work_phone: Optional[str] = None
+    home_phone: Optional[str] = None
+    email_2: Optional[str] = None
+    
+    # Consent and Marketing
+    consent_marketing: Optional[bool] = None
+    consent_communication: Optional[bool] = None
+    
+    # Property Information
+    property_type: Optional[str] = None
+    buying_in: Optional[str] = None
+    selling_in: Optional[str] = None
+    owns_rents: Optional[str] = None
+    mortgage_type: Optional[str] = None
+    budget_min: Optional[Union[str, int, float]] = None
+    budget_max: Optional[Union[str, int, float]] = None
+    
+    # Location Information
+    city: Optional[str] = None
+    neighborhood: Optional[str] = None
+    zip_postal_code: Optional[str] = None
+    address: Optional[str] = None
+    
+    # Property Details
+    bedrooms: Optional[str] = None
+    bathrooms: Optional[str] = None
+    basement: Optional[str] = None
+    parking_type: Optional[str] = None
+    property_condition: Optional[str] = None
+    
+    # Spouse Information
+    spouse_first_name: Optional[str] = None
+    spouse_last_name: Optional[str] = None
+    spouse_email: Optional[str] = None
+    spouse_mobile_phone: Optional[str] = None
+    spouse_birthday: Optional[str] = None
+    
+    # Lead Source and Rating
+    lead_source: Optional[str] = None
+    ref_source: Optional[str] = None
+    lead_rating: Optional[str] = None
+    lead_type: Optional[str] = None
+    lead_type_2: Optional[str] = None
+    
+    # Dates and Plans
+    house_anniversary: Optional[str] = None
+    planning_to_sell_in: Optional[str] = None
+    
+    # Agent Assignments
+    main_agent: Optional[str] = None
+    mort_agent: Optional[str] = None
+    list_agent: Optional[str] = None
+    
+    # Additional Information
+    lead_description: Optional[str] = None
+    notes: Optional[str] = None
+    priority: Optional[str] = None
+    source: Optional[str] = None  # website|fb_lead_ad|chatbot|voice_bot|partner|csv_import
+    
+    # Custom fields and metadata
+    custom_fields: Optional[Dict[str, Any]] = None
+
+class LeadIntakeResult(BaseModel):
+    """Response model for lead intake processing"""
+    intake_result: str  # created | merged | rejected
+    reason: str = ""
+    upsert: Dict[str, Any]
+    realtime_event: Dict[str, Any]
+    audit: Dict[str, Any]
+
+class AuditLog(BaseModel):
+    """Audit log model for lead intake tracking"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    idempotency_key: str
+    user_id: str
+    hash_email: Optional[str] = None
+    hash_phone: Optional[str] = None
+    raw_source: str
+    stored_raw_payload: bool = True
+    intake_result: str
+    lead_id: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    raw_payload: Dict[str, Any]
+
 @app.get("/api/webhooks/facebook-leads/{user_id}")
 async def facebook_webhook_verification(user_id: str, request: Request):
     """Facebook webhook verification endpoint"""
