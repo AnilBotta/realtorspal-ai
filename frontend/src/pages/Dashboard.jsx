@@ -254,7 +254,7 @@ function LeadCard({ lead, onOpen, onCommunicate, onAIAgent, dragHandle, onPipeli
   );
 }
 
-function DraggableLeadCard({ lead, onOpen, onCommunicate, onPipelineChange }){
+function DraggableLeadCard({ lead, onOpen, onCommunicate, onAIAgent, onPipelineChange }){
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `lead-${lead.id}`, data: { leadId: lead.id } });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
   return (
