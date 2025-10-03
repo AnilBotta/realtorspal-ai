@@ -2600,6 +2600,49 @@ async def lead_intake_webhook(
             content={"status": "error", "message": str(e)}
         )
 
+# --- Main Orchestrator AI Models and Collections ---
+
+class AgentRun(BaseModel):
+    """Agent execution run tracking"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    agent_code: str  # LeadGeneratorAI, NurturingAI, CustomerServiceAI, OnboardingAI, CallLogAnalystAI, AnalyticsAI
+    lead_id: str
+    user_id: str
+    status: str = "running"  # running, succeeded, failed, cancelled
+    step: Optional[str] = None  # normalize, dedupe, draft_sequence, etc.
+    started_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    completed_at: Optional[str] = None
+    correlation_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
+class AgentEvent(BaseModel):
+    """Fine-grained log entries per agent run"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    run_id: str  # Reference to agent_runs
+    ts: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    type: str  # MSG.DRAFTED, CRM.UPDATE, ERROR, INFO, LEAD.CREATED, LEAD.MERGED, etc.
+    payload: Dict[str, Any]
+
+class AgentTask(BaseModel):
+    """Actionable tasks for humans (Activity Board)"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    run_id: str  # Reference to agent_runs
+    lead_id: str  # Reference to leads
+    user_id: str
+    agent_code: str
+    due_at: str
+    channel: str  # sms, email, call
+    title: str
+    draft: Optional[Dict[str, str]] = None  # {"subject": "", "body": ""}
+    status: str = "pending"  # pending, completed, cancelled
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+class AgentResponse(BaseModel):
+    """Standard agent response format"""
+    agent_code: str
+    lead_id: str
+    run: Dict[str, Any]
+    lead_updates: Dict[str, Any]
+
 # --- Nurturing AI Models and System ---
 
 class NurturingActivity(BaseModel):
