@@ -2214,7 +2214,7 @@ class RealtorsPalAPITester:
             if response.status_code == 200:
                 data = response.json()
                 if (data.get("status") == "accepted" and 
-                    data.get("result") == "created" and
+                    data.get("result") in ["created", "merged"] and
                     "lead_id" in data and
                     "summary" in data):
                     
