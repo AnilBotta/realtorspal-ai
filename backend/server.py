@@ -2558,7 +2558,7 @@ async def orchestrate_agents(task_data: Dict[str, Any], user_id: str):
                 "proposal": orchestrator_response["human_approval"],
                 "priority": "medium",
                 "status": "pending",
-                "created_at": datetime.utcnow()
+                "created_at": datetime.utcnow().isoformat()
             }
             await db.approval_requests.insert_one(approval_data)
         
