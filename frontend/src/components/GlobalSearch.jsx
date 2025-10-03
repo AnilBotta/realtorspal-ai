@@ -233,6 +233,145 @@ const GlobalSearch = ({ user }) => {
               </div>
             ) : searchQuery && totalResults > 0 ? (
               <div className="py-2">
+                {/* Pages Results */}
+                {searchResults.pages.length > 0 && (
+                  <div className="mb-4">
+                    <div className="px-4 py-2 bg-blue-50 border-b">
+                      <h3 className="text-sm font-medium text-blue-700">
+                        Pages ({searchResults.pages.length})
+                      </h3>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {searchResults.pages.map(page => (
+                        <div
+                          key={page.id}
+                          className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100"
+                          onClick={() => handleItemClick(page)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">
+                              <page.icon size={16} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 truncate">
+                                {page.name}
+                              </div>
+                              <div className="text-sm text-gray-500 truncate">
+                                {page.description}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Features Results */}
+                {searchResults.features.length > 0 && (
+                  <div className="mb-4">
+                    <div className="px-4 py-2 bg-green-50 border-b">
+                      <h3 className="text-sm font-medium text-green-700">
+                        Features ({searchResults.features.length})
+                      </h3>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {searchResults.features.map(feature => (
+                        <div
+                          key={feature.id}
+                          className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100"
+                          onClick={() => handleItemClick(feature)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center">
+                              <feature.icon size={16} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 truncate">
+                                {feature.name}
+                              </div>
+                              <div className="text-sm text-gray-500 truncate">
+                                {feature.description}
+                              </div>
+                              <div className="text-xs text-blue-600 mt-1">
+                                {feature.category}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Settings Results */}
+                {searchResults.settings.length > 0 && (
+                  <div className="mb-4">
+                    <div className="px-4 py-2 bg-purple-50 border-b">
+                      <h3 className="text-sm font-medium text-purple-700">
+                        Settings ({searchResults.settings.length})
+                      </h3>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {searchResults.settings.map(setting => (
+                        <div
+                          key={setting.id}
+                          className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100"
+                          onClick={() => handleItemClick(setting)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center">
+                              <setting.icon size={16} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 truncate">
+                                {setting.name}
+                              </div>
+                              <div className="text-sm text-gray-500 truncate">
+                                {setting.description}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions Results */}
+                {searchResults.actions.length > 0 && (
+                  <div className="mb-4">
+                    <div className="px-4 py-2 bg-orange-50 border-b">
+                      <h3 className="text-sm font-medium text-orange-700">
+                        Quick Actions ({searchResults.actions.length})
+                      </h3>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {searchResults.actions.map(action => (
+                        <div
+                          key={action.id}
+                          className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100"
+                          onClick={() => handleItemClick(action)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center">
+                              <action.icon size={16} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 truncate">
+                                {action.name}
+                              </div>
+                              <div className="text-sm text-gray-500 truncate">
+                                {action.description}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Leads Results */}
                 {searchResults.leads.length > 0 && (
                   <div className="mb-4">
@@ -246,11 +385,7 @@ const GlobalSearch = ({ user }) => {
                         <div
                           key={lead.id}
                           className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100"
-                          onClick={() => {
-                            // Navigate to lead details
-                            window.location.href = '/leads';
-                            setIsOpen(false);
-                          }}
+                          onClick={() => handleItemClick({ path: '/leads', action: null })}
                         >
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-medium">
@@ -278,13 +413,18 @@ const GlobalSearch = ({ user }) => {
                     </div>
                   </div>
                 )}
-
-                {/* Add more result sections as needed */}
-                {/* Agents, Properties, Tasks, Campaigns */}
               </div>
             ) : (
               <div className="p-4 text-center text-gray-500">
-                Start typing to search across all your data...
+                <Search size={48} className="mx-auto mb-4 text-gray-300" />
+                <p className="font-medium mb-2">Search everything in your CRM</p>
+                <div className="text-sm space-y-1">
+                  <p>🏠 Pages & Navigation</p>
+                  <p>⚡ Features & Tools</p>
+                  <p>⚙️ Settings & Configuration</p>
+                  <p>👥 Leads & Data</p>
+                  <p>🚀 Quick Actions</p>
+                </div>
               </div>
             )}
           </div>
