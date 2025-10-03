@@ -1,19 +1,54 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, X, Filter, ChevronDown, ChevronUp, Home, Users, Bot, BarChart3, Database, Settings, Plus, Upload, Mail, Phone, MessageSquare, Zap, Key, Globe } from 'lucide-react';
 import { getLeads } from '../api';
 
 const GlobalSearch = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState({
+    pages: [],
+    features: [],
+    settings: [],
     leads: [],
-    agents: [],
-    properties: [],
-    tasks: [],
-    campaigns: []
+    actions: []
   });
   const [isSearching, setIsSearching] = useState(false);
   const searchRef = useRef(null);
+
+  // Static search data for app navigation and features
+  const staticSearchData = {
+    pages: [
+      { id: 'dashboard', name: 'Dashboard', path: '/', description: 'View KPIs and lead pipeline', icon: Home, category: 'Navigation' },
+      { id: 'leads', name: 'Leads', path: '/leads', description: 'Manage all your leads', icon: Users, category: 'Navigation' },
+      { id: 'ai-agents', name: 'AI Agents', path: '/agents', description: 'Configure AI assistants', icon: Bot, category: 'Navigation' },
+      { id: 'analytics', name: 'Analytics', path: '/analytics', description: 'View reports and insights', icon: BarChart3, category: 'Navigation' },
+      { id: 'data', name: 'Data', path: '/data', description: 'Manage your data', icon: Database, category: 'Navigation' },
+      { id: 'agent-config', name: 'Agent Config', path: '/agent-config', description: 'Configure agent settings', icon: Settings, category: 'Navigation' },
+      { id: 'settings', name: 'Settings', path: '/settings', description: 'App configuration and preferences', icon: Settings, category: 'Navigation' }
+    ],
+    features: [
+      { id: 'add-lead', name: 'Add Lead', path: '/leads', action: 'add-lead', description: 'Create a new lead', icon: Plus, category: 'Features' },
+      { id: 'import-leads', name: 'Import Leads', path: '/leads', action: 'import-leads', description: 'Import leads from file', icon: Upload, category: 'Features' },
+      { id: 'filter-templates', name: 'Filter Templates', path: '/leads', action: 'filter-templates', description: 'Create and manage lead filters', icon: Filter, category: 'Features' },
+      { id: 'global-search', name: 'Global Search', path: null, action: 'global-search', description: 'Search across entire application', icon: Search, category: 'Features' },
+      { id: 'email-lead', name: 'Email Lead', path: '/leads', action: 'email', description: 'Send email to leads', icon: Mail, category: 'Communication' },
+      { id: 'call-lead', name: 'Call Lead', path: '/leads', action: 'call', description: 'Make phone calls to leads', icon: Phone, category: 'Communication' },
+      { id: 'sms-lead', name: 'SMS Lead', path: '/leads', action: 'sms', description: 'Send SMS to leads', icon: MessageSquare, category: 'Communication' }
+    ],
+    settings: [
+      { id: 'ai-config', name: 'AI Configuration', path: '/settings', action: 'ai-config', description: 'Configure OpenAI, Anthropic, Gemini API keys', icon: Bot, category: 'Settings' },
+      { id: 'twilio-settings', name: 'Twilio Communication', path: '/settings', action: 'twilio', description: 'Configure phone and SMS settings', icon: Phone, category: 'Settings' },
+      { id: 'smtp-settings', name: 'SMTP Email', path: '/settings', action: 'smtp', description: 'Configure email server settings', icon: Mail, category: 'Settings' },
+      { id: 'webhook-settings', name: 'Lead Generation Webhooks', path: '/settings', action: 'webhooks', description: 'Facebook, Instagram lead capture', icon: Globe, category: 'Settings' },
+      { id: 'crew-api', name: 'Crew.AI API Integration', path: '/settings', action: 'crew-api', description: 'External API for Crew.AI agents', icon: Zap, category: 'Settings' },
+      { id: 'api-keys', name: 'API Keys', path: '/settings', action: 'api-keys', description: 'Manage API authentication', icon: Key, category: 'Settings' }
+    ],
+    actions: [
+      { id: 'refresh-leads', name: 'Refresh Leads', path: '/leads', action: 'refresh', description: 'Reload lead data', icon: Search, category: 'Actions' },
+      { id: 'clear-filters', name: 'Clear Filters', path: '/leads', action: 'clear-filters', description: 'Remove all applied filters', icon: X, category: 'Actions' },
+      { id: 'export-data', name: 'Export Data', path: '/data', action: 'export', description: 'Export your CRM data', icon: Upload, category: 'Actions' }
+    ]
+  };
 
   // Close search when clicking outside
   useEffect(() => {
