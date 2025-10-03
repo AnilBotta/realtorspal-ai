@@ -618,6 +618,12 @@ export default function Dashboard({ user }){
       <CommunicationModal open={openComm} lead={commLead} type={commType} onClose={closeCommunication} user={user} />
       <EmailModal open={openEmail} lead={emailLead} onClose={closeEmail} user={user} />
       <AIAgentModal open={openAIAgent} lead={aiAgentLead} onClose={closeAIAgent} onRunAgent={handleRunAgent} user={user} />
+      <ActivityBoardModal 
+        open={showActivityBoard} 
+        onClose={() => setShowActivityBoard(false)} 
+        user={user} 
+        onGenerateActivities={handleGenerateActivities}
+      />
     </div>
   );
 }
