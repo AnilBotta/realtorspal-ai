@@ -2147,4 +2147,390 @@ async def generic_webhook_handler(user_id: str, lead_data: GenericLeadWebhook):
         
     except Exception as e:
         print(f"Generic webhook error: {e}")
+# =============================================================================
+# AI AGENT SYSTEM ENDPOINTS
+# =============================================================================
+
+class AgentConfig(BaseModel):
+    id: str
+    name: str
+    description: str
+    status: str = "active"  # active, idle, disabled
+    model: str = "gpt-4o"
+    provider: str = "emergent"  # emergent, openai, anthropic, gemini
+    system_prompt: str = ""
+    response_tone: str = "professional"
+    automation_rules: Dict[str, Any] = Field(default_factory=dict)
+    custom_templates: Dict[str, str] = Field(default_factory=dict)
+    performance_metrics: Dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AgentActivity(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    agent_id: str
+    agent_name: str
+    activity: str
+    status: str = "processing"  # processing, completed, failed, pending_approval
+    type: str = "automated"  # automated, approval_required, human_decision
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    details: Dict[str, Any] = Field(default_factory=dict)
+
+class ApprovalRequest(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    agent_id: str
+    agent_name: str
+    task: str
+    proposal: Dict[str, Any]
+    lead_id: Optional[str] = None
+    priority: str = "medium"  # low, medium, high, urgent
+    status: str = "pending"  # pending, approved, rejected, edited
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    resolved_at: Optional[datetime] = None
+    resolved_by: Optional[str] = None
+    decision: Optional[str] = None
+
+class ApprovalDecision(BaseModel):
+    decision: str  # approve, edit, reject
+    notes: Optional[str] = None
+
+# Get all AI agents
+@app.get("/api/ai-agents")
+async def get_ai_agents(user_id: str):
+    """Get all AI agents for a user"""
+    try:
+        # Get agent configurations from database
+        agents_cursor = db.ai_agents.find({"user_id": user_id})
+        agents = await agents_cursor.to_list(length=None)
+        
+        # If no agents exist, create default agents
+        if not agents:
+            default_agents = [
+                {
+                    "id": "orchestrator",
+                    "user_id": user_id,
+                    "name": "Main Orchestrator AI",
+                    "description": "Coordinates all AI agents and makes strategic decisions",
+                    "status": "active",
+                    "model": "gpt-4o",
+                    "provider": "emergent",
+                    "system_prompt": "You are the Main Orchestrator AI for RealtorsPal. Coordinate all AI agents, make strategic decisions, and ensure optimal system performance.",
+                    "response_tone": "professional",
+                    "automation_rules": {"auto_approve_low_risk": True, "escalate_threshold": 0.8},
+                    "custom_templates": {},
+                    "performance_metrics": {"success_rate": 98, "avg_response_time": 1.2, "tasks_completed": 0},
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                },
+                {
+                    "id": "lead-generator",
+                    "user_id": user_id,
+                    "name": "Lead Generator AI",
+                    "description": "Sources and normalizes leads from social media",
+                    "status": "active",
+                    "model": "gpt-4o",
+                    "provider": "emergent",
+                    "system_prompt": "You are a Lead Generator AI. Source, validate, and normalize leads from various social media platforms and lead sources.",
+                    "response_tone": "analytical",
+                    "automation_rules": {"auto_validate": True, "duplicate_check": True},
+                    "custom_templates": {},
+                    "performance_metrics": {"success_rate": 94, "avg_response_time": 2.1, "tasks_completed": 0},
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                },
+                {
+                    "id": "lead-nurturing",
+                    "user_id": user_id,
+                    "name": "Lead Nurturing AI",
+                    "description": "Creates personalized follow-up sequences",
+                    "status": "active",
+                    "model": "claude-3-sonnet",
+                    "provider": "emergent",
+                    "system_prompt": "You are a Lead Nurturing AI. Create personalized, human-sounding follow-up sequences for leads at different stages.",
+                    "response_tone": "friendly",
+                    "automation_rules": {"personalization_level": "high", "follow_up_intervals": [1, 3, 7, 14]},
+                    "custom_templates": {
+                        "initial_contact": "Hi {first_name}, thanks for your interest in real estate...",
+                        "follow_up": "Hi {first_name}, I wanted to follow up on..."
+                    },
+                    "performance_metrics": {"success_rate": 96, "avg_response_time": 1.8, "tasks_completed": 0},
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                },
+                {
+                    "id": "customer-service",
+                    "user_id": user_id,
+                    "name": "Customer Service AI",
+                    "description": "Triages inbound messages and drafts replies",
+                    "status": "active",
+                    "model": "gemini-pro",
+                    "provider": "emergent",
+                    "system_prompt": "You are a Customer Service AI. Triage inbound messages, detect intent, and draft appropriate responses.",
+                    "response_tone": "helpful",
+                    "automation_rules": {"auto_respond_threshold": 0.9, "escalate_keywords": ["complaint", "urgent", "manager"]},
+                    "custom_templates": {},
+                    "performance_metrics": {"success_rate": 92, "avg_response_time": 0.9, "tasks_completed": 0},
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                },
+                {
+                    "id": "onboarding",
+                    "user_id": user_id,
+                    "name": "Onboarding Agent AI",
+                    "description": "Converts qualified leads into active clients",
+                    "status": "active",
+                    "model": "gpt-4o-mini",
+                    "provider": "emergent",
+                    "system_prompt": "You are an Onboarding Agent AI. Help convert qualified leads into active clients with personalized onboarding experiences.",
+                    "response_tone": "welcoming",
+                    "automation_rules": {"create_onboarding_plan": True, "welcome_sequence": True},
+                    "custom_templates": {
+                        "welcome": "Welcome to our real estate family, {first_name}!"
+                    },
+                    "performance_metrics": {"success_rate": 89, "avg_response_time": 3.2, "tasks_completed": 0},
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                },
+                {
+                    "id": "call-analyst",
+                    "user_id": user_id,
+                    "name": "Call Log Analyst AI",
+                    "description": "Analyzes transcripts and extracts insights",
+                    "status": "idle",
+                    "model": "claude-3-haiku",
+                    "provider": "emergent",
+                    "system_prompt": "You are a Call Log Analyst AI. Analyze call transcripts, extract key insights, and provide actionable recommendations.",
+                    "response_tone": "analytical",
+                    "automation_rules": {"sentiment_analysis": True, "key_phrase_extraction": True},
+                    "custom_templates": {},
+                    "performance_metrics": {"success_rate": 97, "avg_response_time": 2.5, "tasks_completed": 0},
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }
+            ]
+            
+            # Insert default agents
+            await db.ai_agents.insert_many(default_agents)
+            agents = default_agents
+        
+        return {"agents": agents}
+        
+    except Exception as e:
+        print(f"Error getting AI agents: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Update AI agent configuration
+@app.put("/api/ai-agents/{agent_id}")
+async def update_ai_agent(agent_id: str, agent_config: Dict[str, Any], user_id: str):
+    """Update AI agent configuration"""
+    try:
+        agent_config["updated_at"] = datetime.utcnow()
+        
+        result = await db.ai_agents.update_one(
+            {"id": agent_id, "user_id": user_id},
+            {"$set": agent_config}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Agent not found")
+            
+        return {"status": "success", "message": "Agent updated successfully"}
+        
+    except Exception as e:
+        print(f"Error updating AI agent: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Get agent activities (live stream data)
+@app.get("/api/ai-agents/activities")
+async def get_agent_activities(user_id: str, limit: int = 50):
+    """Get recent agent activities for live streaming"""
+    try:
+        activities_cursor = db.agent_activities.find(
+            {"user_id": user_id}
+        ).sort("timestamp", -1).limit(limit)
+        
+        activities = await activities_cursor.to_list(length=None)
+        return {"activities": activities}
+        
+    except Exception as e:
+        print(f"Error getting agent activities: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Create agent activity (for simulation and real agent actions)
+@app.post("/api/ai-agents/activities")
+async def create_agent_activity(activity: Dict[str, Any], user_id: str):
+    """Create a new agent activity"""
+    try:
+        activity_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "timestamp": datetime.utcnow(),
+            **activity
+        }
+        
+        await db.agent_activities.insert_one(activity_data)
+        return {"status": "success", "activity": activity_data}
+        
+    except Exception as e:
+        print(f"Error creating agent activity: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Get approval queue
+@app.get("/api/ai-agents/approvals")
+async def get_approval_queue(user_id: str):
+    """Get pending approval requests"""
+    try:
+        approvals_cursor = db.approval_requests.find(
+            {"user_id": user_id, "status": "pending"}
+        ).sort("created_at", -1)
+        
+        approvals = await approvals_cursor.to_list(length=None)
+        return {"approvals": approvals}
+        
+    except Exception as e:
+        print(f"Error getting approval queue: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Create approval request
+@app.post("/api/ai-agents/approvals")
+async def create_approval_request(approval: Dict[str, Any], user_id: str):
+    """Create a new approval request"""
+    try:
+        approval_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "status": "pending",
+            "created_at": datetime.utcnow(),
+            **approval
+        }
+        
+        await db.approval_requests.insert_one(approval_data)
+        return {"status": "success", "approval": approval_data}
+        
+    except Exception as e:
+        print(f"Error creating approval request: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Handle approval decision
+@app.put("/api/ai-agents/approvals/{approval_id}")
+async def handle_approval_decision(approval_id: str, decision: ApprovalDecision, user_id: str):
+    """Handle human approval decision"""
+    try:
+        update_data = {
+            "status": decision.decision,
+            "decision": decision.decision,
+            "resolved_at": datetime.utcnow(),
+            "resolved_by": user_id,
+            "notes": decision.notes
+        }
+        
+        result = await db.approval_requests.update_one(
+            {"id": approval_id, "user_id": user_id},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Approval request not found")
+            
+        # Log the decision as an activity
+        activity_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "agent_id": "human-supervisor",
+            "agent_name": "Human Supervisor",
+            "activity": f"{decision.decision.upper()}: Approval request {approval_id}",
+            "status": "completed",
+            "type": "human_decision",
+            "timestamp": datetime.utcnow(),
+            "details": {"approval_id": approval_id, "notes": decision.notes}
+        }
+        await db.agent_activities.insert_one(activity_data)
+            
+        return {"status": "success", "message": f"Approval {decision.decision} successfully"}
+        
+    except Exception as e:
+        print(f"Error handling approval decision: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Master Orchestrator Agent endpoint
+@app.post("/api/ai-agents/orchestrate")
+async def orchestrate_agents(task_data: Dict[str, Any], user_id: str):
+    """Main orchestrator endpoint for coordinating agents"""
+    try:
+        # This will be implemented with actual LLM integration
+        # For now, return a structured response
+        
+        orchestrator_response = {
+            "selected_agent": "LeadNurturingAI",
+            "task": "Create follow-up sequence for new leads",
+            "rationale": "Multiple new leads require personalized nurturing sequences",
+            "agent_output": {
+                "structured_fields": {
+                    "lead_count": task_data.get("lead_count", 0),
+                    "priority_level": "medium"
+                },
+                "drafts_or_sequences": [
+                    "Initial contact email draft",
+                    "Follow-up sequence (3 emails)",
+                    "Phone call talking points"
+                ],
+                "scores_or_flags": {
+                    "confidence": 0.92,
+                    "risk_level": "low"
+                }
+            },
+            "human_approval": {
+                "required": True,
+                "title": "Lead Nurturing Sequence Approval",
+                "summary": [
+                    "Create personalized follow-up for 5 new leads",
+                    "Generate email templates and call scripts",
+                    "Schedule automated sequence delivery"
+                ],
+                "risks": ["Template may need personalization", "Timing might conflict with holidays"],
+                "choices": ["Approve", "Edit", "Reject"]
+            },
+            "data_patch": {
+                "crm_updates": {
+                    "leads_affected": task_data.get("lead_count", 0),
+                    "actions_scheduled": 3
+                },
+                "stage_suggestion": "nurturing"
+            }
+        }
+        
+        # Log orchestrator activity
+        activity_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "agent_id": "orchestrator",
+            "agent_name": "Main Orchestrator AI",
+            "activity": f"Orchestrated task: {orchestrator_response['task']}",
+            "status": "pending_approval",
+            "type": "approval_required",
+            "timestamp": datetime.utcnow(),
+            "details": orchestrator_response
+        }
+        await db.agent_activities.insert_one(activity_data)
+        
+        # Create approval request if required
+        if orchestrator_response["human_approval"]["required"]:
+            approval_data = {
+                "id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "agent_id": "orchestrator", 
+                "agent_name": "Main Orchestrator AI",
+                "task": orchestrator_response["task"],
+                "proposal": orchestrator_response["human_approval"],
+                "priority": "medium",
+                "status": "pending",
+                "created_at": datetime.utcnow()
+            }
+            await db.approval_requests.insert_one(approval_data)
+        
+        return orchestrator_response
+        
+    except Exception as e:
+        print(f"Error in agent orchestration: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
         return {"status": "error", "message": str(e)}
