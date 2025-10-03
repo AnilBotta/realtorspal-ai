@@ -440,7 +440,6 @@ class AIAgentTester:
         try:
             # Test customer service processing
             task_payload = {
-                "user_id": self.demo_user_id,
                 "task_type": "triage_inbound_message",
                 "message_data": {
                     "from": "client@example.com",
@@ -452,7 +451,7 @@ class AIAgentTester:
                 "priority": "medium"
             }
             
-            response = requests.post(f"{self.base_url}/ai-agents/customer-service/process", json=task_payload, timeout=15)
+            response = requests.post(f"{self.base_url}/ai-agents/customer-service/process", json=task_payload, params={"user_id": self.demo_user_id}, timeout=15)
             
             if response.status_code == 200:
                 data = response.json()
