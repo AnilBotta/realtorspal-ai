@@ -2005,6 +2005,233 @@ class AuditLog(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     raw_payload: Dict[str, Any]
 
+# --- Lead Generation AI Processing Functions ---
+
+class LeadGenerationAI:
+    """Lead Generation AI for automatic lead processing"""
+    
+    @staticmethod
+    def normalize_phone(phone: str) -> Optional[str]:
+        """Normalize phone to E.164 format"""
+        if not phone:
+            return None
+        
+        # Remove all non-digit characters
+        digits = re.sub(r'[^\d]', '', phone)
+        
+        if not digits:
+            return None
+        
+        # Handle US phone numbers
+        if len(digits) == 10:
+            return f"+1{digits}"
+        elif len(digits) == 11 and digits.startswith('1'):
+            return f"+{digits}"
+        elif digits.startswith('+'):
+            return phone  # Already formatted
+        else:
+            # Assume US number if not properly formatted
+            if len(digits) >= 10:
+                return f"+1{digits[-10:]}"
+        
+        return None
+    
+    @staticmethod
+    def normalize_email(email: str) -> Optional[str]:
+        """Normalize and validate email"""
+        if not email:
+            return None
+        
+        email = email.strip().lower()
+        
+        # Basic email validation
+        if '@' not in email or '.' not in email.split('@')[1]:
+            return None
+        
+        return email
+    
+    @staticmethod
+    def normalize_name(name: str) -> Optional[str]:
+        """Normalize name to title case"""
+        if not name:
+            return None
+        
+        return name.strip().title()
+    
+    @staticmethod
+    def generate_hash(value: str) -> Optional[str]:
+        """Generate SHA256 hash for deduplication"""
+        if not value:
+            return None
+        
+        return hashlib.sha256(value.encode('utf-8')).hexdigest()
+    
+    @staticmethod
+    def validate_minimal_fields(payload: LeadIntakeWebhook) -> tuple[bool, str]:
+        """Validate minimal required fields"""
+        # Must have at least first_name OR last_name
+        if not payload.first_name and not payload.last_name and not payload.full_name:
+            return False, "Missing required field: first_name, last_name, or full_name"
+        
+        # Must have at least email OR phone
+        if not payload.email and not payload.phone:
+            return False, "Missing required field: email or phone"
+        
+        # Must have marketing consent (can be False, but must be present)
+        if payload.consent_marketing is None:
+            return False, "Missing required field: consent_marketing"
+        
+        return True, ""
+    
+    @staticmethod
+    def normalize_payload(payload: LeadIntakeWebhook) -> Dict[str, Any]:
+        """Normalize payload according to rules"""
+        normalized = {}
+        
+        # Handle names
+        if payload.full_name and not payload.first_name and not payload.last_name:
+            # Split full name
+            name_parts = payload.full_name.strip().split()
+            normalized['first_name'] = LeadGenerationAI.normalize_name(name_parts[0]) if name_parts else None
+            normalized['last_name'] = LeadGenerationAI.normalize_name(' '.join(name_parts[1:])) if len(name_parts) > 1 else None
+        else:
+            normalized['first_name'] = LeadGenerationAI.normalize_name(payload.first_name)
+            normalized['last_name'] = LeadGenerationAI.normalize_name(payload.last_name)
+        
+        # Handle contact info
+        normalized['email'] = LeadGenerationAI.normalize_email(payload.email)
+        normalized['phone_e164'] = LeadGenerationAI.normalize_phone(payload.phone)
+        normalized['work_phone'] = LeadGenerationAI.normalize_phone(payload.work_phone)
+        normalized['home_phone'] = LeadGenerationAI.normalize_phone(payload.home_phone)
+        normalized['email_2'] = LeadGenerationAI.normalize_email(payload.email_2)
+        
+        # Handle spouse info
+        normalized['spouse_first_name'] = LeadGenerationAI.normalize_name(payload.spouse_first_name)
+        normalized['spouse_last_name'] = LeadGenerationAI.normalize_name(payload.spouse_last_name)
+        normalized['spouse_email'] = LeadGenerationAI.normalize_email(payload.spouse_email)
+        normalized['spouse_mobile_phone'] = LeadGenerationAI.normalize_phone(payload.spouse_mobile_phone)
+        normalized['spouse_birthday'] = payload.spouse_birthday
+        
+        # Handle location
+        normalized['city'] = payload.city.strip().title() if payload.city else None
+        normalized['zip_postal_code'] = payload.zip_postal_code.strip() if payload.zip_postal_code else None
+        normalized['address'] = payload.address.strip() if payload.address else None
+        
+        # Handle budget
+        try:
+            normalized['budget_min'] = int(float(payload.budget_min)) if payload.budget_min else 0
+        except (ValueError, TypeError):
+            normalized['budget_min'] = 0
+        
+        try:
+            normalized['budget_max'] = int(float(payload.budget_max)) if payload.budget_max else 0
+        except (ValueError, TypeError):
+            normalized['budget_max'] = 0
+        
+        # Map dropdown fields with defaults
+        dropdown_mappings = {
+            'property_type': 'Single Family Home',
+            'owns_rents': 'Not Selected',
+            'mortgage_type': 'Not selected',
+            'lead_rating': 'Not selected',
+            'lead_source': 'Not selected',
+            'lead_type': 'Not selected',
+            'lead_type_2': 'Not selected',
+            'house_to_sell': 'Unknown',
+            'planning_to_sell_in': 'Not selected',
+            'main_agent': 'Anil Botta',
+            'mort_agent': 'Not selected',
+            'list_agent': 'Not selected'
+        }
+        
+        for field, default in dropdown_mappings.items():
+            value = getattr(payload, field, None)
+            normalized[field] = value if value else default
+        
+        # Set pipeline and status defaults
+        normalized['pipeline'] = 'New Lead'
+        normalized['status'] = 'Open'
+        
+        # Handle other fields
+        normalized['ref_source'] = payload.ref_source or 'Ext. source'
+        normalized['buying_in'] = payload.buying_in or ''
+        normalized['selling_in'] = payload.selling_in or ''
+        normalized['bedrooms'] = payload.bedrooms or ''
+        normalized['bathrooms'] = payload.bathrooms or ''
+        normalized['basement'] = payload.basement or ''
+        normalized['parking_type'] = payload.parking_type or ''
+        normalized['property_condition'] = payload.property_condition or ''
+        normalized['listing_status'] = payload.listing_status or ''
+        normalized['house_anniversary'] = payload.house_anniversary
+        
+        # Handle lead description with source attribution
+        source = payload.source or 'unknown'
+        timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+        
+        lead_desc_parts = []
+        if payload.lead_description:
+            lead_desc_parts.append(payload.lead_description.strip())
+        if payload.notes:
+            lead_desc_parts.append(payload.notes.strip())
+        
+        # Add source attribution
+        lead_desc_parts.append(f"[{timestamp}] Lead captured via {source}")
+        
+        normalized['lead_description'] = '\n'.join(lead_desc_parts)
+        
+        return normalized
+    
+    @staticmethod
+    async def find_duplicate_lead(user_id: str, email_hash: Optional[str], phone_hash: Optional[str]) -> Optional[Dict[str, Any]]:
+        """Find duplicate lead by email or phone hash"""
+        if not email_hash and not phone_hash:
+            return None
+        
+        # Search for existing lead with matching hash
+        query_conditions = []
+        
+        if email_hash:
+            query_conditions.append({"hash_email": email_hash})
+        
+        if phone_hash:
+            query_conditions.append({"hash_phone": phone_hash})
+        
+        if query_conditions:
+            query = {
+                "user_id": user_id,
+                "$or": query_conditions
+            }
+            
+            existing_lead = await db.leads.find_one(query)
+            return existing_lead
+        
+        return None
+    
+    @staticmethod
+    async def merge_lead_data(existing_lead: Dict[str, Any], normalized_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Merge new data into existing lead (keep existing non-empty values)"""
+        merged = existing_lead.copy()
+        
+        for key, new_value in normalized_data.items():
+            if key in ['id', 'user_id', 'created_at']:
+                continue  # Don't update these fields
+            
+            existing_value = merged.get(key)
+            
+            # Only overwrite if existing is empty/None and new value is not empty/None
+            if (not existing_value or existing_value in ['', 'Not selected', 'Not Selected', 'Unknown']) and new_value and new_value not in ['', 'Not selected', 'Not Selected', 'Unknown']:
+                merged[key] = new_value
+            elif key == 'lead_description':
+                # Always append to lead description
+                existing_desc = existing_value or ''
+                new_desc = new_value or ''
+                if existing_desc and new_desc:
+                    merged[key] = f"{existing_desc}\n{new_desc}"
+                elif new_desc:
+                    merged[key] = new_desc
+        
+        return merged
+
 @app.get("/api/webhooks/facebook-leads/{user_id}")
 async def facebook_webhook_verification(user_id: str, request: Request):
     """Facebook webhook verification endpoint"""
