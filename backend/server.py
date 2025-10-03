@@ -2407,7 +2407,19 @@ async def get_approval_queue(user_id: str):
         ).sort("created_at", -1)
         
         approvals = await approvals_cursor.to_list(length=None)
-        return {"approvals": approvals}
+        
+        # Convert MongoDB documents to JSON-serializable format
+        converted_approvals = []
+        for approval in approvals:
+            approval_dict = {k: v for k, v in approval.items() if k != "_id"}
+            # Convert datetime objects to ISO strings if they exist
+            if "created_at" in approval_dict and hasattr(approval_dict["created_at"], "isoformat"):
+                approval_dict["created_at"] = approval_dict["created_at"].isoformat()
+            if "resolved_at" in approval_dict and hasattr(approval_dict["resolved_at"], "isoformat"):
+                approval_dict["resolved_at"] = approval_dict["resolved_at"].isoformat()
+            converted_approvals.append(approval_dict)
+        
+        return {"approvals": converted_approvals}
         
     except Exception as e:
         print(f"Error getting approval queue: {e}")
