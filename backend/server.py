@@ -2542,7 +2542,7 @@ async def orchestrate_agents(task_data: Dict[str, Any], user_id: str):
             "activity": f"Orchestrated task: {orchestrator_response['task']}",
             "status": "pending_approval",
             "type": "approval_required",
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.utcnow().isoformat(),
             "details": orchestrator_response
         }
         await db.agent_activities.insert_one(activity_data)
