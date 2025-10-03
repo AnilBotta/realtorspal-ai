@@ -9,7 +9,7 @@ import LeadDrawer from "../components/LeadDrawer";
 import CommunicationModal from "../components/CommunicationModal";
 import EmailModal from "../components/EmailModal";
 import AIAgentModal from "../components/AIAgentModal";
-import ActivityBoard from "../components/ActivityBoard";
+import ActivityBoardModal from "../components/ActivityBoardModal";
 
 function Stat({ label, value, hint }){
   return (
