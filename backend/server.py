@@ -2204,35 +2204,52 @@ class LLMService:
                                          prompt: str,
                                          response_format: Dict[str, Any],
                                          model: str = "gpt-4o",
+                                         provider: str = "openai",
                                          system_prompt: str = "") -> Dict[str, Any]:
         """Generate structured JSON response from LLM"""
         try:
-            full_prompt = f"""
+            enhanced_system_prompt = f"""
 {system_prompt}
 
+CRITICAL: You must respond ONLY with valid JSON. No explanations, no markdown, no extra text.
+Use this EXACT format:
+{json.dumps(response_format, indent=2)}
+"""
+            
+            full_prompt = f"""
 {prompt}
 
-IMPORTANT: Respond only with valid JSON in this exact format:
-{json.dumps(response_format, indent=2)}
-
-Do not include any other text or explanations. Only the JSON response.
+IMPORTANT: Respond only with valid JSON in the exact format specified in the system message.
+Do not include any other text, explanations, or markdown formatting. Only the JSON response.
 """
             
             response = await self.generate_completion(
                 prompt=full_prompt,
                 model=model,
-                temperature=0.3,  # Lower temperature for structured responses
-                max_tokens=2000
+                provider=provider,
+                system_prompt=enhanced_system_prompt,
+                session_id=f"structured-{uuid.uuid4()}"
             )
+            
+            # Clean response - remove any markdown formatting or extra text
+            clean_response = response.strip()
+            if clean_response.startswith("```json"):
+                clean_response = clean_response.replace("```json", "").replace("```", "").strip()
+            elif clean_response.startswith("```"):
+                clean_response = clean_response.replace("```", "").strip()
             
             # Parse JSON response
             try:
-                return json.loads(response)
-            except json.JSONDecodeError:
+                parsed_response = json.loads(clean_response)
+                return parsed_response
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error: {e}")
+                print(f"Raw response: {response}")
                 # Fallback if JSON parsing fails
                 return {"error": "Invalid JSON response", "raw_response": response}
                 
         except Exception as e:
+            print(f"Structured response error: {e}")
             return {"error": f"Structured response error: {str(e)}"}
 
 # Initialize LLM service
