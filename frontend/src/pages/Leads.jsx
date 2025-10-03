@@ -1154,6 +1154,17 @@ export default function Leads({ user }) {
         }}
         user={user}
       />
+
+      <AIAgentModal
+        open={showAIAgentModal}
+        lead={aiAgentLead}
+        onClose={() => {
+          setShowAIAgentModal(false);
+          setAIAgentLead(null);
+        }}
+        onRunAgent={handleRunAgent}
+        user={user}
+      />
     </div>
   );
 }
