@@ -2653,8 +2653,8 @@ class RealtorsPalAPITester:
                             email_ok = created_lead.get("email") == f"mary.watson.unique.{timestamp}@gmail.com"
                             phone_ok = created_lead.get("phone") == f"+1{unique_phone}"
                             city_ok = created_lead.get("city") == "Los Angeles"
-                            budget_min_ok = created_lead.get("budget_min") == 450000
-                            budget_max_ok = created_lead.get("budget_max") == 750000
+                            budget_min_ok = created_lead.get("price_min") == 450000
+                            budget_max_ok = created_lead.get("price_max") == 750000
                             pipeline_default = created_lead.get("pipeline") == "New Lead"
                             status_default = created_lead.get("status") == "Open"
                             
