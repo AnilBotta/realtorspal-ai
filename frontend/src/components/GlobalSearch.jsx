@@ -36,12 +36,14 @@ const GlobalSearch = ({ user }) => {
 
     setIsSearching(true);
     try {
-      // Simulate API call - in real app, this would search across all data
-      // For now, we'll focus on leads since that's our main data
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/leads/${user.id}`);
-      const leadsData = await response.json();
+      // Use the proper API function to get leads
+      const response = await getLeads(user.id);
+      console.log('Global search API response:', response);
       
-      const filteredLeads = leadsData.data?.filter(lead => {
+      // Handle the response data structure - response.data contains the leads array
+      const leadsData = response.data || [];
+      
+      const filteredLeads = leadsData.filter(lead => {
         const searchTerm = query.toLowerCase();
         return (
           `${lead.first_name || ''} ${lead.last_name || ''}`.toLowerCase().includes(searchTerm) ||
@@ -55,6 +57,8 @@ const GlobalSearch = ({ user }) => {
         );
       }) || [];
 
+      console.log('Filtered leads for search:', filteredLeads);
+
       setSearchResults({
         leads: filteredLeads,
         agents: [], // TODO: Add agent search
@@ -64,6 +68,8 @@ const GlobalSearch = ({ user }) => {
       });
     } catch (error) {
       console.error('Global search error:', error);
+      // Set empty results on error
+      setSearchResults({ leads: [], agents: [], properties: [], tasks: [], campaigns: [] });
     } finally {
       setIsSearching(false);
     }
