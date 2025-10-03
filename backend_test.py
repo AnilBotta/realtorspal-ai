@@ -2186,11 +2186,13 @@ class RealtorsPalAPITester:
         
         try:
             timestamp = int(time.time()) + 500
+            # Use unique phone and email to ensure we get a "created" result
+            unique_phone = f"415555{timestamp % 10000:04d}"  # Generate unique phone
             payload = {
                 "first_name": "John",
                 "last_name": "Smith", 
-                "email": f"john.smith.{timestamp}@example.com",
-                "phone": "4155551234",  # 10-digit format to test normalization
+                "email": f"john.smith.unique.{timestamp}@example.com",
+                "phone": unique_phone,  # Unique phone to test normalization
                 "consent_marketing": True,
                 "property_type": "Single Family Home",
                 "city": "san francisco",  # lowercase to test title case normalization
