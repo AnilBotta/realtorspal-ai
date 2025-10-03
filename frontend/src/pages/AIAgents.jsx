@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Settings, Activity, Clock, CheckCircle, AlertCircle, Brain, Users, MessageSquare, Phone, BarChart3, Zap, Eye, ThumbsUp, ThumbsDown, Edit3 } from 'lucide-react';
-import { getAIAgents, getAgentActivities, getApprovalQueue, handleApprovalDecision, createAgentActivity } from '../api';
+import { getAIAgents, getAgentActivities, getApprovalQueue, handleApprovalDecision, createAgentActivity, orchestrateAgents } from '../api';
 
 const AIAgents = ({ user }) => {
   const [agents, setAgents] = useState([]);
