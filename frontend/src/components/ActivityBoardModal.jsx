@@ -26,6 +26,9 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [selectedActivities, setSelectedActivities] = useState(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [leads, setLeads] = useState([]);
 
   useEffect(() => {
     if (open) {
