@@ -360,6 +360,81 @@ export default function Dashboard({ user }){
     setEmailLead(null);
   };
 
+  const handleAIAgent = (lead) => {
+    setAIAgentLead(lead);
+    setOpenAIAgent(true);
+  };
+
+  const closeAIAgent = () => {
+    setOpenAIAgent(false);
+    setAIAgentLead(null);
+  };
+
+  const handleRunAgent = async (agentConfig) => {
+    try {
+      console.log('Running AI agent with config:', agentConfig);
+      
+      // Create activity log for the AI action
+      await createAgentActivity({
+        agent_id: agentConfig.agent_id,
+        lead_id: agentConfig.lead_id,
+        activity_type: 'lead_processing',
+        status: 'started',
+        description: `Started processing lead: ${agentConfig.lead_data.name}`,
+        metadata: {
+          pipeline: agentConfig.lead_data.pipeline,
+          priority: agentConfig.lead_data.priority,
+          approval_mode: agentConfig.approval_mode
+        }
+      }, user.id);
+
+      // If orchestrator is selected, let it decide the agent
+      if (agentConfig.agent_id === 'orchestrator') {
+        const orchestrationResult = await orchestrateAgents({
+          task_type: 'analyze_and_assign_lead',
+          lead_data: agentConfig.lead_data,
+          approval_mode: agentConfig.approval_mode,
+          context: `User requested AI assistance for lead in ${agentConfig.lead_data.pipeline || 'unknown'} stage`
+        }, user.id);
+        
+        console.log('Orchestration result:', orchestrationResult);
+      } else {
+        // Run specific agent
+        const agentResult = await orchestrateAgents({
+          task_type: 'run_specific_agent',
+          agent_id: agentConfig.agent_id,
+          lead_data: agentConfig.lead_data,
+          approval_mode: agentConfig.approval_mode
+        }, user.id);
+        
+        console.log('Agent result:', agentResult);
+      }
+      
+      // Update the lead with AI activity status
+      const leadWithAIStatus = {
+        ...agentConfig.lead_data,
+        ai_status: 'processing',
+        ai_agent: agentConfig.agent_id,
+        last_ai_activity: new Date().toISOString()
+      };
+      
+      // Update local state to show AI activity
+      setLeads(prevLeads => 
+        prevLeads.map(lead => 
+          lead.id === agentConfig.lead_id 
+            ? { ...lead, ...leadWithAIStatus }
+            : lead
+        )
+      );
+
+      alert(`AI agent is now working on this lead! Check the AI Agents page for live updates.`);
+      
+    } catch (error) {
+      console.error('Failed to run AI agent:', error);
+      alert('Failed to start AI agent. Please try again.');
+    }
+  };
+
   // Handle pipeline change from dropdown on lead card
   const handlePipelineChange = async (leadId, newPipeline) => {
     try {
