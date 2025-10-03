@@ -578,13 +578,16 @@ export default function Dashboard({ user }){
         <Stat label="Response Time" value={`3 min`} />
       </div>
 
-      {/* Activity Board */}
-      {showActivityBoard && (
-        <ActivityBoard 
-          user={user} 
-          onGenerateActivities={handleGenerateActivities}
-        />
-      )}
+      {/* Activity Button */}
+      <div className="mb-4">
+        <button
+          onClick={() => setShowActivityBoard(!showActivityBoard)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+        >
+          <Calendar size={16} />
+          Activities
+        </button>
+      </div>
 
       {/* Lead Pipeline */}
       <div className="bg-white rounded-xl border p-4">
