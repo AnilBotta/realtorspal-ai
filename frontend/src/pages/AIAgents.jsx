@@ -242,19 +242,28 @@ const AIAgents = ({ user }) => {
     }
   };
 
-  const handleApproval = (approvalId, decision) => {
-    setApprovalQueue(prev => prev.filter(item => item.id !== approvalId));
-    
-    // Add to live stream with decision
-    const decision_activity = {
-      id: Date.now(),
-      agent: { name: 'Human Supervisor', color: 'gray', icon: Eye },
-      activity: `${decision.toUpperCase()}: ${approvalQueue.find(item => item.id === approvalId)?.task}`,
-      timestamp: new Date(),
-      status: 'completed',
-      type: 'human_decision'
-    };
-    setLiveStream(prev => [decision_activity, ...prev.slice(0, 49)]);
+  const handleApproval = async (approvalId, decision) => {
+    try {
+      const approvalItem = approvalQueue.find(item => item.id === approvalId);
+      
+      await handleApprovalDecision(approvalId, { decision }, user.id);
+      
+      // Remove from approval queue
+      setApprovalQueue(prev => prev.filter(item => item.id !== approvalId));
+      
+      // Add to live stream with decision
+      const decision_activity = {
+        id: Date.now(),
+        agent: { name: 'Human Supervisor', color: 'gray', icon: Eye },
+        activity: `${decision.toUpperCase()}: ${approvalItem?.task}`,
+        timestamp: new Date(),
+        status: 'completed',
+        type: 'human_decision'
+      };
+      setLiveStream(prev => [decision_activity, ...prev.slice(0, 49)]);
+    } catch (error) {
+      console.error('Error handling approval:', error);
+    }
   };
 
   const getStatusColor = (status) => {
