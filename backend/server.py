@@ -2219,8 +2219,8 @@ async def get_ai_agents(user_id: str):
                     "automation_rules": {"auto_approve_low_risk": True, "escalate_threshold": 0.8},
                     "custom_templates": {},
                     "performance_metrics": {"success_rate": 98, "avg_response_time": 1.2, "tasks_completed": 0},
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow()
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat()
                 },
                 {
                     "id": "lead-generator",
@@ -2235,8 +2235,8 @@ async def get_ai_agents(user_id: str):
                     "automation_rules": {"auto_validate": True, "duplicate_check": True},
                     "custom_templates": {},
                     "performance_metrics": {"success_rate": 94, "avg_response_time": 2.1, "tasks_completed": 0},
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow()
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat()
                 },
                 {
                     "id": "lead-nurturing",
@@ -2254,8 +2254,8 @@ async def get_ai_agents(user_id: str):
                         "follow_up": "Hi {first_name}, I wanted to follow up on..."
                     },
                     "performance_metrics": {"success_rate": 96, "avg_response_time": 1.8, "tasks_completed": 0},
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow()
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat()
                 },
                 {
                     "id": "customer-service",
@@ -2270,8 +2270,8 @@ async def get_ai_agents(user_id: str):
                     "automation_rules": {"auto_respond_threshold": 0.9, "escalate_keywords": ["complaint", "urgent", "manager"]},
                     "custom_templates": {},
                     "performance_metrics": {"success_rate": 92, "avg_response_time": 0.9, "tasks_completed": 0},
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow()
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat()
                 },
                 {
                     "id": "onboarding",
@@ -2288,8 +2288,8 @@ async def get_ai_agents(user_id: str):
                         "welcome": "Welcome to our real estate family, {first_name}!"
                     },
                     "performance_metrics": {"success_rate": 89, "avg_response_time": 3.2, "tasks_completed": 0},
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow()
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat()
                 },
                 {
                     "id": "call-analyst",
@@ -2304,8 +2304,8 @@ async def get_ai_agents(user_id: str):
                     "automation_rules": {"sentiment_analysis": True, "key_phrase_extraction": True},
                     "custom_templates": {},
                     "performance_metrics": {"success_rate": 97, "avg_response_time": 2.5, "tasks_completed": 0},
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow()
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat()
                 }
             ]
             
