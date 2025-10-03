@@ -2397,6 +2397,196 @@ async def get_webhook_stats(user_id: str):
             "facebook": {"total": 0, "last_24h": 0, "last_activity": None, "status": "inactive"}
         }
 
+# --- Lead Generation AI Webhook Endpoint ---
+
+@app.post("/api/webhooks/lead-intake")
+async def lead_intake_webhook(
+    request: Request,
+    payload: LeadIntakeWebhook,
+    x_source: Optional[str] = Header(None),
+    x_signature: Optional[str] = Header(None),
+    idempotency_key: Optional[str] = Header(None)
+):
+    """
+    Lead Generation AI webhook endpoint for automatic lead capture and processing
+    
+    This endpoint automatically processes incoming leads without human approval:
+    - Validates minimal required fields
+    - Normalizes data (names, phone E.164, emails)
+    - Deduplicates by email/phone hash
+    - Auto-upserts (creates or merges) leads
+    - Emits real-time events
+    - Logs audit trail
+    """
+    try:
+        # Generate idempotency key if not provided
+        if not idempotency_key:
+            idempotency_key = str(uuid.uuid4())
+        
+        # Check idempotency - if we've processed this key before, return cached result
+        existing_audit = await db.audit_logs.find_one({"idempotency_key": idempotency_key})
+        if existing_audit:
+            return {"status": "already_processed", "result": existing_audit.get("intake_result")}
+        
+        # Extract user_id from payload or use demo user for testing
+        user_id = payload.custom_fields.get("user_id") if payload.custom_fields else None
+        if not user_id:
+            # Use demo user ID for testing
+            user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        # Determine source
+        source = x_source or payload.source or "webhook"
+        
+        # Step 1: Validate minimal required fields
+        is_valid, validation_error = LeadGenerationAI.validate_minimal_fields(payload)
+        if not is_valid:
+            # Log rejection in audit
+            audit_data = AuditLog(
+                idempotency_key=idempotency_key,
+                user_id=user_id,
+                raw_source=source,
+                intake_result="rejected",
+                raw_payload=payload.dict()
+            )
+            await db.audit_logs.insert_one(audit_data.dict())
+            
+            return LeadIntakeResult(
+                intake_result="rejected",
+                reason=validation_error,
+                upsert={},
+                realtime_event={},
+                audit={"reason": validation_error}
+            ).dict()
+        
+        # Step 2: Normalize payload
+        normalized_data = LeadGenerationAI.normalize_payload(payload)
+        
+        # Step 3: Generate hashes for deduplication
+        email_hash = LeadGenerationAI.generate_hash(normalized_data['email']) if normalized_data['email'] else None
+        phone_hash = LeadGenerationAI.generate_hash(normalized_data['phone_e164']) if normalized_data['phone_e164'] else None
+        
+        # Step 4: Check for duplicates and decide CREATE or MERGE
+        existing_lead = await LeadGenerationAI.find_duplicate_lead(user_id, email_hash, phone_hash)
+        
+        operation = "create"
+        lead_id = None
+        final_lead_data = normalized_data.copy()
+        
+        if existing_lead:
+            # MERGE operation
+            operation = "update"
+            lead_id = existing_lead['id']
+            final_lead_data = await LeadGenerationAI.merge_lead_data(existing_lead, normalized_data)
+            intake_result = "merged"
+        else:
+            # CREATE operation  
+            lead_id = str(uuid.uuid4())
+            final_lead_data['id'] = lead_id
+            final_lead_data['user_id'] = user_id
+            final_lead_data['created_at'] = datetime.utcnow().isoformat()
+            final_lead_data['hash_email'] = email_hash
+            final_lead_data['hash_phone'] = phone_hash
+            intake_result = "created"
+        
+        # Step 5: Upsert into leads collection
+        if operation == "create":
+            await db.leads.insert_one(final_lead_data)
+        else:
+            await db.leads.update_one(
+                {"id": lead_id},
+                {"$set": final_lead_data}
+            )
+        
+        # Step 6: Prepare response data
+        lead_name = f"{final_lead_data.get('first_name', '')} {final_lead_data.get('last_name', '')}".strip()
+        lead_type = final_lead_data.get('lead_type', 'Unknown')
+        city = final_lead_data.get('city', '')
+        budget_min = final_lead_data.get('budget_min', 0)
+        budget_max = final_lead_data.get('budget_max', 0)
+        
+        budget_str = ""
+        if budget_min or budget_max:
+            if budget_min and budget_max:
+                budget_str = f"${budget_min:,}-${budget_max:,}"
+            elif budget_min:
+                budget_str = f"${budget_min:,}+"
+            elif budget_max:
+                budget_str = f"Up to ${budget_max:,}"
+        
+        summary_parts = [lead_name, lead_type]
+        if city:
+            summary_parts.append(city)
+        if budget_str:
+            summary_parts.append(budget_str)
+        
+        summary = " • ".join(filter(None, summary_parts))
+        
+        # Step 7: Emit real-time event
+        realtime_event = {
+            "event": f"lead.{intake_result}",
+            "payload": {
+                "lead_id": lead_id,
+                "summary": summary,
+                "source": source
+            }
+        }
+        
+        # Step 8: Create audit log
+        audit_data = AuditLog(
+            idempotency_key=idempotency_key,
+            user_id=user_id,
+            hash_email=email_hash,
+            hash_phone=phone_hash,
+            raw_source=source,
+            intake_result=intake_result,
+            lead_id=lead_id,
+            raw_payload=payload.dict()
+        )
+        await db.audit_logs.insert_one(audit_data.dict())
+        
+        # Step 9: Return result
+        result = LeadIntakeResult(
+            intake_result=intake_result,
+            reason="",
+            upsert={
+                "operation": operation,
+                "lead_id": lead_id,
+                "data": final_lead_data
+            },
+            realtime_event=realtime_event,
+            audit={
+                "idempotency_key": idempotency_key,
+                "hash_email": email_hash,
+                "hash_phone": phone_hash,
+                "raw_source": source,
+                "stored_raw_payload": True
+            }
+        )
+        
+        return {"status": "accepted", "result": intake_result, "lead_id": lead_id, "summary": summary}
+        
+    except Exception as e:
+        print(f"Lead intake webhook error: {e}")
+        
+        # Log error in audit if we have the key
+        if idempotency_key:
+            try:
+                error_audit = AuditLog(
+                    idempotency_key=idempotency_key,
+                    user_id=user_id if 'user_id' in locals() else "unknown",
+                    raw_source=source if 'source' in locals() else "unknown",
+                    intake_result="error",
+                    raw_payload=payload.dict() if 'payload' in locals() else {}
+                )
+                await db.audit_logs.insert_one(error_audit.dict())
+            except:
+                pass  # Don't fail on audit log error
+        
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
+
 @app.post("/api/webhooks/generic-leads/{user_id}")
 async def generic_webhook_handler(user_id: str, lead_data: GenericLeadWebhook):
     """Handle generic webhook for lead collection"""
