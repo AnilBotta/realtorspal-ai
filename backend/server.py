@@ -2312,6 +2312,18 @@ async def get_ai_agents(user_id: str):
             # Insert default agents
             await db.ai_agents.insert_many(default_agents)
             agents = default_agents
+        else:
+            # Convert MongoDB documents to JSON-serializable format
+            converted_agents = []
+            for agent in agents:
+                agent_dict = {k: v for k, v in agent.items() if k != "_id"}
+                # Convert datetime objects to ISO strings if they exist
+                if "created_at" in agent_dict and hasattr(agent_dict["created_at"], "isoformat"):
+                    agent_dict["created_at"] = agent_dict["created_at"].isoformat()
+                if "updated_at" in agent_dict and hasattr(agent_dict["updated_at"], "isoformat"):
+                    agent_dict["updated_at"] = agent_dict["updated_at"].isoformat()
+                converted_agents.append(agent_dict)
+            agents = converted_agents
         
         return {"agents": agents}
         
