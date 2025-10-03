@@ -2699,6 +2699,654 @@ class RealtorsPalAPITester:
             self.log_test("Lead Generation AI Data Normalization", False, f"Exception: {str(e)}")
             return False
 
+    def test_nurturing_ai_generate_plan_valid_lead(self) -> bool:
+        """Test POST /api/nurturing-ai/generate-plan/{user_id} with valid lead"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First create a test lead with comprehensive data
+            timestamp = int(time.time()) + 500
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "Nurturing",
+                "last_name": "TestLead",
+                "email": f"nurturing.test.{timestamp}@example.com",
+                "phone": "+14155559001",
+                "property_type": "Single Family Home",
+                "neighborhood": "Downtown",
+                "city": "San Francisco",
+                "pipeline": "New Lead",
+                "priority": "high",
+                "price_min": 500000,
+                "price_max": 800000,
+                "buying_in": "3-6 months",
+                "lead_source": "Website"
+            }
+            
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            if lead_response.status_code != 200:
+                self.log_test("Nurturing AI Generate Plan Valid Lead", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            lead_id = lead_data.get("id")
+            
+            # Generate nurturing plan
+            response = requests.post(f"{self.base_url}/nurturing-ai/generate-plan/{demo_user_id}", 
+                                   params={"lead_id": lead_id}, timeout=15)
+            
+            if response.status_code == 200:
+                plan = response.json()
+                
+                # Verify plan structure
+                required_fields = ["lead_id", "user_id", "activity_board", "lead_updates", "next_review", "engagement_score", "strategy_notes"]
+                missing_fields = [field for field in required_fields if field not in plan]
+                
+                if missing_fields:
+                    self.log_test("Nurturing AI Generate Plan Valid Lead", False, f"Missing plan fields: {missing_fields}")
+                    return False
+                
+                # Verify activity board has activities
+                activities = plan.get("activity_board", [])
+                if not activities or len(activities) < 2:
+                    self.log_test("Nurturing AI Generate Plan Valid Lead", False, f"Expected multiple activities, got {len(activities)}")
+                    return False
+                
+                # Verify activities have required fields
+                activity_fields = ["id", "lead_id", "user_id", "date", "action", "channel", "status"]
+                for i, activity in enumerate(activities[:3]):  # Check first 3 activities
+                    missing_activity_fields = [field for field in activity_fields if field not in activity]
+                    if missing_activity_fields:
+                        self.log_test("Nurturing AI Generate Plan Valid Lead", False, f"Activity {i} missing fields: {missing_activity_fields}")
+                        return False
+                
+                # Verify activity types are valid
+                valid_actions = ["voice_call", "sms", "email"]
+                valid_channels = ["phone", "sms", "email"]
+                
+                for activity in activities:
+                    if activity.get("action") not in valid_actions:
+                        self.log_test("Nurturing AI Generate Plan Valid Lead", False, f"Invalid action: {activity.get('action')}")
+                        return False
+                    if activity.get("channel") not in valid_channels:
+                        self.log_test("Nurturing AI Generate Plan Valid Lead", False, f"Invalid channel: {activity.get('channel')}")
+                        return False
+                
+                self.log_test("Nurturing AI Generate Plan Valid Lead", True, 
+                            f"Plan generated with {len(activities)} activities. Strategy: {plan.get('strategy_notes', '')[:100]}...")
+                return True
+            else:
+                self.log_test("Nurturing AI Generate Plan Valid Lead", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Nurturing AI Generate Plan Valid Lead", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurturing_ai_generate_plan_invalid_lead(self) -> bool:
+        """Test POST /api/nurturing-ai/generate-plan/{user_id} with invalid lead"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Test with non-existent lead ID
+            response = requests.post(f"{self.base_url}/nurturing-ai/generate-plan/{demo_user_id}", 
+                                   params={"lead_id": "non-existent-lead-id"}, timeout=10)
+            
+            if response.status_code == 404:
+                data = response.json()
+                if "Lead not found" in data.get("detail", ""):
+                    self.log_test("Nurturing AI Generate Plan Invalid Lead", True, f"Proper 404 error for invalid lead: {data['detail']}")
+                    return True
+                else:
+                    self.log_test("Nurturing AI Generate Plan Invalid Lead", False, f"Wrong 404 error message: {data}")
+                    return False
+            elif response.status_code == 500:
+                data = response.json()
+                if "error" in data.get("status", ""):
+                    self.log_test("Nurturing AI Generate Plan Invalid Lead", True, f"Error response for invalid lead: {data.get('message', '')}")
+                    return True
+                else:
+                    self.log_test("Nurturing AI Generate Plan Invalid Lead", False, f"Unexpected 500 response: {data}")
+                    return False
+            else:
+                self.log_test("Nurturing AI Generate Plan Invalid Lead", False, f"Expected 404 or 500, got {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Nurturing AI Generate Plan Invalid Lead", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurturing_ai_get_activities(self) -> bool:
+        """Test GET /api/nurturing-ai/activities/{user_id}"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Test getting all activities for user
+            response = requests.get(f"{self.base_url}/nurturing-ai/activities/{demo_user_id}", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Verify response structure
+                required_fields = ["status", "activities", "count"]
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    self.log_test("Nurturing AI Get Activities", False, f"Missing response fields: {missing_fields}")
+                    return False
+                
+                if data.get("status") != "success":
+                    self.log_test("Nurturing AI Get Activities", False, f"Expected success status, got: {data.get('status')}")
+                    return False
+                
+                activities = data.get("activities", [])
+                count = data.get("count", 0)
+                
+                if len(activities) != count:
+                    self.log_test("Nurturing AI Get Activities", False, f"Activity count mismatch: {len(activities)} vs {count}")
+                    return False
+                
+                # If we have activities, verify their structure
+                if activities:
+                    activity_fields = ["id", "lead_id", "user_id", "date", "action", "channel", "status"]
+                    first_activity = activities[0]
+                    missing_activity_fields = [field for field in activity_fields if field not in first_activity]
+                    
+                    if missing_activity_fields:
+                        self.log_test("Nurturing AI Get Activities", False, f"Activity missing fields: {missing_activity_fields}")
+                        return False
+                
+                self.log_test("Nurturing AI Get Activities", True, f"Retrieved {count} activities successfully")
+                return True
+            else:
+                self.log_test("Nurturing AI Get Activities", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Nurturing AI Get Activities", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurturing_ai_get_activities_with_filters(self) -> bool:
+        """Test GET /api/nurturing-ai/activities/{user_id} with date and status filters"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Test with date filter
+            today = datetime.now().strftime('%Y-%m-%d')
+            response = requests.get(f"{self.base_url}/nurturing-ai/activities/{demo_user_id}", 
+                                  params={"date": today}, timeout=10)
+            
+            if response.status_code != 200:
+                self.log_test("Nurturing AI Get Activities With Filters", False, f"Date filter failed: {response.status_code}, {response.text}")
+                return False
+            
+            date_data = response.json()
+            if date_data.get("status") != "success":
+                self.log_test("Nurturing AI Get Activities With Filters", False, f"Date filter status not success: {date_data}")
+                return False
+            
+            # Test with status filter
+            response = requests.get(f"{self.base_url}/nurturing-ai/activities/{demo_user_id}", 
+                                  params={"status": "pending"}, timeout=10)
+            
+            if response.status_code != 200:
+                self.log_test("Nurturing AI Get Activities With Filters", False, f"Status filter failed: {response.status_code}, {response.text}")
+                return False
+            
+            status_data = response.json()
+            if status_data.get("status") != "success":
+                self.log_test("Nurturing AI Get Activities With Filters", False, f"Status filter status not success: {status_data}")
+                return False
+            
+            # Test with both filters
+            response = requests.get(f"{self.base_url}/nurturing-ai/activities/{demo_user_id}", 
+                                  params={"date": today, "status": "pending"}, timeout=10)
+            
+            if response.status_code != 200:
+                self.log_test("Nurturing AI Get Activities With Filters", False, f"Combined filters failed: {response.status_code}, {response.text}")
+                return False
+            
+            combined_data = response.json()
+            if combined_data.get("status") != "success":
+                self.log_test("Nurturing AI Get Activities With Filters", False, f"Combined filters status not success: {combined_data}")
+                return False
+            
+            self.log_test("Nurturing AI Get Activities With Filters", True, 
+                        f"All filters working. Date: {date_data['count']}, Status: {status_data['count']}, Combined: {combined_data['count']}")
+            return True
+            
+        except Exception as e:
+            self.log_test("Nurturing AI Get Activities With Filters", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurturing_ai_update_activity_status(self) -> bool:
+        """Test PUT /api/nurturing-ai/activities/{activity_id} to update activity status"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, get activities to find one to update
+            response = requests.get(f"{self.base_url}/nurturing-ai/activities/{demo_user_id}", timeout=10)
+            
+            if response.status_code != 200:
+                self.log_test("Nurturing AI Update Activity Status", False, f"Failed to get activities: {response.text}")
+                return False
+            
+            data = response.json()
+            activities = data.get("activities", [])
+            
+            if not activities:
+                # Create a test activity first by generating a plan
+                timestamp = int(time.time()) + 600
+                lead_payload = {
+                    "user_id": demo_user_id,
+                    "first_name": "Activity",
+                    "last_name": "UpdateTest",
+                    "email": f"activity.update.{timestamp}@example.com",
+                    "phone": "+14155559002",
+                    "property_type": "Condo",
+                    "pipeline": "made contact"
+                }
+                
+                lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+                if lead_response.status_code != 200:
+                    self.log_test("Nurturing AI Update Activity Status", False, f"Failed to create test lead: {lead_response.text}")
+                    return False
+                
+                lead_data = lead_response.json()
+                lead_id = lead_data.get("id")
+                
+                # Generate plan to create activities
+                plan_response = requests.post(f"{self.base_url}/nurturing-ai/generate-plan/{demo_user_id}", 
+                                            params={"lead_id": lead_id}, timeout=15)
+                
+                if plan_response.status_code != 200:
+                    self.log_test("Nurturing AI Update Activity Status", False, f"Failed to generate plan: {plan_response.text}")
+                    return False
+                
+                # Get activities again
+                response = requests.get(f"{self.base_url}/nurturing-ai/activities/{demo_user_id}", timeout=10)
+                if response.status_code != 200:
+                    self.log_test("Nurturing AI Update Activity Status", False, f"Failed to get activities after plan generation: {response.text}")
+                    return False
+                
+                data = response.json()
+                activities = data.get("activities", [])
+            
+            if not activities:
+                self.log_test("Nurturing AI Update Activity Status", False, "No activities found to update")
+                return False
+            
+            # Find a pending activity to update
+            activity_to_update = None
+            for activity in activities:
+                if activity.get("status") == "pending":
+                    activity_to_update = activity
+                    break
+            
+            if not activity_to_update:
+                activity_to_update = activities[0]  # Use first activity if no pending ones
+            
+            activity_id = activity_to_update.get("id")
+            
+            # Test updating to completed status
+            update_response = requests.put(f"{self.base_url}/nurturing-ai/activities/{activity_id}", 
+                                         params={"status": "completed", "user_id": demo_user_id, "notes": "Test completion"}, 
+                                         timeout=10)
+            
+            if update_response.status_code == 200:
+                update_data = update_response.json()
+                
+                if update_data.get("status") == "success" and "Activity updated" in update_data.get("message", ""):
+                    self.log_test("Nurturing AI Update Activity Status", True, f"Activity {activity_id} updated to completed successfully")
+                    return True
+                else:
+                    self.log_test("Nurturing AI Update Activity Status", False, f"Unexpected update response: {update_data}")
+                    return False
+            else:
+                self.log_test("Nurturing AI Update Activity Status", False, f"Status: {update_response.status_code}, Response: {update_response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Nurturing AI Update Activity Status", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurturing_ai_update_activity_invalid_id(self) -> bool:
+        """Test PUT /api/nurturing-ai/activities/{activity_id} with invalid activity ID"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Test with non-existent activity ID
+            response = requests.put(f"{self.base_url}/nurturing-ai/activities/non-existent-activity-id", 
+                                  params={"status": "completed", "user_id": demo_user_id}, timeout=10)
+            
+            if response.status_code == 404:
+                data = response.json()
+                if "Activity not found" in data.get("detail", ""):
+                    self.log_test("Nurturing AI Update Activity Invalid ID", True, f"Proper 404 error for invalid activity: {data['detail']}")
+                    return True
+                else:
+                    self.log_test("Nurturing AI Update Activity Invalid ID", False, f"Wrong 404 error message: {data}")
+                    return False
+            elif response.status_code == 500:
+                data = response.json()
+                if "error" in data.get("status", ""):
+                    self.log_test("Nurturing AI Update Activity Invalid ID", True, f"Error response for invalid activity: {data.get('message', '')}")
+                    return True
+                else:
+                    self.log_test("Nurturing AI Update Activity Invalid ID", False, f"Unexpected 500 response: {data}")
+                    return False
+            else:
+                self.log_test("Nurturing AI Update Activity Invalid ID", False, f"Expected 404 or 500, got {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Nurturing AI Update Activity Invalid ID", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurturing_ai_analyze_reply_positive(self) -> bool:
+        """Test POST /api/nurturing-ai/analyze-reply with positive reply"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Create a test lead first
+            timestamp = int(time.time()) + 700
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "Reply",
+                "last_name": "TestLead",
+                "email": f"reply.test.{timestamp}@example.com",
+                "phone": "+14155559003",
+                "property_type": "House"
+            }
+            
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            if lead_response.status_code != 200:
+                self.log_test("Nurturing AI Analyze Reply Positive", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            lead_id = lead_data.get("id")
+            
+            # Test positive reply analysis
+            positive_replies = [
+                "Yes, I'm very interested! Please call me.",
+                "That sounds great! Let me know more details.",
+                "Perfect timing, I was just looking for something like this."
+            ]
+            
+            for reply_text in positive_replies:
+                response = requests.post(f"{self.base_url}/nurturing-ai/analyze-reply", 
+                                       params={"user_id": demo_user_id, "lead_id": lead_id, "reply_text": reply_text}, 
+                                       timeout=10)
+                
+                if response.status_code != 200:
+                    self.log_test("Nurturing AI Analyze Reply Positive", False, f"Failed to analyze reply: {response.status_code}, {response.text}")
+                    return False
+                
+                analysis = response.json()
+                
+                # Verify analysis structure
+                required_fields = ["reply_text", "sentiment", "intent", "suggested_action", "confidence"]
+                missing_fields = [field for field in required_fields if field not in analysis]
+                
+                if missing_fields:
+                    self.log_test("Nurturing AI Analyze Reply Positive", False, f"Missing analysis fields: {missing_fields}")
+                    return False
+                
+                # Verify positive sentiment detection
+                if analysis.get("sentiment") != "positive":
+                    self.log_test("Nurturing AI Analyze Reply Positive", False, f"Expected positive sentiment for '{reply_text}', got: {analysis.get('sentiment')}")
+                    return False
+                
+                # Verify intent is appropriate for positive response
+                if analysis.get("intent") != "interested":
+                    self.log_test("Nurturing AI Analyze Reply Positive", False, f"Expected interested intent for '{reply_text}', got: {analysis.get('intent')}")
+                    return False
+            
+            self.log_test("Nurturing AI Analyze Reply Positive", True, f"Positive replies analyzed correctly. Last analysis: {analysis}")
+            return True
+            
+        except Exception as e:
+            self.log_test("Nurturing AI Analyze Reply Positive", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurturing_ai_analyze_reply_negative(self) -> bool:
+        """Test POST /api/nurturing-ai/analyze-reply with negative reply"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Create a test lead first
+            timestamp = int(time.time()) + 800
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "Negative",
+                "last_name": "ReplyTest",
+                "email": f"negative.reply.{timestamp}@example.com",
+                "phone": "+14155559004",
+                "property_type": "Apartment"
+            }
+            
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            if lead_response.status_code != 200:
+                self.log_test("Nurturing AI Analyze Reply Negative", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            lead_id = lead_data.get("id")
+            
+            # Test negative reply analysis
+            negative_replies = [
+                "No, I'm not interested anymore.",
+                "Please stop contacting me.",
+                "Not ready to buy anything right now."
+            ]
+            
+            for reply_text in negative_replies:
+                response = requests.post(f"{self.base_url}/nurturing-ai/analyze-reply", 
+                                       params={"user_id": demo_user_id, "lead_id": lead_id, "reply_text": reply_text}, 
+                                       timeout=10)
+                
+                if response.status_code != 200:
+                    self.log_test("Nurturing AI Analyze Reply Negative", False, f"Failed to analyze reply: {response.status_code}, {response.text}")
+                    return False
+                
+                analysis = response.json()
+                
+                # Verify negative sentiment detection
+                if analysis.get("sentiment") != "negative":
+                    self.log_test("Nurturing AI Analyze Reply Negative", False, f"Expected negative sentiment for '{reply_text}', got: {analysis.get('sentiment')}")
+                    return False
+                
+                # Verify intent is appropriate for negative response
+                if analysis.get("intent") != "not_interested":
+                    self.log_test("Nurturing AI Analyze Reply Negative", False, f"Expected not_interested intent for '{reply_text}', got: {analysis.get('intent')}")
+                    return False
+            
+            self.log_test("Nurturing AI Analyze Reply Negative", True, f"Negative replies analyzed correctly. Last analysis: {analysis}")
+            return True
+            
+        except Exception as e:
+            self.log_test("Nurturing AI Analyze Reply Negative", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurturing_ai_analyze_reply_neutral(self) -> bool:
+        """Test POST /api/nurturing-ai/analyze-reply with neutral reply"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Create a test lead first
+            timestamp = int(time.time()) + 900
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "Neutral",
+                "last_name": "ReplyTest",
+                "email": f"neutral.reply.{timestamp}@example.com",
+                "phone": "+14155559005",
+                "property_type": "Townhouse"
+            }
+            
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            if lead_response.status_code != 200:
+                self.log_test("Nurturing AI Analyze Reply Neutral", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            lead_id = lead_data.get("id")
+            
+            # Test neutral reply analysis
+            neutral_replies = [
+                "Maybe later, I need to think about it.",
+                "I'm pretty busy right now.",
+                "Let me get back to you on this."
+            ]
+            
+            for reply_text in neutral_replies:
+                response = requests.post(f"{self.base_url}/nurturing-ai/analyze-reply", 
+                                       params={"user_id": demo_user_id, "lead_id": lead_id, "reply_text": reply_text}, 
+                                       timeout=10)
+                
+                if response.status_code != 200:
+                    self.log_test("Nurturing AI Analyze Reply Neutral", False, f"Failed to analyze reply: {response.status_code}, {response.text}")
+                    return False
+                
+                analysis = response.json()
+                
+                # Verify neutral sentiment detection
+                if analysis.get("sentiment") != "neutral":
+                    self.log_test("Nurturing AI Analyze Reply Neutral", False, f"Expected neutral sentiment for '{reply_text}', got: {analysis.get('sentiment')}")
+                    return False
+                
+                # Verify intent is appropriate for neutral response
+                valid_neutral_intents = ["not_ready", "unclear"]
+                if analysis.get("intent") not in valid_neutral_intents:
+                    self.log_test("Nurturing AI Analyze Reply Neutral", False, f"Expected neutral intent for '{reply_text}', got: {analysis.get('intent')}")
+                    return False
+            
+            self.log_test("Nurturing AI Analyze Reply Neutral", True, f"Neutral replies analyzed correctly. Last analysis: {analysis}")
+            return True
+            
+        except Exception as e:
+            self.log_test("Nurturing AI Analyze Reply Neutral", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurturing_ai_comprehensive_workflow(self) -> bool:
+        """Test complete Nurturing AI workflow: Generate Plan → Get Activities → Update Status → Analyze Reply"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            print("\n🔄 Starting Nurturing AI Comprehensive Workflow Test...")
+            
+            # STEP 1: Create a comprehensive test lead
+            print("📝 Step 1: Creating comprehensive test lead...")
+            timestamp = int(time.time()) + 1000
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "Comprehensive",
+                "last_name": "WorkflowTest",
+                "email": f"comprehensive.workflow.{timestamp}@example.com",
+                "phone": "+14155559006",
+                "property_type": "Single Family Home",
+                "neighborhood": "Premium District",
+                "city": "San Francisco",
+                "pipeline": "warm / nurturing",
+                "priority": "high",
+                "price_min": 750000,
+                "price_max": 1200000,
+                "buying_in": "0-3 months",
+                "lead_source": "Referral",
+                "notes": "High-value lead, very motivated buyer"
+            }
+            
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            if lead_response.status_code != 200:
+                self.log_test("Nurturing AI Comprehensive Workflow", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            lead_id = lead_data.get("id")
+            print(f"✅ Created lead: {lead_id}")
+            
+            # STEP 2: Generate nurturing plan
+            print("🤖 Step 2: Generating nurturing plan...")
+            plan_response = requests.post(f"{self.base_url}/nurturing-ai/generate-plan/{demo_user_id}", 
+                                        params={"lead_id": lead_id}, timeout=15)
+            
+            if plan_response.status_code != 200:
+                self.log_test("Nurturing AI Comprehensive Workflow", False, f"Failed to generate plan: {plan_response.text}")
+                return False
+            
+            plan = plan_response.json()
+            activities = plan.get("activity_board", [])
+            
+            if len(activities) < 2:
+                self.log_test("Nurturing AI Comprehensive Workflow", False, f"Expected multiple activities, got {len(activities)}")
+                return False
+            
+            print(f"✅ Generated plan with {len(activities)} activities")
+            
+            # STEP 3: Get activities via API
+            print("📋 Step 3: Retrieving activities via API...")
+            activities_response = requests.get(f"{self.base_url}/nurturing-ai/activities/{demo_user_id}", timeout=10)
+            
+            if activities_response.status_code != 200:
+                self.log_test("Nurturing AI Comprehensive Workflow", False, f"Failed to get activities: {activities_response.text}")
+                return False
+            
+            activities_data = activities_response.json()
+            retrieved_activities = activities_data.get("activities", [])
+            
+            if len(retrieved_activities) < len(activities):
+                self.log_test("Nurturing AI Comprehensive Workflow", False, f"Activity count mismatch: generated {len(activities)}, retrieved {len(retrieved_activities)}")
+                return False
+            
+            print(f"✅ Retrieved {len(retrieved_activities)} activities")
+            
+            # STEP 4: Update activity status
+            print("📝 Step 4: Updating activity status...")
+            if retrieved_activities:
+                activity_to_update = retrieved_activities[0]
+                activity_id = activity_to_update.get("id")
+                
+                update_response = requests.put(f"{self.base_url}/nurturing-ai/activities/{activity_id}", 
+                                             params={"status": "completed", "user_id": demo_user_id, "notes": "Workflow test completion"}, 
+                                             timeout=10)
+                
+                if update_response.status_code != 200:
+                    self.log_test("Nurturing AI Comprehensive Workflow", False, f"Failed to update activity: {update_response.text}")
+                    return False
+                
+                print(f"✅ Updated activity {activity_id} to completed")
+            
+            # STEP 5: Analyze reply
+            print("🔍 Step 5: Analyzing lead reply...")
+            reply_response = requests.post(f"{self.base_url}/nurturing-ai/analyze-reply", 
+                                         params={"user_id": demo_user_id, "lead_id": lead_id, "reply_text": "Yes, I'm very interested! Please call me to discuss the properties."}, 
+                                         timeout=10)
+            
+            if reply_response.status_code != 200:
+                self.log_test("Nurturing AI Comprehensive Workflow", False, f"Failed to analyze reply: {reply_response.text}")
+                return False
+            
+            analysis = reply_response.json()
+            
+            if analysis.get("sentiment") != "positive" or analysis.get("intent") != "interested":
+                self.log_test("Nurturing AI Comprehensive Workflow", False, f"Incorrect reply analysis: {analysis}")
+                return False
+            
+            print(f"✅ Analyzed reply: {analysis.get('sentiment')} sentiment, {analysis.get('intent')} intent")
+            
+            # SUCCESS!
+            self.log_test("Nurturing AI Comprehensive Workflow", True, 
+                        f"Complete workflow successful: "
+                        f"Lead created → Plan generated ({len(activities)} activities) → "
+                        f"Activities retrieved ({len(retrieved_activities)}) → Activity updated → "
+                        f"Reply analyzed ({analysis.get('sentiment')}/{analysis.get('intent')})")
+            return True
+            
+        except Exception as e:
+            self.log_test("Nurturing AI Comprehensive Workflow", False, f"Exception during workflow: {str(e)}")
+            return False
+
     def run_all_tests(self) -> bool:
         """Run all backend API tests"""
         print("🚀 Starting RealtorsPal AI Backend API Tests")
