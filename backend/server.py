@@ -3291,4 +3291,3 @@ async def process_lead_nurturing(task_data: Dict[str, Any], user_id: str):
 async def process_customer_service(task_data: Dict[str, Any], user_id: str):
     """Process customer service task directly"""
     return await customer_service.process_task(task_data, user_id)
-        return {"status": "error", "message": str(e)}
