@@ -47,4 +47,14 @@ export const getDashboardAnalytics = (user_id) => api.get(`/analytics/dashboard`
 
 export const chat = (payload) => api.post(`/ai/chat`, payload);
 
+// AI Agent System APIs
+export const getAIAgents = (user_id) => api.get(`/ai-agents`, { params: { user_id } });
+export const updateAIAgent = (agent_id, config, user_id) => api.put(`/ai-agents/${agent_id}`, config, { params: { user_id } });
+export const getAgentActivities = (user_id, limit = 50) => api.get(`/ai-agents/activities`, { params: { user_id, limit } });
+export const createAgentActivity = (activity, user_id) => api.post(`/ai-agents/activities`, activity, { params: { user_id } });
+export const getApprovalQueue = (user_id) => api.get(`/ai-agents/approvals`, { params: { user_id } });
+export const createApprovalRequest = (approval, user_id) => api.post(`/ai-agents/approvals`, approval, { params: { user_id } });
+export const handleApprovalDecision = (approval_id, decision, user_id) => api.put(`/ai-agents/approvals/${approval_id}`, decision, { params: { user_id } });
+export const orchestrateAgents = (task_data, user_id) => api.post(`/ai-agents/orchestrate`, task_data, { params: { user_id } });
+
 export default api;
