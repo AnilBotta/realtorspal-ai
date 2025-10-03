@@ -65,46 +65,67 @@ const GlobalSearch = ({ user }) => {
   // Global search function across all app data
   const performGlobalSearch = async (query) => {
     if (!query.trim()) {
-      setSearchResults({ leads: [], agents: [], properties: [], tasks: [], campaigns: [] });
+      setSearchResults({ pages: [], features: [], settings: [], leads: [], actions: [] });
       return;
     }
 
     setIsSearching(true);
+    const searchTerm = query.toLowerCase();
+    
     try {
-      // Use the proper API function to get leads
-      const response = await getLeads(user.id);
-      console.log('Global search API response:', response);
-      
-      // Handle the response data structure - response.data contains the leads array
-      const leadsData = response.data || [];
-      
-      const filteredLeads = leadsData.filter(lead => {
-        const searchTerm = query.toLowerCase();
-        return (
-          `${lead.first_name || ''} ${lead.last_name || ''}`.toLowerCase().includes(searchTerm) ||
-          lead.email?.toLowerCase().includes(searchTerm) ||
-          lead.phone?.includes(searchTerm) ||
-          lead.city?.toLowerCase().includes(searchTerm) ||
-          lead.property_type?.toLowerCase().includes(searchTerm) ||
-          lead.pipeline?.toLowerCase().includes(searchTerm) ||
-          lead.status?.toLowerCase().includes(searchTerm) ||
-          lead.lead_description?.toLowerCase().includes(searchTerm)
-        );
-      }) || [];
+      // Search through static app data
+      const searchInArray = (items) => items.filter(item =>
+        item.name.toLowerCase().includes(searchTerm) ||
+        item.description.toLowerCase().includes(searchTerm) ||
+        item.category.toLowerCase().includes(searchTerm)
+      );
 
-      console.log('Filtered leads for search:', filteredLeads);
+      const filteredPages = searchInArray(staticSearchData.pages);
+      const filteredFeatures = searchInArray(staticSearchData.features);
+      const filteredSettings = searchInArray(staticSearchData.settings);
+      const filteredActions = searchInArray(staticSearchData.actions);
+
+      // Search through leads data
+      let filteredLeads = [];
+      try {
+        const response = await getLeads(user.id);
+        console.log('Global search API response:', response);
+        
+        const leadsData = response.data || [];
+        filteredLeads = leadsData.filter(lead => {
+          return (
+            `${lead.first_name || ''} ${lead.last_name || ''}`.toLowerCase().includes(searchTerm) ||
+            lead.email?.toLowerCase().includes(searchTerm) ||
+            lead.phone?.includes(searchTerm) ||
+            lead.city?.toLowerCase().includes(searchTerm) ||
+            lead.property_type?.toLowerCase().includes(searchTerm) ||
+            lead.pipeline?.toLowerCase().includes(searchTerm) ||
+            lead.status?.toLowerCase().includes(searchTerm) ||
+            lead.lead_description?.toLowerCase().includes(searchTerm)
+          );
+        }) || [];
+      } catch (leadError) {
+        console.error('Error searching leads:', leadError);
+      }
+
+      console.log('Search results:', {
+        pages: filteredPages.length,
+        features: filteredFeatures.length, 
+        settings: filteredSettings.length,
+        leads: filteredLeads.length,
+        actions: filteredActions.length
+      });
 
       setSearchResults({
+        pages: filteredPages,
+        features: filteredFeatures,
+        settings: filteredSettings,
         leads: filteredLeads,
-        agents: [], // TODO: Add agent search
-        properties: [], // TODO: Add property search
-        tasks: [], // TODO: Add task search
-        campaigns: [] // TODO: Add campaign search
+        actions: filteredActions
       });
     } catch (error) {
       console.error('Global search error:', error);
-      // Set empty results on error
-      setSearchResults({ leads: [], agents: [], properties: [], tasks: [], campaigns: [] });
+      setSearchResults({ pages: [], features: [], settings: [], leads: [], actions: [] });
     } finally {
       setIsSearching(false);
     }
