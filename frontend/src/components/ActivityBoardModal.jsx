@@ -365,10 +365,13 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
                             </div>
                           </div>
                           <div className="col-span-2 text-sm text-gray-900">
-                            {new Date(activity.created_at).toLocaleDateString()}
+                            {new Date(activity.date + 'T09:00:00').toLocaleString()}
                           </div>
                           <div className="col-span-2 text-sm text-gray-900">
-                            {new Date(activity.created_at).toLocaleDateString()}
+                            {activity.completed_at 
+                              ? new Date(activity.completed_at).toLocaleString() 
+                              : new Date(activity.date + 'T17:00:00').toLocaleString()
+                            }
                           </div>
                           <div className="col-span-1">
                             <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getStatusColor(activity.status)}`}>
