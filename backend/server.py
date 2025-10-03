@@ -2386,7 +2386,7 @@ async def create_agent_activity(activity: Dict[str, Any], user_id: str):
         activity_data = {
             "id": str(uuid.uuid4()),
             "user_id": user_id,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.utcnow().isoformat(),
             **activity
         }
         
