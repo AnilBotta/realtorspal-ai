@@ -329,20 +329,25 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
                       </div>
                     ) : (
                       filteredActivities.map((activity, index) => (
-                        <div key={activity.id} className={`grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 border-b border-gray-100 ${index === 0 ? 'bg-blue-50' : ''}`}>
+                        <div key={activity.id} className={`grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 border-b border-gray-100 ${selectedActivities.has(activity.id) ? 'bg-blue-50' : ''}`}>
                           <div className="col-span-1">
-                            <input type="checkbox" className="rounded" />
+                            <input 
+                              type="checkbox" 
+                              className="rounded"
+                              checked={selectedActivities.has(activity.id)}
+                              onChange={() => handleActivitySelect(activity.id)}
+                            />
                           </div>
                           <div className="col-span-3 flex items-center gap-2">
                             {getActivityIcon(activity.action)}
                             <div>
                               <p className="text-sm font-medium text-gray-900">
-                                {getActivityTitle(activity.action)} with Lead
+                                {getActivityTitle(activity.action)} with {getLeadName(activity.lead_id)}
                               </p>
                               {activity.draft_content && (
                                 <button
                                   onClick={() => openDraftModal(activity)}
-                                  className="text-xs text-blue-600 hover:text-blue-700"
+                                  className="text-xs text-blue-600 hover:text-blue-700 underline"
                                 >
                                   View draft message
                                 </button>
