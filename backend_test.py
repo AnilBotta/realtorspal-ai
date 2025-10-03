@@ -1304,6 +1304,410 @@ class RealtorsPalAPITester:
             self.log_test("TwiML Client Incoming Endpoint", False, f"Exception: {str(e)}")
             return False
 
+    # --- Main Orchestrator AI Live Activity Stream Tests ---
+
+    def test_orchestrator_live_activity_stream(self) -> bool:
+        """Test GET /api/orchestrator/live-activity-stream/{user_id}"""
+        # Use the specific demo user ID from the review request
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            response = requests.get(f"{self.base_url}/orchestrator/live-activity-stream/{demo_user_id}", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "success" and 
+                    "activity_stream" in data and 
+                    "count" in data and
+                    isinstance(data["activity_stream"], list)):
+                    
+                    activity_stream = data["activity_stream"]
+                    count = data["count"]
+                    
+                    # Verify activity stream structure
+                    if len(activity_stream) > 0:
+                        # Check first activity item structure
+                        first_item = activity_stream[0]
+                        required_fields = ["id", "type", "agent_code", "lead_id", "lead_name", "status", "started_at", "correlation_id", "events", "tasks"]
+                        
+                        missing_fields = [field for field in required_fields if field not in first_item]
+                        if missing_fields:
+                            self.log_test("Orchestrator Live Activity Stream", False, 
+                                        f"Missing required fields in activity item: {missing_fields}")
+                            return False
+                        
+                        # Verify events and tasks are arrays
+                        if not isinstance(first_item["events"], list) or not isinstance(first_item["tasks"], list):
+                            self.log_test("Orchestrator Live Activity Stream", False, 
+                                        f"Events and tasks should be arrays. Events: {type(first_item['events'])}, Tasks: {type(first_item['tasks'])}")
+                            return False
+                    
+                    self.log_test("Orchestrator Live Activity Stream", True, 
+                                f"Activity stream retrieved successfully. Count: {count}, Items: {len(activity_stream)}")
+                    return True
+                else:
+                    self.log_test("Orchestrator Live Activity Stream", False, f"Invalid response structure: {data}")
+                    return False
+            else:
+                self.log_test("Orchestrator Live Activity Stream", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Orchestrator Live Activity Stream", False, f"Exception: {str(e)}")
+            return False
+
+    def test_orchestrator_agent_runs(self) -> bool:
+        """Test GET /api/orchestrator/agent-runs/{user_id}"""
+        # Use the specific demo user ID from the review request
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            response = requests.get(f"{self.base_url}/orchestrator/agent-runs/{demo_user_id}", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "success" and 
+                    "agent_runs" in data and 
+                    "count" in data and
+                    isinstance(data["agent_runs"], list)):
+                    
+                    agent_runs = data["agent_runs"]
+                    count = data["count"]
+                    
+                    # Verify agent runs structure
+                    if len(agent_runs) > 0:
+                        # Check first agent run structure
+                        first_run = agent_runs[0]
+                        required_fields = ["id", "agent_code", "lead_id", "user_id", "status", "started_at", "correlation_id"]
+                        
+                        missing_fields = [field for field in required_fields if field not in first_run]
+                        if missing_fields:
+                            self.log_test("Orchestrator Agent Runs", False, 
+                                        f"Missing required fields in agent run: {missing_fields}")
+                            return False
+                        
+                        # Verify agent_code is valid
+                        valid_agents = ["NurturingAI", "CustomerServiceAI", "OnboardingAI", "CallLogAnalystAI", "AnalyticsAI", "LeadGeneratorAI"]
+                        if first_run["agent_code"] not in valid_agents:
+                            self.log_test("Orchestrator Agent Runs", False, 
+                                        f"Invalid agent_code: {first_run['agent_code']}. Valid codes: {valid_agents}")
+                            return False
+                    
+                    self.log_test("Orchestrator Agent Runs", True, 
+                                f"Agent runs retrieved successfully. Count: {count}, Runs: {len(agent_runs)}")
+                    return True
+                else:
+                    self.log_test("Orchestrator Agent Runs", False, f"Invalid response structure: {data}")
+                    return False
+            else:
+                self.log_test("Orchestrator Agent Runs", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Orchestrator Agent Runs", False, f"Exception: {str(e)}")
+            return False
+
+    def test_orchestrator_agent_runs_with_filter(self) -> bool:
+        """Test GET /api/orchestrator/agent-runs/{user_id} with agent_code filter"""
+        # Use the specific demo user ID from the review request
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Test with NurturingAI filter
+            params = {"agent_code": "NurturingAI", "limit": 10}
+            response = requests.get(f"{self.base_url}/orchestrator/agent-runs/{demo_user_id}", params=params, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "success" and 
+                    "agent_runs" in data and 
+                    isinstance(data["agent_runs"], list)):
+                    
+                    agent_runs = data["agent_runs"]
+                    
+                    # Verify all returned runs are for NurturingAI
+                    for run in agent_runs:
+                        if run.get("agent_code") != "NurturingAI":
+                            self.log_test("Orchestrator Agent Runs Filter", False, 
+                                        f"Filter failed: Expected NurturingAI, got {run.get('agent_code')}")
+                            return False
+                    
+                    self.log_test("Orchestrator Agent Runs Filter", True, 
+                                f"Agent runs filter working correctly. NurturingAI runs: {len(agent_runs)}")
+                    return True
+                else:
+                    self.log_test("Orchestrator Agent Runs Filter", False, f"Invalid response structure: {data}")
+                    return False
+            else:
+                self.log_test("Orchestrator Agent Runs Filter", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Orchestrator Agent Runs Filter", False, f"Exception: {str(e)}")
+            return False
+
+    def test_orchestrator_agent_tasks(self) -> bool:
+        """Test GET /api/orchestrator/agent-tasks/{user_id}"""
+        # Use the specific demo user ID from the review request
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            response = requests.get(f"{self.base_url}/orchestrator/agent-tasks/{demo_user_id}", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "success" and 
+                    "agent_tasks" in data and 
+                    "count" in data and
+                    isinstance(data["agent_tasks"], list)):
+                    
+                    agent_tasks = data["agent_tasks"]
+                    count = data["count"]
+                    
+                    # Verify agent tasks structure
+                    if len(agent_tasks) > 0:
+                        # Check first agent task structure
+                        first_task = agent_tasks[0]
+                        required_fields = ["id", "run_id", "lead_id", "user_id", "agent_code", "due_at", "channel", "title", "status", "created_at", "lead_name"]
+                        
+                        missing_fields = [field for field in required_fields if field not in first_task]
+                        if missing_fields:
+                            self.log_test("Orchestrator Agent Tasks", False, 
+                                        f"Missing required fields in agent task: {missing_fields}")
+                            return False
+                        
+                        # Verify channel is valid
+                        valid_channels = ["sms", "email", "call", "phone"]
+                        if first_task["channel"] not in valid_channels:
+                            self.log_test("Orchestrator Agent Tasks", False, 
+                                        f"Invalid channel: {first_task['channel']}. Valid channels: {valid_channels}")
+                            return False
+                        
+                        # Verify lead_name is resolved
+                        if not first_task["lead_name"] or first_task["lead_name"] == "Unknown Lead":
+                            self.log_test("Orchestrator Agent Tasks", False, 
+                                        f"Lead name not properly resolved: {first_task['lead_name']}")
+                            return False
+                    
+                    self.log_test("Orchestrator Agent Tasks", True, 
+                                f"Agent tasks retrieved successfully. Count: {count}, Tasks: {len(agent_tasks)}")
+                    return True
+                else:
+                    self.log_test("Orchestrator Agent Tasks", False, f"Invalid response structure: {data}")
+                    return False
+            else:
+                self.log_test("Orchestrator Agent Tasks", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Orchestrator Agent Tasks", False, f"Exception: {str(e)}")
+            return False
+
+    def test_orchestrator_agent_tasks_with_status_filter(self) -> bool:
+        """Test GET /api/orchestrator/agent-tasks/{user_id} with status filter"""
+        # Use the specific demo user ID from the review request
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Test with pending status filter
+            params = {"status": "pending", "limit": 20}
+            response = requests.get(f"{self.base_url}/orchestrator/agent-tasks/{demo_user_id}", params=params, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "success" and 
+                    "agent_tasks" in data and 
+                    isinstance(data["agent_tasks"], list)):
+                    
+                    agent_tasks = data["agent_tasks"]
+                    
+                    # Verify all returned tasks have pending status
+                    for task in agent_tasks:
+                        if task.get("status") != "pending":
+                            self.log_test("Orchestrator Agent Tasks Status Filter", False, 
+                                        f"Status filter failed: Expected pending, got {task.get('status')}")
+                            return False
+                    
+                    self.log_test("Orchestrator Agent Tasks Status Filter", True, 
+                                f"Agent tasks status filter working correctly. Pending tasks: {len(agent_tasks)}")
+                    return True
+                else:
+                    self.log_test("Orchestrator Agent Tasks Status Filter", False, f"Invalid response structure: {data}")
+                    return False
+            else:
+                self.log_test("Orchestrator Agent Tasks Status Filter", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Orchestrator Agent Tasks Status Filter", False, f"Exception: {str(e)}")
+            return False
+
+    def test_orchestrator_execute_agent_nurturing(self) -> bool:
+        """Test POST /api/orchestrator/execute-agent with NurturingAI"""
+        # Use the specific demo user ID from the review request
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, create a test lead for nurturing
+            timestamp = int(time.time()) + 300
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "Orchestrator",
+                "last_name": "TestLead",
+                "email": f"orchestrator.test.{timestamp}@example.com",
+                "phone": "+14155558888",
+                "property_type": "Single Family Home",
+                "neighborhood": "Test Neighborhood",
+                "pipeline": "warm / nurturing",
+                "priority": "high"
+            }
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            
+            if lead_response.status_code != 200:
+                self.log_test("Orchestrator Execute Agent Nurturing", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            lead_id = lead_data.get("id")
+            
+            if not lead_id:
+                self.log_test("Orchestrator Execute Agent Nurturing", False, f"No lead ID in response: {lead_data}")
+                return False
+            
+            # Now execute NurturingAI agent
+            execute_payload = {
+                "agent_code": "NurturingAI",
+                "lead_id": lead_id,
+                "user_id": demo_user_id,
+                "context": {"test_execution": True}
+            }
+            response = requests.post(f"{self.base_url}/orchestrator/execute-agent", json=execute_payload, timeout=15)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("agent_code") == "NurturingAI" and 
+                    data.get("lead_id") == lead_id and
+                    "run" in data and
+                    "lead_updates" in data):
+                    
+                    run_data = data["run"]
+                    if (run_data.get("status") in ["succeeded", "running"] and
+                        "events" in run_data and
+                        "tasks" in run_data):
+                        
+                        self.log_test("Orchestrator Execute Agent Nurturing", True, 
+                                    f"NurturingAI executed successfully. Status: {run_data['status']}, Events: {len(run_data['events'])}, Tasks: {len(run_data['tasks'])}")
+                        return True
+                    else:
+                        self.log_test("Orchestrator Execute Agent Nurturing", False, f"Invalid run data structure: {run_data}")
+                        return False
+                else:
+                    self.log_test("Orchestrator Execute Agent Nurturing", False, f"Invalid execute response structure: {data}")
+                    return False
+            else:
+                self.log_test("Orchestrator Execute Agent Nurturing", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Orchestrator Execute Agent Nurturing", False, f"Exception: {str(e)}")
+            return False
+
+    def test_orchestrator_execute_agent_other(self) -> bool:
+        """Test POST /api/orchestrator/execute-agent with other agent types"""
+        # Use the specific demo user ID from the review request
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, create a test lead
+            timestamp = int(time.time()) + 301
+            lead_payload = {
+                "user_id": demo_user_id,
+                "first_name": "OtherAgent",
+                "last_name": "TestLead",
+                "email": f"otheragent.test.{timestamp}@example.com",
+                "phone": "+14155557777",
+                "property_type": "Condo"
+            }
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            
+            if lead_response.status_code != 200:
+                self.log_test("Orchestrator Execute Agent Other", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            lead_id = lead_data.get("id")
+            
+            # Test with CustomerServiceAI
+            execute_payload = {
+                "agent_code": "CustomerServiceAI",
+                "lead_id": lead_id,
+                "user_id": demo_user_id
+            }
+            response = requests.post(f"{self.base_url}/orchestrator/execute-agent", json=execute_payload, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("agent_code") == "CustomerServiceAI" and 
+                    data.get("lead_id") == lead_id and
+                    "run" in data and
+                    "lead_updates" in data):
+                    
+                    run_data = data["run"]
+                    if (run_data.get("status") == "succeeded" and
+                        run_data.get("step") == "execution_completed" and
+                        "events" in run_data and
+                        "tasks" in run_data):
+                        
+                        self.log_test("Orchestrator Execute Agent Other", True, 
+                                    f"CustomerServiceAI executed successfully. Status: {run_data['status']}, Step: {run_data['step']}")
+                        return True
+                    else:
+                        self.log_test("Orchestrator Execute Agent Other", False, f"Invalid run data structure: {run_data}")
+                        return False
+                else:
+                    self.log_test("Orchestrator Execute Agent Other", False, f"Invalid execute response structure: {data}")
+                    return False
+            else:
+                self.log_test("Orchestrator Execute Agent Other", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Orchestrator Execute Agent Other", False, f"Exception: {str(e)}")
+            return False
+
+    def test_orchestrator_execute_agent_invalid_lead(self) -> bool:
+        """Test POST /api/orchestrator/execute-agent with invalid lead ID"""
+        # Use the specific demo user ID from the review request
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Test with non-existent lead ID
+            execute_payload = {
+                "agent_code": "NurturingAI",
+                "lead_id": "non-existent-lead-id-12345",
+                "user_id": demo_user_id
+            }
+            response = requests.post(f"{self.base_url}/orchestrator/execute-agent", json=execute_payload, timeout=10)
+            
+            if response.status_code == 404:
+                data = response.json()
+                if "Lead not found" in data.get("detail", ""):
+                    self.log_test("Orchestrator Execute Agent Invalid Lead", True, 
+                                f"Proper 404 error for invalid lead: {data['detail']}")
+                    return True
+                else:
+                    self.log_test("Orchestrator Execute Agent Invalid Lead", False, f"Wrong 404 error message: {data}")
+                    return False
+            elif response.status_code == 500:
+                data = response.json()
+                if ("Lead not found" in data.get("message", "") or 
+                    "status" in data and data["status"] == "error"):
+                    self.log_test("Orchestrator Execute Agent Invalid Lead", True, 
+                                f"Proper error handling for invalid lead: {data.get('message', '')}")
+                    return True
+                else:
+                    self.log_test("Orchestrator Execute Agent Invalid Lead", False, f"Unexpected 500 error: {data}")
+                    return False
+            else:
+                self.log_test("Orchestrator Execute Agent Invalid Lead", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Orchestrator Execute Agent Invalid Lead", False, f"Exception: {str(e)}")
+            return False
+
     def run_webrtc_tests_only(self) -> bool:
         """Run only the WebRTC calling functionality tests"""
         print("🚀 Starting WebRTC Calling Functionality Tests")
