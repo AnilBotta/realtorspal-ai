@@ -295,7 +295,12 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
                     {/* Table Header */}
                     <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <div className="col-span-1">
-                        <input type="checkbox" className="rounded" />
+                        <input 
+                          type="checkbox" 
+                          className="rounded"
+                          checked={filteredActivities.length > 0 && selectedActivities.size === filteredActivities.length}
+                          onChange={handleSelectAll}
+                        />
                       </div>
                       <div className="col-span-3">Activity</div>
                       <div className="col-span-2">Activity Type</div>
