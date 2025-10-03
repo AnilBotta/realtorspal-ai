@@ -2657,10 +2657,16 @@ async def get_audit_logs(user_id: str, limit: int = 50):
             {"user_id": user_id}
         ).sort("created_at", -1).limit(limit).to_list(length=limit)
         
+        # Remove MongoDB ObjectId from logs for JSON serialization
+        clean_logs = []
+        for log in logs:
+            clean_log = {k: v for k, v in log.items() if k != "_id"}
+            clean_logs.append(clean_log)
+        
         return {
             "status": "success",
-            "logs": logs,
-            "count": len(logs)
+            "logs": clean_logs,
+            "count": len(clean_logs)
         }
         
     except Exception as e:
