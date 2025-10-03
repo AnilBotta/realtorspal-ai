@@ -182,6 +182,125 @@ const AIAgents = ({ user }) => {
     return colorMap[agentId] || 'gray';
   };
 
+  const testAgent = async (agentType) => {
+    try {
+      let testData = {};
+      
+      switch (agentType) {
+        case 'lead-generator':
+          testData = {
+            type: 'lead_generation',
+            lead_data: {
+              first_name: 'John',
+              last_name: 'Doe',
+              email: 'john.doe@example.com',
+              phone: '+1234567890',
+              city: 'Toronto',
+              property_type: 'condo',
+              budget_range: '$500k-$700k',
+              source: 'facebook'
+            }
+          };
+          break;
+          
+        case 'lead-nurturing':
+          testData = {
+            type: 'nurturing',
+            nurture_type: 'follow_up'
+          };
+          break;
+          
+        case 'customer-service':
+          testData = {
+            type: 'customer_service',
+            message: {
+              content: 'Hi, I am interested in viewing some properties in downtown Toronto. Can you help me schedule a viewing?',
+              source: 'email',
+              timestamp: new Date().toISOString()
+            },
+            customer: {
+              name: 'Jane Smith',
+              email: 'jane.smith@email.com',
+              previous_inquiries: 2
+            }
+          };
+          break;
+      }
+      
+      console.log(`Testing ${agentType} with data:`, testData);
+      
+      // This will be processed by the orchestrator
+      const response = await orchestrateAgents(testData, user.id);
+      console.log(`${agentType} test response:`, response);
+      
+      // Add to live stream
+      const testActivity = {
+        id: Date.now(),
+        agent: {
+          name: `${agentType.charAt(0).toUpperCase() + agentType.slice(1)} AI (Test)`,
+          color: getColorForAgent(agentType),
+          icon: getIconForAgent(agentType)
+        },
+        activity: `Test completed: ${response.task || 'Agent processing'}`,
+        timestamp: new Date(),
+        status: 'completed',
+        type: 'test'
+      };
+      setLiveStream(prev => [testActivity, ...prev.slice(0, 49)]);
+      
+    } catch (error) {
+      console.error(`Error testing ${agentType}:`, error);
+      
+      // Add error to live stream
+      const errorActivity = {
+        id: Date.now(),
+        agent: {
+          name: 'System Error',
+          color: 'red',
+          icon: AlertCircle
+        },
+        activity: `Test failed for ${agentType}: ${error.message}`,
+        timestamp: new Date(),
+        status: 'failed',
+        type: 'error'
+      };
+      setLiveStream(prev => [errorActivity, ...prev.slice(0, 49)]);
+    }
+  };
+
+  const testOrchestrator = async () => {
+    try {
+      const testData = {
+        type: 'general',
+        priority: 'medium',
+        description: 'Test orchestrator decision making with multiple lead scenarios'
+      };
+      
+      console.log('Testing orchestrator with data:', testData);
+      
+      const response = await orchestrateAgents(testData, user.id);
+      console.log('Orchestrator test response:', response);
+      
+      // Add to live stream
+      const testActivity = {
+        id: Date.now(),
+        agent: {
+          name: 'Master Orchestrator (Test)',
+          color: 'purple',
+          icon: Brain
+        },
+        activity: `Orchestration test: Selected ${response.selected_agent || 'an agent'} for task processing`,
+        timestamp: new Date(),
+        status: 'completed',
+        type: 'test'
+      };
+      setLiveStream(prev => [testActivity, ...prev.slice(0, 49)]);
+      
+    } catch (error) {
+      console.error('Error testing orchestrator:', error);
+    }
+  };
+
   // Live streaming with periodic API updates and simulated activities
   const startLiveStream = () => {
     setIsStreaming(true);
