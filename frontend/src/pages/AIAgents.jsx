@@ -750,6 +750,261 @@ const AIAgents = ({ user }) => {
           Test Master Orchestrator
         </button>
       </div>
+
+      {/* Configuration Modal */}
+      {showConfigModal && (
+        <AgentConfigModal 
+          agent={configAgent}
+          agents={agents}
+          onSave={saveAgentConfig}
+          onClose={() => setShowConfigModal(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+// Agent Configuration Modal Component
+const AgentConfigModal = ({ agent, agents, onSave, onClose }) => {
+  const [config, setConfig] = useState({
+    status: agent?.status || 'active',
+    model: agent?.model || 'gpt-4o',
+    provider: agent?.provider || 'openai',
+    system_prompt: agent?.system_prompt || '',
+    response_tone: agent?.response_tone || 'professional',
+    automation_rules: agent?.automation_rules || {},
+    custom_templates: agent?.custom_templates || {}
+  });
+
+  const modelsByProvider = {
+    openai: ['gpt-5', 'gpt-4o', 'gpt-4o-mini', 'gpt-4', 'o1', 'o1-mini'],
+    anthropic: ['claude-3-7-sonnet-20250219', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
+    gemini: ['gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash']
+  };
+
+  const handleSave = () => {
+    if (agent) {
+      // Save individual agent config
+      onSave(agent.id, config);
+    } else {
+      // Save global config to all agents
+      agents.forEach(a => {
+        onSave(a.id, config);
+      });
+    }
+  };
+
+  const updateConfig = (key, value) => {
+    setConfig(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateAutomationRule = (key, value) => {
+    setConfig(prev => ({
+      ...prev,
+      automation_rules: { ...prev.automation_rules, [key]: value }
+    }));
+  };
+
+  const updateTemplate = (key, value) => {
+    setConfig(prev => ({
+      ...prev,
+      custom_templates: { ...prev.custom_templates, [key]: value }
+    }));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">
+              {agent ? `Configure ${agent.name}` : 'Global Agent Configuration'}
+            </h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X size={24} />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Basic Settings */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Basic Settings</h3>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Status</label>
+                <select 
+                  value={config.status} 
+                  onChange={(e) => updateConfig('status', e.target.value)}
+                  className="w-full p-2 border rounded-lg"
+                >
+                  <option value="active">Active</option>
+                  <option value="idle">Idle</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Provider</label>
+                <select 
+                  value={config.provider} 
+                  onChange={(e) => {
+                    updateConfig('provider', e.target.value);
+                    // Reset model when provider changes
+                    updateConfig('model', modelsByProvider[e.target.value]?.[0] || 'gpt-4o');
+                  }}
+                  className="w-full p-2 border rounded-lg"
+                >
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic</option>
+                  <option value="gemini">Google Gemini</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Model</label>
+                <select 
+                  value={config.model} 
+                  onChange={(e) => updateConfig('model', e.target.value)}
+                  className="w-full p-2 border rounded-lg"
+                >
+                  {modelsByProvider[config.provider]?.map(model => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Response Tone</label>
+                <select 
+                  value={config.response_tone} 
+                  onChange={(e) => updateConfig('response_tone', e.target.value)}
+                  className="w-full p-2 border rounded-lg"
+                >
+                  <option value="professional">Professional</option>
+                  <option value="friendly">Friendly</option>
+                  <option value="casual">Casual</option>
+                  <option value="formal">Formal</option>
+                  <option value="empathetic">Empathetic</option>
+                  <option value="analytical">Analytical</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Automation Rules */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Automation Rules</h3>
+              
+              <div>
+                <label className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    checked={config.automation_rules.auto_approve_low_risk || false}
+                    onChange={(e) => updateAutomationRule('auto_approve_low_risk', e.target.checked)}
+                  />
+                  <span className="text-sm">Auto-approve low risk tasks</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    checked={config.automation_rules.auto_validate || false}
+                    onChange={(e) => updateAutomationRule('auto_validate', e.target.checked)}
+                  />
+                  <span className="text-sm">Auto-validate data</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    checked={config.automation_rules.duplicate_check || false}
+                    onChange={(e) => updateAutomationRule('duplicate_check', e.target.checked)}
+                  />
+                  <span className="text-sm">Perform duplicate checks</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Escalation Threshold (0-1)</label>
+                <input 
+                  type="number" 
+                  min="0" 
+                  max="1" 
+                  step="0.1"
+                  value={config.automation_rules.escalate_threshold || 0.8}
+                  onChange={(e) => updateAutomationRule('escalate_threshold', parseFloat(e.target.value))}
+                  className="w-full p-2 border rounded-lg"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* System Prompt */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2">System Prompt</h3>
+            <textarea 
+              value={config.system_prompt} 
+              onChange={(e) => updateConfig('system_prompt', e.target.value)}
+              placeholder="Enter the system prompt for this agent..."
+              className="w-full p-3 border rounded-lg h-32 resize-none"
+            />
+          </div>
+
+          {/* Custom Templates */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Custom Templates</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">Initial Contact Template</label>
+                <textarea 
+                  value={config.custom_templates.initial_contact || ''}
+                  onChange={(e) => updateTemplate('initial_contact', e.target.value)}
+                  placeholder="Hi {first_name}, thanks for your interest..."
+                  className="w-full p-2 border rounded-lg h-20 resize-none text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Follow-up Template</label>
+                <textarea 
+                  value={config.custom_templates.follow_up || ''}
+                  onChange={(e) => updateTemplate('follow_up', e.target.value)}
+                  placeholder="Hi {first_name}, I wanted to follow up..."
+                  className="w-full p-2 border rounded-lg h-20 resize-none text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Welcome Template</label>
+                <textarea 
+                  value={config.custom_templates.welcome || ''}
+                  onChange={(e) => updateTemplate('welcome', e.target.value)}
+                  placeholder="Welcome to our real estate family, {first_name}!"
+                  className="w-full p-2 border rounded-lg h-20 resize-none text-sm"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 border-t bg-gray-50 flex items-center justify-end gap-3">
+          <button 
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={handleSave}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Save Configuration
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
