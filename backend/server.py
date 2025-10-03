@@ -1955,6 +1955,7 @@ class LeadIntakeWebhook(BaseModel):
     basement: Optional[str] = None
     parking_type: Optional[str] = None
     property_condition: Optional[str] = None
+    listing_status: Optional[str] = None
     
     # Spouse Information
     spouse_first_name: Optional[str] = None
