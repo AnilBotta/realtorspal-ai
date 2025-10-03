@@ -1674,12 +1674,12 @@ class RealtorsPalAPITester:
         
         try:
             # Test with non-existent lead ID
-            execute_payload = {
+            execute_params = {
                 "agent_code": "NurturingAI",
                 "lead_id": "non-existent-lead-id-12345",
                 "user_id": demo_user_id
             }
-            response = requests.post(f"{self.base_url}/orchestrator/execute-agent", json=execute_payload, timeout=10)
+            response = requests.post(f"{self.base_url}/orchestrator/execute-agent", params=execute_params, timeout=10)
             
             if response.status_code == 404:
                 data = response.json()
