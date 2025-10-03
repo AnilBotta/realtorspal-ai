@@ -267,12 +267,18 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
                   </select>
                 </div>
 
-                <button className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                <button 
+                  onClick={() => alert('Person filtering feature coming soon!')}
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                >
                   <User size={16} className="text-gray-400" />
                   Person
                 </button>
 
-                <button className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+                <button 
+                  onClick={() => alert('Group by feature coming soon!')}
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
                   Group by
                 </button>
               </div>
