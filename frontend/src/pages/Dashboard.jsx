@@ -549,6 +549,7 @@ export default function Dashboard({ user }){
                     lead={l} 
                     onOpen={openDetails} 
                     onCommunicate={handleCommunication}
+                    onAIAgent={handleAIAgent}
                     onPipelineChange={handlePipelineChange}
                   />
                 ))}
