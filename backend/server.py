@@ -2592,6 +2592,79 @@ async def lead_intake_webhook(
             content={"status": "error", "message": str(e)}
         )
 
+# --- Lead Generation AI Test and Management Endpoints ---
+
+@app.post("/api/lead-generation-ai/test")
+async def test_lead_generation_ai(
+    test_payload: LeadIntakeWebhook,
+    user_id: Optional[str] = None
+):
+    """Test endpoint for Lead Generation AI without actually processing the lead"""
+    try:
+        # Use demo user if not specified
+        if not user_id:
+            user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        # Step 1: Validate minimal fields
+        is_valid, validation_error = LeadGenerationAI.validate_minimal_fields(test_payload)
+        if not is_valid:
+            return {
+                "status": "validation_failed",
+                "error": validation_error,
+                "normalized_data": None
+            }
+        
+        # Step 2: Normalize data
+        normalized_data = LeadGenerationAI.normalize_payload(test_payload)
+        
+        # Step 3: Generate hashes
+        email_hash = LeadGenerationAI.generate_hash(normalized_data['email']) if normalized_data['email'] else None
+        phone_hash = LeadGenerationAI.generate_hash(normalized_data['phone_e164']) if normalized_data['phone_e164'] else None
+        
+        # Step 4: Check for duplicates
+        existing_lead = await LeadGenerationAI.find_duplicate_lead(user_id, email_hash, phone_hash)
+        
+        return {
+            "status": "success",
+            "validation": "passed",
+            "normalized_data": normalized_data,
+            "hashes": {
+                "email_hash": email_hash,
+                "phone_hash": phone_hash
+            },
+            "duplicate_check": {
+                "has_duplicate": existing_lead is not None,
+                "duplicate_lead_id": existing_lead.get('id') if existing_lead else None,
+                "operation": "merge" if existing_lead else "create"
+            }
+        }
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
+
+@app.get("/api/lead-generation-ai/audit-logs/{user_id}")
+async def get_audit_logs(user_id: str, limit: int = 50):
+    """Get audit logs for Lead Generation AI"""
+    try:
+        logs = await db.audit_logs.find(
+            {"user_id": user_id}
+        ).sort("created_at", -1).limit(limit).to_list(length=limit)
+        
+        return {
+            "status": "success",
+            "logs": logs,
+            "count": len(logs)
+        }
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
+
 @app.post("/api/webhooks/generic-leads/{user_id}")
 async def generic_webhook_handler(user_id: str, lead_data: GenericLeadWebhook):
     """Handle generic webhook for lead collection"""
