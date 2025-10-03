@@ -537,6 +537,47 @@ const AIAgents = ({ user }) => {
           </div>
         </div>
       )}
+
+      {/* Agent Testing Panel */}
+      <div className="bg-white rounded-xl border p-6">
+        <h3 className="text-lg font-semibold mb-4">Test AI Agents</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button
+            onClick={() => testAgent('lead-generator')}
+            className="p-4 border border-blue-200 rounded-lg hover:bg-blue-50 text-center"
+          >
+            <Users size={24} className="mx-auto mb-2 text-blue-600" />
+            <div className="font-medium">Test Lead Generator</div>
+            <div className="text-sm text-gray-500">Analyze sample lead data</div>
+          </button>
+          
+          <button
+            onClick={() => testAgent('lead-nurturing')}
+            className="p-4 border border-green-200 rounded-lg hover:bg-green-50 text-center"
+          >
+            <MessageSquare size={24} className="mx-auto mb-2 text-green-600" />
+            <div className="font-medium">Test Lead Nurturing</div>
+            <div className="text-sm text-gray-500">Create sample sequences</div>
+          </button>
+          
+          <button
+            onClick={() => testAgent('customer-service')}
+            className="p-4 border border-orange-200 rounded-lg hover:bg-orange-50 text-center"
+          >
+            <Phone size={24} className="mx-auto mb-2 text-orange-600" />
+            <div className="font-medium">Test Customer Service</div>
+            <div className="text-sm text-gray-500">Triage sample message</div>
+          </button>
+        </div>
+        
+        <button
+          onClick={testOrchestrator}
+          className="mt-4 w-full p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+        >
+          <Brain size={20} className="inline mr-2" />
+          Test Master Orchestrator
+        </button>
+      </div>
     </div>
   );
 };
