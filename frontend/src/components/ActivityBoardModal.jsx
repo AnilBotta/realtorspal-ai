@@ -391,7 +391,10 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
                     {/* Add activity row */}
                     <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
                       <button
-                        onClick={onGenerateActivities}
+                        onClick={() => {
+                          onGenerateActivities();
+                          onClose();
+                        }}
                         className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-2"
                       >
                         <Plus size={16} />
@@ -402,7 +405,10 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
 
                   {/* Add new group */}
                   <div className="px-6 py-4 border-t border-gray-200">
-                    <button className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-2">
+                    <button 
+                      onClick={() => alert('Add new group feature coming soon!')}
+                      className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-2"
+                    >
                       <Plus size={16} />
                       Add new group
                     </button>
