@@ -343,7 +343,6 @@ class AIAgentTester:
         try:
             # Test lead generator processing
             task_payload = {
-                "user_id": self.demo_user_id,
                 "task_type": "social_media_lead_sourcing",
                 "source_data": {
                     "platform": "facebook",
@@ -357,7 +356,7 @@ class AIAgentTester:
                 "priority": "medium"
             }
             
-            response = requests.post(f"{self.base_url}/ai-agents/lead-generator/process", json=task_payload, timeout=15)
+            response = requests.post(f"{self.base_url}/ai-agents/lead-generator/process", json=task_payload, params={"user_id": self.demo_user_id}, timeout=15)
             
             if response.status_code == 200:
                 data = response.json()
