@@ -1631,12 +1631,12 @@ class RealtorsPalAPITester:
             lead_id = lead_data.get("id")
             
             # Test with CustomerServiceAI
-            execute_payload = {
+            execute_params = {
                 "agent_code": "CustomerServiceAI",
                 "lead_id": lead_id,
                 "user_id": demo_user_id
             }
-            response = requests.post(f"{self.base_url}/orchestrator/execute-agent", json=execute_payload, timeout=10)
+            response = requests.post(f"{self.base_url}/orchestrator/execute-agent", params=execute_params, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
