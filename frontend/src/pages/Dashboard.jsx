@@ -123,7 +123,7 @@ function displayName(lead){
   return composed || lead.name || 'Lead';
 }
 
-function LeadCard({ lead, onOpen, onCommunicate, dragHandle, onPipelineChange }){
+function LeadCard({ lead, onOpen, onCommunicate, onAIAgent, dragHandle, onPipelineChange }){
   const nameToShow = displayName(lead);
   const stage = lead.stage || 'Prospecting';
   const pipeline = lead.pipeline || 'Not set';
