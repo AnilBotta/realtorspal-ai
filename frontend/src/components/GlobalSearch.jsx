@@ -137,14 +137,51 @@ const GlobalSearch = ({ user }) => {
       if (searchQuery) {
         performGlobalSearch(searchQuery);
       } else {
-        setSearchResults({ leads: [], agents: [], properties: [], tasks: [], campaigns: [] });
+        setSearchResults({ pages: [], features: [], settings: [], leads: [], actions: [] });
       }
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, user.id]);
+  }, [searchQuery, user?.id]);
 
   const totalResults = Object.values(searchResults).reduce((sum, arr) => sum + arr.length, 0);
+
+  // Handle navigation and actions
+  const handleItemClick = (item) => {
+    if (item.action) {
+      // Handle specific actions
+      switch (item.action) {
+        case 'add-lead':
+          // Navigate to leads and trigger add lead modal
+          window.location.href = '/leads?action=add-lead';
+          break;
+        case 'import-leads':
+          window.location.href = '/leads?action=import-leads';
+          break;
+        case 'filter-templates':
+          window.location.href = '/leads?action=filter-templates';
+          break;
+        case 'global-search':
+          // Keep search open
+          return;
+        case 'ai-config':
+        case 'twilio':
+        case 'smtp':
+        case 'webhooks':
+        case 'crew-api':
+        case 'api-keys':
+          window.location.href = `/settings?section=${item.action}`;
+          break;
+        default:
+          if (item.path) {
+            window.location.href = item.path;
+          }
+      }
+    } else if (item.path) {
+      window.location.href = item.path;
+    }
+    setIsOpen(false);
+  };
 
   return (
     <div className="relative" ref={searchRef}>
