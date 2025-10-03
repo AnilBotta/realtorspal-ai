@@ -153,6 +153,47 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
     setShowDraftModal(false);
   };
 
+  const handleActivitySelect = (activityId) => {
+    setSelectedActivities(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(activityId)) {
+        newSet.delete(activityId);
+      } else {
+        newSet.add(activityId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedActivities.size === filteredActivities.length) {
+      setSelectedActivities(new Set());
+    } else {
+      setSelectedActivities(new Set(filteredActivities.map(a => a.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      // For demo purposes, we'll just update activities as "deleted" since we don't have a delete endpoint
+      for (const activityId of selectedActivities) {
+        await updateActivityStatus(activityId, 'deleted', user.id, 'Activity removed by user');
+      }
+      setSelectedActivities(new Set());
+      setShowDeleteConfirm(false);
+      await loadActivities();
+    } catch (error) {
+      console.error('Failed to delete activities:', error);
+      alert('Failed to delete activities');
+    }
+  };
+
+  const getLeadName = (leadId) => {
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) return 'Unknown Lead';
+    return `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unnamed Lead';
+  };
+
   if (!open) return null;
 
   return (
