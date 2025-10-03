@@ -3405,6 +3405,18 @@ class RealtorsPalAPITester:
             self.test_lead_generation_ai_test_endpoint,
             self.test_lead_generation_ai_audit_logs,
             self.test_lead_generation_ai_data_normalization,
+            
+            # Nurturing AI System Tests
+            self.test_nurturing_ai_generate_plan_valid_lead,
+            self.test_nurturing_ai_generate_plan_invalid_lead,
+            self.test_nurturing_ai_get_activities,
+            self.test_nurturing_ai_get_activities_with_filters,
+            self.test_nurturing_ai_update_activity_status,
+            self.test_nurturing_ai_update_activity_invalid_id,
+            self.test_nurturing_ai_analyze_reply_positive,
+            self.test_nurturing_ai_analyze_reply_negative,
+            self.test_nurturing_ai_analyze_reply_neutral,
+            self.test_nurturing_ai_comprehensive_workflow,
         ]
         
         for test in tests:
