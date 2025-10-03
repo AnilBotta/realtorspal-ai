@@ -106,7 +106,6 @@ class AIAgentTester:
             
             # Test orchestrate endpoint with analyze_and_assign_lead task
             orchestrate_payload = {
-                "user_id": self.demo_user_id,
                 "agent_id": "orchestrator",
                 "task_type": "analyze_and_assign_lead",
                 "lead_data": {
@@ -124,7 +123,7 @@ class AIAgentTester:
                 "priority": "high"
             }
             
-            response = requests.post(f"{self.base_url}/ai-agents/orchestrate", json=orchestrate_payload, timeout=15)
+            response = requests.post(f"{self.base_url}/ai-agents/orchestrate", json=orchestrate_payload, params={"user_id": self.demo_user_id}, timeout=15)
             
             if response.status_code == 200:
                 data = response.json()
