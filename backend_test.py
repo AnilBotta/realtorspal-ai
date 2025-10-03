@@ -2381,8 +2381,7 @@ class RealtorsPalAPITester:
             
             if response.status_code == 200:
                 data = response.json()
-                if (data.get("status") == "accepted" and 
-                    data.get("result") == "rejected" and
+                if (data.get("intake_result") == "rejected" and
                     "reason" in data and
                     ("Missing required field" in data["reason"] or "validation" in data["reason"].lower())):
                     
