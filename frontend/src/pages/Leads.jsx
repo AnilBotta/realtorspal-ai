@@ -746,6 +746,19 @@ export default function Leads({ user }) {
           )}
           
           <button
+            onClick={() => handleAIAgentLead(lead)}
+            className={`px-2 py-1 text-white text-xs font-medium rounded transition-colors ${
+              lead.ai_status === 'processing' 
+                ? 'bg-purple-700 animate-pulse' 
+                : 'bg-purple-600 hover:bg-purple-700'
+            }`}
+            title={lead.ai_status === 'processing' ? `AI ${lead.ai_agent} is working...` : 'Run AI Agent'}
+          >
+            <Bot size={12} className="inline mr-1" />
+            {lead.ai_status === 'processing' ? 'Working...' : 'AI Agent'}
+          </button>
+          
+          <button
             onClick={() => handleDeleteLead(lead)}
             className="px-2 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 transition-colors"
             title="Delete Lead"
