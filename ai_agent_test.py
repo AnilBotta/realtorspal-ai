@@ -233,7 +233,6 @@ class AIAgentTester:
         try:
             # Create a test activity for lead processing
             activity_payload = {
-                "user_id": self.demo_user_id,
                 "agent_id": "lead-nurturing",
                 "agent_name": "Lead Nurturing AI",
                 "activity": "Created personalized follow-up sequence for high-priority lead",
@@ -246,7 +245,7 @@ class AIAgentTester:
                 }
             }
             
-            response = requests.post(f"{self.base_url}/ai-agents/activities", json=activity_payload, timeout=10)
+            response = requests.post(f"{self.base_url}/ai-agents/activities", json=activity_payload, params={"user_id": self.demo_user_id}, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
