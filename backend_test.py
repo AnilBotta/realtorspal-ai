@@ -3821,6 +3821,16 @@ class RealtorsPalAPITester:
             self.test_nurturing_ai_analyze_reply_negative,
             self.test_nurturing_ai_analyze_reply_neutral,
             self.test_nurturing_ai_comprehensive_workflow,
+            
+            # Main Orchestrator AI Live Activity Stream Tests
+            self.test_orchestrator_live_activity_stream,
+            self.test_orchestrator_agent_runs,
+            self.test_orchestrator_agent_runs_with_filter,
+            self.test_orchestrator_agent_tasks,
+            self.test_orchestrator_agent_tasks_with_status_filter,
+            self.test_orchestrator_execute_agent_nurturing,
+            self.test_orchestrator_execute_agent_other,
+            self.test_orchestrator_execute_agent_invalid_lead,
         ]
         
         for test in tests:
