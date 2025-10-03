@@ -457,6 +457,46 @@ export default function Dashboard({ user }){
     }
   };
 
+  const handleGenerateActivities = async () => {
+    try {
+      // Show modal to select leads for nurturing
+      const selectedLeads = leads.filter(lead => 
+        lead.pipeline && 
+        !['Closed', 'Lost'].includes(lead.pipeline) &&
+        (lead.email || lead.phone)
+      );
+      
+      if (selectedLeads.length === 0) {
+        alert('No suitable leads found for nurturing. Make sure leads have contact information and are not closed.');
+        return;
+      }
+      
+      // Generate nurturing plans for top 5 active leads
+      const topLeads = selectedLeads.slice(0, 5);
+      let generatedCount = 0;
+      
+      for (const lead of topLeads) {
+        try {
+          await generateNurturingPlan(user.id, lead.id);
+          generatedCount++;
+        } catch (error) {
+          console.error(`Failed to generate plan for lead ${lead.id}:`, error);
+        }
+      }
+      
+      if (generatedCount > 0) {
+        alert(`Successfully generated nurturing activities for ${generatedCount} leads!`);
+        // The ActivityBoard component will auto-refresh and show the new activities
+      } else {
+        alert('Failed to generate activities. Please try again.');
+      }
+      
+    } catch (error) {
+      console.error('Error generating activities:', error);
+      alert('Error generating activities. Please try again.');
+    }
+  };
+
   // Handle pipeline change from dropdown on lead card
   const handlePipelineChange = async (leadId, newPipeline) => {
     try {
