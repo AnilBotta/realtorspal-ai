@@ -485,8 +485,10 @@ export default function Dashboard({ user }){
       }
       
       if (generatedCount > 0) {
-        alert(`Successfully generated nurturing activities for ${generatedCount} leads!`);
-        // The ActivityBoard component will auto-refresh and show the new activities
+        // Show success message and wait before opening activity board
+        setTimeout(() => {
+          alert(`Successfully generated nurturing activities for ${generatedCount} leads!`);
+        }, 500);
       } else {
         alert('Failed to generate activities. Please try again.');
       }
