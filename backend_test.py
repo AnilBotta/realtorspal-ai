@@ -2230,8 +2230,9 @@ class RealtorsPalAPITester:
                         
                         if created_lead:
                             # Check normalization
-                            phone_normalized = created_lead.get("phone") == "+14155551234"
-                            email_normalized = created_lead.get("email") == f"john.smith.{timestamp}@example.com"
+                            expected_phone = f"+1{unique_phone}"
+                            phone_normalized = created_lead.get("phone") == expected_phone
+                            email_normalized = created_lead.get("email") == f"john.smith.unique.{timestamp}@example.com"
                             city_normalized = created_lead.get("city") == "San Francisco"
                             
                             if phone_normalized and email_normalized and city_normalized:
