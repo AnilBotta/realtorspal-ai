@@ -2822,6 +2822,589 @@ class RealtorsPalAPITester:
             print("⚠️  Leads API filtering functionality test FAILED!")
             return False
 
+    # AI AGENT SYSTEM TESTS
+    def test_get_ai_agents(self) -> bool:
+        """Test GET /api/ai-agents - getting all AI agents for a user"""
+        if not self.user_id:
+            self.log_test("Get AI Agents", False, "No user_id available")
+            return False
+        
+        try:
+            response = requests.get(f"{self.base_url}/ai-agents", params={"user_id": self.user_id}, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "agents" in data and isinstance(data["agents"], list):
+                    agents = data["agents"]
+                    
+                    # Verify we have the expected 6 agents
+                    expected_agent_ids = ["orchestrator", "lead-generator", "lead-nurturing", "customer-service", "onboarding", "call-analyst"]
+                    agent_ids = [agent.get("id") for agent in agents]
+                    
+                    if len(agents) == 6 and all(agent_id in agent_ids for agent_id in expected_agent_ids):
+                        # Verify agent structure
+                        sample_agent = agents[0]
+                        required_fields = ["id", "name", "description", "status", "model", "system_prompt"]
+                        missing_fields = [field for field in required_fields if field not in sample_agent]
+                        
+                        if not missing_fields:
+                            self.log_test("Get AI Agents", True, 
+                                        f"Retrieved {len(agents)} agents with correct structure. Agent IDs: {agent_ids}")
+                            return True
+                        else:
+                            self.log_test("Get AI Agents", False, f"Missing required fields in agent: {missing_fields}")
+                            return False
+                    else:
+                        self.log_test("Get AI Agents", False, 
+                                    f"Expected 6 agents with specific IDs, got {len(agents)} agents: {agent_ids}")
+                        return False
+                else:
+                    self.log_test("Get AI Agents", False, f"Invalid response structure: {data}")
+                    return False
+            else:
+                self.log_test("Get AI Agents", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Get AI Agents", False, f"Exception: {str(e)}")
+            return False
+
+    def test_update_ai_agent(self) -> bool:
+        """Test PUT /api/ai-agents/{agent_id} - updating agent configuration"""
+        if not self.user_id:
+            self.log_test("Update AI Agent", False, "No user_id available")
+            return False
+        
+        try:
+            # First get agents to have a valid agent_id
+            response = requests.get(f"{self.base_url}/ai-agents", params={"user_id": self.user_id}, timeout=10)
+            if response.status_code != 200:
+                self.log_test("Update AI Agent", False, f"Failed to get agents: {response.text}")
+                return False
+            
+            agents = response.json().get("agents", [])
+            if not agents:
+                self.log_test("Update AI Agent", False, "No agents found to update")
+                return False
+            
+            # Use the first agent for testing
+            test_agent = agents[0]
+            agent_id = test_agent.get("id")
+            
+            # Update agent configuration
+            update_data = {
+                "system_prompt": "Updated system prompt for testing",
+                "model": "gpt-4o-mini",
+                "status": "active",
+                "automation_rules": {"test_rule": True, "updated": True}
+            }
+            
+            response = requests.put(f"{self.base_url}/ai-agents/{agent_id}", 
+                                  json=update_data, 
+                                  params={"user_id": self.user_id}, 
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("status") == "success":
+                    self.log_test("Update AI Agent", True, 
+                                f"Successfully updated agent {agent_id}: {data.get('message')}")
+                    return True
+                else:
+                    self.log_test("Update AI Agent", False, f"Unexpected response: {data}")
+                    return False
+            else:
+                self.log_test("Update AI Agent", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Update AI Agent", False, f"Exception: {str(e)}")
+            return False
+
+    def test_get_agent_activities(self) -> bool:
+        """Test GET /api/ai-agents/activities - getting agent activities for live streaming"""
+        if not self.user_id:
+            self.log_test("Get Agent Activities", False, "No user_id available")
+            return False
+        
+        try:
+            response = requests.get(f"{self.base_url}/ai-agents/activities", 
+                                  params={"user_id": self.user_id, "limit": 50}, 
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "activities" in data and isinstance(data["activities"], list):
+                    activities = data["activities"]
+                    
+                    # Verify activities are in descending timestamp order if any exist
+                    if len(activities) > 1:
+                        timestamps = []
+                        for activity in activities:
+                            if "timestamp" in activity:
+                                timestamps.append(activity["timestamp"])
+                        
+                        # Check if timestamps are in descending order
+                        is_descending = all(timestamps[i] >= timestamps[i+1] for i in range(len(timestamps)-1))
+                        if not is_descending:
+                            self.log_test("Get Agent Activities", False, "Activities not in descending timestamp order")
+                            return False
+                    
+                    # Verify activity structure if activities exist
+                    if activities:
+                        sample_activity = activities[0]
+                        expected_fields = ["agent_id", "agent_name", "activity", "status", "type", "timestamp"]
+                        missing_fields = [field for field in expected_fields if field not in sample_activity]
+                        
+                        if missing_fields:
+                            self.log_test("Get Agent Activities", False, f"Missing fields in activity: {missing_fields}")
+                            return False
+                    
+                    self.log_test("Get Agent Activities", True, 
+                                f"Retrieved {len(activities)} activities in correct format")
+                    return True
+                else:
+                    self.log_test("Get Agent Activities", False, f"Invalid response structure: {data}")
+                    return False
+            else:
+                self.log_test("Get Agent Activities", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Get Agent Activities", False, f"Exception: {str(e)}")
+            return False
+
+    def test_create_agent_activity(self) -> bool:
+        """Test POST /api/ai-agents/activities - creating agent activities"""
+        if not self.user_id:
+            self.log_test("Create Agent Activity", False, "No user_id available")
+            return False
+        
+        try:
+            # Create test activities for different agents
+            test_activities = [
+                {
+                    "agent_id": "lead-generator",
+                    "agent_name": "Lead Generator AI",
+                    "activity": "Generated 5 new leads from social media",
+                    "status": "completed",
+                    "type": "automated",
+                    "details": {"leads_generated": 5, "source": "facebook"}
+                },
+                {
+                    "agent_id": "lead-nurturing",
+                    "agent_name": "Lead Nurturing AI", 
+                    "activity": "Created follow-up sequence for new leads",
+                    "status": "pending_approval",
+                    "type": "approval_required",
+                    "details": {"sequence_length": 3, "leads_affected": 5}
+                }
+            ]
+            
+            created_activities = []
+            
+            for activity_data in test_activities:
+                response = requests.post(f"{self.base_url}/ai-agents/activities",
+                                       json=activity_data,
+                                       params={"user_id": self.user_id},
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("status") == "success" and "activity" in data:
+                        activity = data["activity"]
+                        
+                        # Verify the activity has proper ID generation and user_id association
+                        if (activity.get("id") and 
+                            activity.get("user_id") == self.user_id and
+                            activity.get("agent_id") == activity_data["agent_id"]):
+                            created_activities.append(activity["id"])
+                        else:
+                            self.log_test("Create Agent Activity", False, 
+                                        f"Invalid activity structure: {activity}")
+                            return False
+                    else:
+                        self.log_test("Create Agent Activity", False, f"Invalid response: {data}")
+                        return False
+                else:
+                    self.log_test("Create Agent Activity", False, 
+                                f"Failed to create activity: {response.status_code} - {response.text}")
+                    return False
+            
+            if len(created_activities) == 2:
+                self.log_test("Create Agent Activity", True, 
+                            f"Successfully created {len(created_activities)} activities with proper ID generation")
+                return True
+            else:
+                self.log_test("Create Agent Activity", False, 
+                            f"Expected 2 activities, created {len(created_activities)}")
+                return False
+        except Exception as e:
+            self.log_test("Create Agent Activity", False, f"Exception: {str(e)}")
+            return False
+
+    def test_get_approval_queue(self) -> bool:
+        """Test GET /api/ai-agents/approvals - getting approval queue"""
+        if not self.user_id:
+            self.log_test("Get Approval Queue", False, "No user_id available")
+            return False
+        
+        try:
+            response = requests.get(f"{self.base_url}/ai-agents/approvals", 
+                                  params={"user_id": self.user_id}, 
+                                  timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "approvals" in data and isinstance(data["approvals"], list):
+                    approvals = data["approvals"]
+                    
+                    # Verify only pending approvals are returned
+                    for approval in approvals:
+                        if approval.get("status") != "pending":
+                            self.log_test("Get Approval Queue", False, 
+                                        f"Non-pending approval found: {approval.get('status')}")
+                            return False
+                    
+                    # Verify approval structure if approvals exist
+                    if approvals:
+                        sample_approval = approvals[0]
+                        expected_fields = ["id", "agent_id", "agent_name", "task", "proposal", "priority", "status"]
+                        missing_fields = [field for field in expected_fields if field not in sample_approval]
+                        
+                        if missing_fields:
+                            self.log_test("Get Approval Queue", False, f"Missing fields in approval: {missing_fields}")
+                            return False
+                    
+                    self.log_test("Get Approval Queue", True, 
+                                f"Retrieved {len(approvals)} pending approvals with correct structure")
+                    return True
+                else:
+                    self.log_test("Get Approval Queue", False, f"Invalid response structure: {data}")
+                    return False
+            else:
+                self.log_test("Get Approval Queue", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Get Approval Queue", False, f"Exception: {str(e)}")
+            return False
+
+    def test_create_approval_request(self) -> bool:
+        """Test POST /api/ai-agents/approvals - creating approval requests"""
+        if not self.user_id:
+            self.log_test("Create Approval Request", False, "No user_id available")
+            return False
+        
+        try:
+            # Create test approval requests for different agents
+            test_approvals = [
+                {
+                    "agent_id": "lead-nurturing",
+                    "agent_name": "Lead Nurturing AI",
+                    "task": "Send follow-up email sequence to 10 leads",
+                    "proposal": {
+                        "title": "Email Campaign Approval",
+                        "summary": ["Send personalized follow-up emails", "Target 10 warm leads", "Schedule over 3 days"],
+                        "risks": ["May seem too aggressive", "Timing might conflict with holidays"],
+                        "choices": ["Approve", "Edit", "Reject"]
+                    },
+                    "priority": "medium"
+                },
+                {
+                    "agent_id": "customer-service", 
+                    "agent_name": "Customer Service AI",
+                    "task": "Auto-respond to 5 customer inquiries",
+                    "proposal": {
+                        "title": "Auto-Response Approval",
+                        "summary": ["Respond to common questions", "Use pre-approved templates", "Escalate complex issues"],
+                        "risks": ["May miss nuanced questions"],
+                        "choices": ["Approve", "Edit", "Reject"]
+                    },
+                    "priority": "high"
+                }
+            ]
+            
+            created_approvals = []
+            
+            for approval_data in test_approvals:
+                response = requests.post(f"{self.base_url}/ai-agents/approvals",
+                                       json=approval_data,
+                                       params={"user_id": self.user_id},
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("status") == "success" and "approval" in data:
+                        approval = data["approval"]
+                        
+                        # Verify proper ID generation and status = "pending"
+                        if (approval.get("id") and 
+                            approval.get("user_id") == self.user_id and
+                            approval.get("status") == "pending" and
+                            approval.get("agent_id") == approval_data["agent_id"]):
+                            created_approvals.append(approval["id"])
+                        else:
+                            self.log_test("Create Approval Request", False, 
+                                        f"Invalid approval structure: {approval}")
+                            return False
+                    else:
+                        self.log_test("Create Approval Request", False, f"Invalid response: {data}")
+                        return False
+                else:
+                    self.log_test("Create Approval Request", False, 
+                                f"Failed to create approval: {response.status_code} - {response.text}")
+                    return False
+            
+            if len(created_approvals) == 2:
+                self.log_test("Create Approval Request", True, 
+                            f"Successfully created {len(created_approvals)} approval requests with status='pending'")
+                return True
+            else:
+                self.log_test("Create Approval Request", False, 
+                            f"Expected 2 approvals, created {len(created_approvals)}")
+                return False
+        except Exception as e:
+            self.log_test("Create Approval Request", False, f"Exception: {str(e)}")
+            return False
+
+    def test_handle_approval_decision(self) -> bool:
+        """Test PUT /api/ai-agents/approvals/{approval_id} - handling approval decisions"""
+        if not self.user_id:
+            self.log_test("Handle Approval Decision", False, "No user_id available")
+            return False
+        
+        try:
+            # First create an approval request to test with
+            approval_data = {
+                "agent_id": "orchestrator",
+                "agent_name": "Main Orchestrator AI",
+                "task": "Test approval decision handling",
+                "proposal": {
+                    "title": "Test Approval",
+                    "summary": ["Test decision handling"],
+                    "risks": ["None"],
+                    "choices": ["Approve", "Edit", "Reject"]
+                },
+                "priority": "low"
+            }
+            
+            response = requests.post(f"{self.base_url}/ai-agents/approvals",
+                                   json=approval_data,
+                                   params={"user_id": self.user_id},
+                                   timeout=10)
+            
+            if response.status_code != 200:
+                self.log_test("Handle Approval Decision", False, f"Failed to create test approval: {response.text}")
+                return False
+            
+            approval = response.json().get("approval")
+            approval_id = approval.get("id")
+            
+            if not approval_id:
+                self.log_test("Handle Approval Decision", False, f"No approval ID returned: {approval}")
+                return False
+            
+            # Test different approval decisions
+            decisions = ["approve", "edit", "reject"]
+            
+            for decision in decisions:
+                # Create a new approval for each decision test
+                test_approval_response = requests.post(f"{self.base_url}/ai-agents/approvals",
+                                                     json=approval_data,
+                                                     params={"user_id": self.user_id},
+                                                     timeout=10)
+                
+                if test_approval_response.status_code != 200:
+                    continue
+                
+                test_approval = test_approval_response.json().get("approval")
+                test_approval_id = test_approval.get("id")
+                
+                # Handle the approval decision
+                decision_data = {
+                    "decision": decision,
+                    "notes": f"Test {decision} decision"
+                }
+                
+                response = requests.put(f"{self.base_url}/ai-agents/approvals/{test_approval_id}",
+                                      json=decision_data,
+                                      params={"user_id": self.user_id},
+                                      timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("status") == "success":
+                        # Verify decision activity is logged by checking recent activities
+                        activities_response = requests.get(f"{self.base_url}/ai-agents/activities",
+                                                         params={"user_id": self.user_id, "limit": 10},
+                                                         timeout=10)
+                        
+                        if activities_response.status_code == 200:
+                            activities = activities_response.json().get("activities", [])
+                            decision_logged = any(
+                                decision.upper() in activity.get("activity", "") and 
+                                "human-supervisor" in activity.get("agent_id", "")
+                                for activity in activities
+                            )
+                            
+                            if not decision_logged:
+                                self.log_test("Handle Approval Decision", False, 
+                                            f"Decision activity not logged for {decision}")
+                                return False
+                    else:
+                        self.log_test("Handle Approval Decision", False, f"Invalid response for {decision}: {data}")
+                        return False
+                else:
+                    self.log_test("Handle Approval Decision", False, 
+                                f"Failed to handle {decision} decision: {response.status_code} - {response.text}")
+                    return False
+            
+            self.log_test("Handle Approval Decision", True, 
+                        f"Successfully tested all approval decisions: {decisions}")
+            return True
+        except Exception as e:
+            self.log_test("Handle Approval Decision", False, f"Exception: {str(e)}")
+            return False
+
+    def test_orchestrate_agents(self) -> bool:
+        """Test POST /api/ai-agents/orchestrate - master orchestrator endpoint"""
+        if not self.user_id:
+            self.log_test("Orchestrate Agents", False, "No user_id available")
+            return False
+        
+        try:
+            # Send task data to orchestrator
+            task_data = {
+                "task_type": "lead_nurturing",
+                "lead_count": 5,
+                "priority": "medium",
+                "context": "New leads from website form submissions need follow-up"
+            }
+            
+            response = requests.post(f"{self.base_url}/ai-agents/orchestrate",
+                                   json=task_data,
+                                   params={"user_id": self.user_id},
+                                   timeout=15)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Verify structured response includes all required fields
+                required_fields = ["selected_agent", "task", "rationale", "agent_output", "human_approval", "data_patch"]
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    self.log_test("Orchestrate Agents", False, f"Missing required fields: {missing_fields}")
+                    return False
+                
+                # Verify agent_output structure
+                agent_output = data.get("agent_output", {})
+                output_fields = ["structured_fields", "drafts_or_sequences", "scores_or_flags"]
+                missing_output_fields = [field for field in output_fields if field not in agent_output]
+                
+                if missing_output_fields:
+                    self.log_test("Orchestrate Agents", False, f"Missing agent_output fields: {missing_output_fields}")
+                    return False
+                
+                # Verify human_approval structure
+                human_approval = data.get("human_approval", {})
+                approval_fields = ["required", "title", "summary", "risks", "choices"]
+                missing_approval_fields = [field for field in approval_fields if field not in human_approval]
+                
+                if missing_approval_fields:
+                    self.log_test("Orchestrate Agents", False, f"Missing human_approval fields: {missing_approval_fields}")
+                    return False
+                
+                # Verify data_patch structure
+                data_patch = data.get("data_patch", {})
+                if not isinstance(data_patch, dict):
+                    self.log_test("Orchestrate Agents", False, f"data_patch should be dict, got: {type(data_patch)}")
+                    return False
+                
+                # Verify orchestrator activity is logged
+                activities_response = requests.get(f"{self.base_url}/ai-agents/activities",
+                                                 params={"user_id": self.user_id, "limit": 10},
+                                                 timeout=10)
+                
+                orchestrator_activity_logged = False
+                if activities_response.status_code == 200:
+                    activities = activities_response.json().get("activities", [])
+                    orchestrator_activity_logged = any(
+                        activity.get("agent_id") == "orchestrator" and 
+                        "Orchestrated task" in activity.get("activity", "")
+                        for activity in activities
+                    )
+                
+                if not orchestrator_activity_logged:
+                    self.log_test("Orchestrate Agents", False, "Orchestrator activity not logged")
+                    return False
+                
+                # Verify approval request is created when required
+                if human_approval.get("required"):
+                    approvals_response = requests.get(f"{self.base_url}/ai-agents/approvals",
+                                                    params={"user_id": self.user_id},
+                                                    timeout=10)
+                    
+                    approval_created = False
+                    if approvals_response.status_code == 200:
+                        approvals = approvals_response.json().get("approvals", [])
+                        approval_created = any(
+                            approval.get("agent_id") == "orchestrator" and
+                            approval.get("status") == "pending"
+                            for approval in approvals
+                        )
+                    
+                    if not approval_created:
+                        self.log_test("Orchestrate Agents", False, "Approval request not created when required")
+                        return False
+                
+                self.log_test("Orchestrate Agents", True, 
+                            f"Orchestrator returned structured response with all required fields. "
+                            f"Selected agent: {data.get('selected_agent')}, Task: {data.get('task')}")
+                return True
+            else:
+                self.log_test("Orchestrate Agents", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Orchestrate Agents", False, f"Exception: {str(e)}")
+            return False
+
+    def run_ai_agent_tests_only(self) -> bool:
+        """Run only the AI Agent System tests"""
+        print("🚀 Starting AI Agent System Tests")
+        print(f"📍 Base URL: {self.base_url}")
+        print("=" * 60)
+        
+        # First get authentication
+        if not self.test_health():
+            return False
+        if not self.test_login():
+            return False
+        
+        # Run AI Agent System tests
+        ai_agent_tests = [
+            self.test_get_ai_agents,
+            self.test_update_ai_agent,
+            self.test_get_agent_activities,
+            self.test_create_agent_activity,
+            self.test_get_approval_queue,
+            self.test_create_approval_request,
+            self.test_handle_approval_decision,
+            self.test_orchestrate_agents,
+        ]
+        
+        ai_agent_tests_passed = 0
+        for test in ai_agent_tests:
+            if test():
+                ai_agent_tests_passed += 1
+        
+        print("=" * 60)
+        print(f"📊 AI Agent Tests Results: {ai_agent_tests_passed}/{len(ai_agent_tests)} tests passed")
+        
+        if ai_agent_tests_passed == len(ai_agent_tests):
+            print("🎉 All AI Agent System tests PASSED!")
+            return True
+        else:
+            print("⚠️  Some AI Agent System tests FAILED!")
+            return False
+
 def main():
     import sys
     
