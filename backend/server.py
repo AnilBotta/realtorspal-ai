@@ -2434,7 +2434,7 @@ async def create_approval_request(approval: Dict[str, Any], user_id: str):
             "id": str(uuid.uuid4()),
             "user_id": user_id,
             "status": "pending",
-            "created_at": datetime.utcnow(),
+            "created_at": datetime.utcnow().isoformat(),
             **approval
         }
         
