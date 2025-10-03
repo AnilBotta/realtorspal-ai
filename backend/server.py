@@ -2160,32 +2160,41 @@ class LLMService:
     
     def __init__(self):
         self.emergent_llm_key = EMERGENT_LLM_KEY
+        if not self.emergent_llm_key:
+            print("Warning: EMERGENT_LLM_KEY not found in environment")
     
     async def generate_completion(self, 
                                 prompt: str, 
                                 model: str = "gpt-4o", 
-                                provider: str = "emergent",
+                                provider: str = "openai",
                                 system_prompt: str = "",
-                                temperature: float = 0.7,
-                                max_tokens: int = 1000) -> str:
-        """Generate LLM completion"""
+                                session_id: str = None) -> str:
+        """Generate LLM completion using emergentintegrations"""
         try:
-            # Use emergentintegrations for LLM calls
-            client = get_llm_client(api_key=self.emergent_llm_key)
+            if not self.emergent_llm_key:
+                return "Error: LLM API key not configured"
             
-            messages = []
-            if system_prompt:
-                messages.append({"role": "system", "content": system_prompt})
-            messages.append({"role": "user", "content": prompt})
+            # Create session ID if not provided
+            if not session_id:
+                session_id = f"agent-{uuid.uuid4()}"
             
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens
+            # Initialize LlmChat with emergentintegrations
+            chat = LlmChat(
+                api_key=self.emergent_llm_key,
+                session_id=session_id,
+                system_message=system_prompt or "You are a helpful AI assistant."
             )
             
-            return response.choices[0].message.content
+            # Set the model and provider
+            chat.with_model(provider, model)
+            
+            # Create user message
+            user_message = UserMessage(text=prompt)
+            
+            # Send message and get response
+            response = await chat.send_message(user_message)
+            
+            return str(response)
             
         except Exception as e:
             print(f"LLM generation error: {e}")
