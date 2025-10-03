@@ -72,4 +72,22 @@ export const updateActivityStatus = (activity_id, status, user_id, notes = null)
 };
 export const analyzeReply = (user_id, lead_id, reply_text) => api.post(`/nurturing-ai/analyze-reply`, null, { params: { user_id, lead_id, reply_text } });
 
+// Main Orchestrator AI APIs
+export const getLiveActivityStream = (user_id, limit = 50) => api.get(`/orchestrator/live-activity-stream/${user_id}`, { params: { limit } });
+export const getAgentRuns = (user_id, agent_code = null, limit = 100) => {
+  const params = { limit };
+  if (agent_code) params.agent_code = agent_code;
+  return api.get(`/orchestrator/agent-runs/${user_id}`, { params });
+};
+export const getAgentTasks = (user_id, status = null, limit = 100) => {
+  const params = { limit };
+  if (status) params.status = status;
+  return api.get(`/orchestrator/agent-tasks/${user_id}`, { params });
+};
+export const executeAgent = (agent_code, lead_id, user_id, context = null) => {
+  const params = { agent_code, lead_id, user_id };
+  if (context) params.context = context;
+  return api.post(`/orchestrator/execute-agent`, null, { params });
+};
+
 export default api;
