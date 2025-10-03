@@ -491,7 +491,10 @@ const AIAgents = ({ user }) => {
             {isStreaming ? <Pause size={16} /> : <Play size={16} />}
             {isStreaming ? 'Stop Stream' : 'Start Stream'}
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+          <button 
+            onClick={openGlobalConfig}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
             <Settings size={16} />
             Configure
           </button>
