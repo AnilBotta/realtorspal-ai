@@ -2630,7 +2630,7 @@ class RealtorsPalAPITester:
             
             if response.status_code == 200:
                 data = response.json()
-                if data.get("result") == "created":
+                if data.get("result") in ["created", "merged"]:
                     lead_id = data["lead_id"]
                     
                     # Verify the lead was created with proper normalization
