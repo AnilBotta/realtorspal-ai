@@ -2013,6 +2013,101 @@ class AuditLog(BaseModel):
 
 # --- Lead Generation AI Processing Functions ---
 
+class MainOrchestratorAI:
+    """Main Orchestrator AI for coordinating sub-agents and logging"""
+    
+    @staticmethod
+    async def create_agent_run(agent_code: str, lead_id: str, user_id: str, step: str = None) -> AgentRun:
+        """Create a new agent run"""
+        agent_run = AgentRun(
+            agent_code=agent_code,
+            lead_id=lead_id,
+            user_id=user_id,
+            step=step
+        )
+        await db.agent_runs.insert_one(agent_run.dict())
+        return agent_run
+    
+    @staticmethod
+    async def log_agent_event(run_id: str, event_type: str, payload: Dict[str, Any]):
+        """Log an agent event"""
+        event = AgentEvent(
+            run_id=run_id,
+            type=event_type,
+            payload=payload
+        )
+        await db.agent_events.insert_one(event.dict())
+        return event
+    
+    @staticmethod
+    async def create_agent_task(run_id: str, lead_id: str, user_id: str, agent_code: str, 
+                               due_at: str, channel: str, title: str, draft: Dict[str, str] = None) -> AgentTask:
+        """Create an actionable task for humans"""
+        task = AgentTask(
+            run_id=run_id,
+            lead_id=lead_id,
+            user_id=user_id,
+            agent_code=agent_code,
+            due_at=due_at,
+            channel=channel,
+            title=title,
+            draft=draft
+        )
+        await db.agent_tasks.insert_one(task.dict())
+        return task
+    
+    @staticmethod
+    async def complete_agent_run(run_id: str, status: str = "succeeded"):
+        """Mark agent run as completed"""
+        await db.agent_runs.update_one(
+            {"id": run_id},
+            {"$set": {"status": status, "completed_at": datetime.utcnow().isoformat()}}
+        )
+    
+    @staticmethod
+    async def get_live_activity_stream(user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """Get live activity stream from agent runs and events"""
+        # Get recent agent runs with their events
+        runs = await db.agent_runs.find(
+            {"user_id": user_id}
+        ).sort("started_at", -1).limit(limit).to_list(length=limit)
+        
+        activity_stream = []
+        
+        for run in runs:
+            # Get events for this run
+            events = await db.agent_events.find(
+                {"run_id": run["id"]}
+            ).sort("ts", -1).to_list(length=10)
+            
+            # Get tasks for this run
+            tasks = await db.agent_tasks.find(
+                {"run_id": run["id"]}
+            ).sort("created_at", -1).to_list(length=5)
+            
+            # Get lead info
+            lead = await db.leads.find_one({"id": run["lead_id"]})
+            lead_name = "Unknown Lead"
+            if lead:
+                lead_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or "Unnamed Lead"
+            
+            activity_stream.append({
+                "id": run["id"],
+                "type": "agent_run",
+                "agent_code": run["agent_code"],
+                "lead_id": run["lead_id"],
+                "lead_name": lead_name,
+                "status": run["status"],
+                "step": run.get("step"),
+                "started_at": run["started_at"],
+                "completed_at": run.get("completed_at"),
+                "correlation_id": run["correlation_id"],
+                "events": events,
+                "tasks": tasks
+            })
+        
+        return activity_stream
+
 class LeadGenerationAI:
     """Lead Generation AI for automatic lead processing"""
     
