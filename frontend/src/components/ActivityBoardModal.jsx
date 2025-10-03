@@ -222,12 +222,25 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
               {/* Toolbar */}
               <div className="flex items-center gap-4 mt-4">
                 <button
-                  onClick={onGenerateActivities}
+                  onClick={() => {
+                    onGenerateActivities();
+                    onClose(); // Close modal first
+                  }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
                 >
                   <Plus size={16} />
                   New activity
                 </button>
+
+                {selectedActivities.size > 0 && (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+                  >
+                    <X size={16} />
+                    Remove ({selectedActivities.size})
+                  </button>
+                )}
 
                 <div className="flex items-center gap-2">
                   <Search size={16} className="text-gray-400" />
