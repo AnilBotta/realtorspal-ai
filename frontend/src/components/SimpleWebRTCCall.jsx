@@ -6,7 +6,7 @@ const SimpleWebRTCCall = ({ user, lead, onCallEnd, onCallStart }) => {
   const [error, setError] = useState(null);
   const [callResult, setCallResult] = useState(null);
   
-  const baseUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+  const baseUrl = process.env.REACT_APP_BACKEND_URL;
 
   const makeCall = async () => {
     if (!lead?.phone) {
