@@ -14,7 +14,7 @@ export default function EmailModal({ open, lead, onClose, user }) {
   const [emailHistory, setEmailHistory] = useState([]);
   const [llmProvider, setLlmProvider] = useState('emergent');
   
-  const baseUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+  const baseUrl = process.env.REACT_APP_BACKEND_URL;
 
   useEffect(() => {
     if (open && lead) {
