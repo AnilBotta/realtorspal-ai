@@ -67,7 +67,7 @@ app.add_middleware(
 
 # Mongo client
 client = AsyncIOMotorClient(MONGO_URL)
-db = client["realtorspal"]
+db = client[os.environ.get('DB_NAME', 'realtorspal')]
 
 E164_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 
