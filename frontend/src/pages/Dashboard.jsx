@@ -593,7 +593,7 @@ export default function Dashboard({ user }){
 
       {/* Lead Pipeline */}
       <div className="bg-white rounded-xl border p-4">
-        <div className="text-sm font-semibold mb-3">Lead Pipeline</div>
+        <div className="text-sm font-semibold mb-3 text-slate-700 dark:text-gray-300">Lead Pipeline</div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {STAGES.map(col => (
