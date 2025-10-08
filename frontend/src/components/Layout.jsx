@@ -7,6 +7,26 @@ import ThemeToggle from "./ThemeToggle";
 
 export default function Layout({ children, user, onLogout }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef(null);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMobileMenuOpen]);
   const tabs = [
     { to: "/", label: "Dashboard", color: "bg-blue-500 hover:bg-blue-600 text-white" },
     { to: "/leads", label: "Leads", color: "bg-green-500 hover:bg-green-600 text-white" },
