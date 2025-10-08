@@ -592,10 +592,10 @@ export default function Dashboard({ user }){
       </div>
 
       {/* Lead Pipeline */}
-      <div className="bg-white rounded-xl border p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
         <div className="text-sm font-semibold mb-3 text-slate-700 dark:text-gray-300">Lead Pipeline</div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-4">
             {STAGES.map(col => (
               <DroppableColumn key={col} id={col} title={col} count={grouped[col].length}>
                 {grouped[col].map(l => (
