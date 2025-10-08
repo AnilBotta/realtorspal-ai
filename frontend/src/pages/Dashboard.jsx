@@ -569,7 +569,7 @@ export default function Dashboard({ user }){
   };
 
   return (
-    <React.Fragment>
+    <>
       <div className="space-y-4 sm:space-y-6">
         {/* KPI Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
@@ -612,22 +612,22 @@ export default function Dashboard({ user }){
                   <button onClick={addLead} className="w-full mt-3 text-xs px-2 py-1 rounded-lg border border-dashed text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600 transition-colors">+ Add Lead</button>
                 </DroppableColumn>
               ))}
-              </div>
-            </DndContext>
-          </div>
+            </div>
+          </DndContext>
         </div>
-        <AddLeadModal open={openAdd} onClose={()=>setOpenAdd(false)} onCreate={onCreate} />
-        <LeadDrawer open={openDrawer} lead={activeLead} onClose={()=>setOpenDrawer(false)} onSave={handleLeadUpdate} onDelete={handleLeadDelete} />
-        <CommunicationModal open={openComm} lead={commLead} type={commType} onClose={closeCommunication} user={user} />
-        <EmailModal open={openEmail} lead={emailLead} onClose={closeEmail} user={user} />
-        <AIAgentModal open={openAIAgent} lead={aiAgentLead} onClose={closeAIAgent} onRunAgent={handleRunAgent} user={user} />
-        <ActivityBoardModal 
-          open={showActivityBoard} 
-          onClose={() => setShowActivityBoard(false)} 
-          user={user} 
-          onGenerateActivities={handleGenerateActivities}
-        />
       </div>
-    </React.Fragment>
+
+      <AddLeadModal open={openAdd} onClose={()=>setOpenAdd(false)} onCreate={onCreate} />
+      <LeadDrawer open={openDrawer} lead={activeLead} onClose={()=>setOpenDrawer(false)} onSave={handleLeadUpdate} onDelete={handleLeadDelete} />
+      <CommunicationModal open={openComm} lead={commLead} type={commType} onClose={closeCommunication} user={user} />
+      <EmailModal open={openEmail} lead={emailLead} onClose={closeEmail} user={user} />
+      <AIAgentModal open={openAIAgent} lead={aiAgentLead} onClose={closeAIAgent} onRunAgent={handleRunAgent} user={user} />
+      <ActivityBoardModal 
+        open={showActivityBoard} 
+        onClose={() => setShowActivityBoard(false)} 
+        user={user} 
+        onGenerateActivities={handleGenerateActivities}
+      />
+    </>
   );
 }
