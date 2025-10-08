@@ -40,7 +40,7 @@ export default function Layout({ children, user, onLogout }) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-900 transition-colors">
       {/* Top Bar */}
-      <div className="border-b bg-white dark:bg-gray-800 dark:border-gray-700">
+      <div className="sticky top-0 z-50 border-b bg-white dark:bg-gray-800 dark:border-gray-700" ref={mobileMenuRef}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           {/* Left side - Logo and Live Data */}
           <div className="flex items-center gap-3">
