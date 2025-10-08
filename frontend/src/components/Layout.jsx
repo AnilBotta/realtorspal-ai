@@ -72,7 +72,7 @@ export default function Layout({ children, user, onLogout }) {
 
             {/* Mobile Menu Button */}
             <button 
-              className="md:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="md:hidden p-3 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[44px] min-h-[44px] flex items-center justify-center"
               onClick={() => {
                 console.log('Mobile menu button clicked, current state:', isMobileMenuOpen);
                 setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -80,7 +80,7 @@ export default function Layout({ children, user, onLogout }) {
               aria-label={isMobileMenuOpen ? "Close mobile menu" : "Open mobile menu"}
               aria-expanded={isMobileMenuOpen}
             >
-              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
 
             {/* User Profile */}
