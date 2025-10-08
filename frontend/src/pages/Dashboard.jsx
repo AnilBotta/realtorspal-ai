@@ -62,17 +62,17 @@ function DroppableColumn({ id, title, count, children }){
   const getColumnColors = (stageId) => {
     switch(stageId) {
       case 'Prospecting':
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
       case 'Engagement': 
-        return 'bg-yellow-50 border-yellow-200';
+        return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800';
       case 'Active':
-        return 'bg-purple-50 border-purple-200';
+        return 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800';
       case 'Closing':
-        return 'bg-green-50 border-green-200';
+        return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
       case 'Closed':
-        return 'bg-gray-50 border-gray-200';
+        return 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700';
       default:
-        return 'bg-white border-gray-200';
+        return 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700';
     }
   };
 
