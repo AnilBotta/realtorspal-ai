@@ -10,6 +10,7 @@ import AIAgents from "./pages/AIAgents";
 import AgentConfig from "./pages/AgentConfig";
 import Settings from "./pages/Settings";
 import { demoLogin } from "./api";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 export default function App(){
   const [session, setSession] = useState(null);
