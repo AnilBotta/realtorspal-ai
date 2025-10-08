@@ -569,64 +569,66 @@ export default function Dashboard({ user }){
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-        <Stat label="Total Leads" value={stats.total_leads} />
-        <Stat label="Active Conversations" value={1} />
-        <Stat label="Appointments Scheduled" value={0} />
-        <Stat label="Conversion Rate" value={`${((stats.by_stage.Closed||0)/(stats.total_leads||1)*100).toFixed(0)}%`} />
-        <Stat label="Revenue Generated" value={`$0`} />
-        <Stat label="Response Time" value={`3 min`} />
-      </div>
-
-      {/* Activity Button */}
-      <div className="mb-4">
-        <button
-          onClick={() => setShowActivityBoard(!showActivityBoard)}
-          className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 flex items-center gap-2 transition-colors"
-        >
-          <Calendar size={16} />
-          Activities
-        </button>
-      </div>
-
-      {/* Lead Pipeline */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-        <div className="text-sm font-semibold mb-3 text-slate-700 dark:text-gray-300">Lead Pipeline</div>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-4">
-            {STAGES.map(col => (
-              <DroppableColumn key={col} id={col} title={col} count={grouped[col].length}>
-                {grouped[col].map(l => (
-                  <DraggableLeadCard 
-                    key={l.id} 
-                    lead={l} 
-                    onOpen={openDetails} 
-                    onCommunicate={handleCommunication}
-                    onAIAgent={handleAIAgent}
-                    onPipelineChange={handlePipelineChange}
-                  />
-                ))}
-                <button onClick={addLead} className="w-full mt-3 text-xs px-2 py-1 rounded-lg border border-dashed text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600 transition-colors">+ Add Lead</button>
-              </DroppableColumn>
-            ))}
-            </div>
-          </DndContext>
+    <>
+      <div className="space-y-4 sm:space-y-6">
+        {/* KPI Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+          <Stat label="Total Leads" value={stats.total_leads} />
+          <Stat label="Active Conversations" value={1} />
+          <Stat label="Appointments Scheduled" value={0} />
+          <Stat label="Conversion Rate" value={`${((stats.by_stage.Closed||0)/(stats.total_leads||1)*100).toFixed(0)}%`} />
+          <Stat label="Revenue Generated" value={`$0`} />
+          <Stat label="Response Time" value={`3 min`} />
         </div>
-      </div>
 
-      <AddLeadModal open={openAdd} onClose={()=>setOpenAdd(false)} onCreate={onCreate} />
-      <LeadDrawer open={openDrawer} lead={activeLead} onClose={()=>setOpenDrawer(false)} onSave={handleLeadUpdate} onDelete={handleLeadDelete} />
-      <CommunicationModal open={openComm} lead={commLead} type={commType} onClose={closeCommunication} user={user} />
-      <EmailModal open={openEmail} lead={emailLead} onClose={closeEmail} user={user} />
-      <AIAgentModal open={openAIAgent} lead={aiAgentLead} onClose={closeAIAgent} onRunAgent={handleRunAgent} user={user} />
-      <ActivityBoardModal 
-        open={showActivityBoard} 
-        onClose={() => setShowActivityBoard(false)} 
-        user={user} 
-        onGenerateActivities={handleGenerateActivities}
-      />
-    </div>
+        {/* Activity Button */}
+        <div className="mb-4">
+          <button
+            onClick={() => setShowActivityBoard(!showActivityBoard)}
+            className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 flex items-center gap-2 transition-colors"
+          >
+            <Calendar size={16} />
+            Activities
+          </button>
+        </div>
+
+        {/* Lead Pipeline */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <div className="text-sm font-semibold mb-3 text-slate-700 dark:text-gray-300">Lead Pipeline</div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-4">
+              {STAGES.map(col => (
+                <DroppableColumn key={col} id={col} title={col} count={grouped[col].length}>
+                  {grouped[col].map(l => (
+                    <DraggableLeadCard 
+                      key={l.id} 
+                      lead={l} 
+                      onOpen={openDetails} 
+                      onCommunicate={handleCommunication}
+                      onAIAgent={handleAIAgent}
+                      onPipelineChange={handlePipelineChange}
+                    />
+                  ))}
+                  <button onClick={addLead} className="w-full mt-3 text-xs px-2 py-1 rounded-lg border border-dashed text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600 transition-colors">+ Add Lead</button>
+                </DroppableColumn>
+              ))}
+              </div>
+            </DndContext>
+          </div>
+        </div>
+
+        <AddLeadModal open={openAdd} onClose={()=>setOpenAdd(false)} onCreate={onCreate} />
+        <LeadDrawer open={openDrawer} lead={activeLead} onClose={()=>setOpenDrawer(false)} onSave={handleLeadUpdate} onDelete={handleLeadDelete} />
+        <CommunicationModal open={openComm} lead={commLead} type={commType} onClose={closeCommunication} user={user} />
+        <EmailModal open={openEmail} lead={emailLead} onClose={closeEmail} user={user} />
+        <AIAgentModal open={openAIAgent} lead={aiAgentLead} onClose={closeAIAgent} onRunAgent={handleRunAgent} user={user} />
+        <ActivityBoardModal 
+          open={showActivityBoard} 
+          onClose={() => setShowActivityBoard(false)} 
+          user={user} 
+          onGenerateActivities={handleGenerateActivities}
+        />
+      </div>
+    </>
   );
 }
