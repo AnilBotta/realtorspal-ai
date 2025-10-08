@@ -214,28 +214,28 @@ function LeadCard({ lead, onOpen, onCommunicate, onAIAgent, dragHandle, onPipeli
 
       <div className="flex items-center gap-1 text-xs flex-wrap">
         <button 
-          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-blue-50 hover:border-blue-200 whitespace-nowrap" 
+          className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 flex items-center gap-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-600 whitespace-nowrap text-gray-700 dark:text-gray-300 transition-colors" 
           onClick={(e) => { e.stopPropagation(); onCommunicate(lead, 'call'); }}
         >
           <Phone size={12}/> Call ({communicationCounts.calls})
         </button>
         <button 
-          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-blue-50 hover:border-blue-200 whitespace-nowrap" 
+          className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 flex items-center gap-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-600 whitespace-nowrap text-gray-700 dark:text-gray-300 transition-colors" 
           onClick={(e) => { e.stopPropagation(); onCommunicate(lead, 'email'); }}
         >
           <Mail size={12}/> Email ({communicationCounts.emails})
         </button>
         <button 
-          className="px-2 py-1 rounded border flex items-center gap-1 hover:bg-green-50 hover:border-green-200 whitespace-nowrap" 
+          className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 flex items-center gap-1 hover:bg-green-50 dark:hover:bg-green-900/20 hover:border-green-200 dark:hover:border-green-600 whitespace-nowrap text-gray-700 dark:text-gray-300 transition-colors" 
           onClick={(e) => { e.stopPropagation(); onCommunicate(lead, 'sms'); }}
         >
           <MessageSquare size={12}/> SMS ({communicationCounts.sms})
         </button>
         <button 
-          className={`px-2 py-1 rounded border flex items-center gap-1 whitespace-nowrap ${
+          className={`px-2 py-1 rounded border flex items-center gap-1 whitespace-nowrap transition-colors ${
             lead.ai_status === 'processing' 
-              ? 'bg-purple-100 border-purple-300 text-purple-700' 
-              : 'hover:bg-purple-50 hover:border-purple-200'
+              ? 'bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-400' 
+              : 'border-gray-300 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-200 dark:hover:border-purple-600 text-gray-700 dark:text-gray-300'
           }`}
           onClick={(e) => { e.stopPropagation(); onAIAgent && onAIAgent(lead); }}
           title={lead.ai_status === 'processing' ? `AI ${lead.ai_agent} is working...` : 'Run AI Agent'}
@@ -244,7 +244,7 @@ function LeadCard({ lead, onOpen, onCommunicate, onAIAgent, dragHandle, onPipeli
           {lead.ai_status === 'processing' ? (
             <>
               <span className="animate-pulse">Working...</span>
-              <div className="w-2 h-2 bg-purple-500 rounded-full animate-ping ml-1" />
+              <div className="w-2 h-2 bg-purple-500 dark:bg-purple-400 rounded-full animate-ping ml-1" />
             </>
           ) : (
             'AI Agent'
