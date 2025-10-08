@@ -18,18 +18,22 @@ export default function Layout({ children, user, onLogout }) {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 transition-colors">
       {/* Top Bar */}
-      <div className="border-b bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="border-b bg-white dark:bg-gray-800 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+          {/* Left side - Logo and Live Data */}
           <div className="flex items-center gap-3">
-            <div className="text-emerald-600 font-semibold text-xl">RealtorsPal AI</div>
-            <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <div className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg sm:text-xl">RealtorsPal AI</div>
+            <span className="hidden sm:inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-600/30">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
               Live Data
             </span>
           </div>
+
+          {/* Right side - Actions and User */}
           <div className="flex items-center gap-2">
+            {/* Desktop Navigation Items */}
             <div className="hidden md:flex items-center gap-2">
               <GlobalSearch user={user} />
               <SavedFilterTemplatesDropdown onApplyFilter={(filters) => {
@@ -39,14 +43,52 @@ export default function Layout({ children, user, onLogout }) {
                   detail: { filters } 
                 }));
               }} />
-              <button className="px-3 py-1.5 rounded-md border bg-white text-slate-600 hover:bg-slate-50 text-sm flex items-center gap-1"><Bell size={16}/> Alerts</button>
+              <button className="px-3 py-1.5 rounded-md border bg-white dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-600 border-gray-300 dark:border-gray-600 text-sm flex items-center gap-1 transition-colors">
+                <Bell size={16}/> 
+                <span className="hidden lg:inline">Alerts</span>
+              </button>
+              <ThemeToggle />
             </div>
-            <div className="flex items-center gap-2 pl-2 border-l">
-              <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600"><User2 size={18}/></div>
-              <div className="text-sm text-slate-700">{user?.email || "Admin"}</div>
+
+            {/* Mobile Menu Button */}
+            <button 
+              className="md:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+
+            {/* User Profile */}
+            <div className="flex items-center gap-2 pl-2 border-l border-gray-300 dark:border-gray-600">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 dark:bg-gray-700 flex items-center justify-center text-slate-600 dark:text-gray-300">
+                <User2 size={16} className="sm:w-5 sm:h-5"/>
+              </div>
+              <div className="hidden sm:block text-sm text-slate-700 dark:text-gray-300">{user?.email || "Admin"}</div>
             </div>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="px-4 py-3 space-y-3">
+              <GlobalSearch user={user} />
+              <SavedFilterTemplatesDropdown onApplyFilter={(filters) => {
+                console.log('Apply filters from header:', filters);
+                window.dispatchEvent(new CustomEvent('applyGlobalFilters', { 
+                  detail: { filters } 
+                }));
+                setIsMobileMenuOpen(false);
+              }} />
+              <div className="flex items-center justify-between">
+                <button className="px-3 py-1.5 rounded-md border bg-white dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-600 border-gray-300 dark:border-gray-600 text-sm flex items-center gap-1 transition-colors">
+                  <Bell size={16}/> Alerts
+                </button>
+                <ThemeToggle />
+              </div>
+            </div>
+          </div>
+        )}
         <div className="max-w-7xl mx-auto px-4 py-4">
           <nav className="flex items-center gap-3 overflow-x-auto">
             {tabs.map(t => (
