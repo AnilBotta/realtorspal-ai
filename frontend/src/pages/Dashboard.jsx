@@ -97,10 +97,10 @@ function DroppableColumn({ id, title, count, children }){
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-xl p-3 border border-dashed ${getColumnColors(id)} ${isOver?'ring-2 ring-emerald-300':''}`}
+      className={`rounded-xl p-3 border border-dashed ${getColumnColors(id)} ${isOver?'ring-2 ring-emerald-300 dark:ring-emerald-500':''} transition-colors`}
     >
-      <div className="text-sm font-medium mb-2 text-slate-700 flex items-center justify-between">
-        <span>{getDisplayTitle(id)} <span className="text-slate-400">({count})</span></span>
+      <div className="text-sm font-medium mb-2 text-slate-700 dark:text-gray-300 flex items-center justify-between">
+        <span>{getDisplayTitle(id)} <span className="text-slate-400 dark:text-gray-500">({count})</span></span>
       </div>
       <div className="space-y-3 min-h-[96px]">
         {children}
