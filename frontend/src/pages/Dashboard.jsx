@@ -629,6 +629,6 @@ export default function Dashboard({ user }){
           onGenerateActivities={handleGenerateActivities}
         />
       </div>
-    </>
+    </React.Fragment>
   );
 }
