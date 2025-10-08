@@ -94,19 +94,23 @@ export default function Layout({ children, user, onLogout }) {
         </div>
 
         {/* Mobile Menu */}
-        <div className={`md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 ease-in-out ${
-          isMobileMenuOpen ? 'block opacity-100' : 'hidden opacity-0'
+        <div className={`md:hidden absolute left-0 right-0 top-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-40 transition-all duration-300 ease-in-out ${
+          isMobileMenuOpen ? 'block opacity-100 translate-y-0' : 'hidden opacity-0 -translate-y-2'
         }`}>
-          <div className="px-4 py-3 space-y-3">
-            <GlobalSearch user={user} />
-            <SavedFilterTemplatesDropdown onApplyFilter={(filters) => {
-              console.log('Apply filters from header:', filters);
-              window.dispatchEvent(new CustomEvent('applyGlobalFilters', { 
-                detail: { filters } 
-              }));
-              setIsMobileMenuOpen(false);
-            }} />
-            <div className="flex items-center justify-between">
+          <div className="px-4 py-3 space-y-3 max-w-7xl mx-auto">
+            <div className="w-full">
+              <GlobalSearch user={user} />
+            </div>
+            <div className="w-full">
+              <SavedFilterTemplatesDropdown onApplyFilter={(filters) => {
+                console.log('Apply filters from header:', filters);
+                window.dispatchEvent(new CustomEvent('applyGlobalFilters', { 
+                  detail: { filters } 
+                }));
+                setIsMobileMenuOpen(false);
+              }} />
+            </div>
+            <div className="flex items-center justify-between pt-2">
               <button className="px-3 py-1.5 rounded-md border bg-white dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-600 border-gray-300 dark:border-gray-600 text-sm flex items-center gap-1 transition-colors">
                 <Bell size={16}/> Alerts
               </button>
