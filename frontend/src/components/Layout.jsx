@@ -74,26 +74,26 @@ export default function Layout({ children, user, onLogout }) {
         </div>
 
         {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <div className="px-4 py-3 space-y-3">
-              <GlobalSearch user={user} />
-              <SavedFilterTemplatesDropdown onApplyFilter={(filters) => {
-                console.log('Apply filters from header:', filters);
-                window.dispatchEvent(new CustomEvent('applyGlobalFilters', { 
-                  detail: { filters } 
-                }));
-                setIsMobileMenuOpen(false);
-              }} />
-              <div className="flex items-center justify-between">
-                <button className="px-3 py-1.5 rounded-md border bg-white dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-600 border-gray-300 dark:border-gray-600 text-sm flex items-center gap-1 transition-colors">
-                  <Bell size={16}/> Alerts
-                </button>
-                <ThemeToggle />
-              </div>
+        <div className={`md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 ease-in-out ${
+          isMobileMenuOpen ? 'block opacity-100' : 'hidden opacity-0'
+        }`}>
+          <div className="px-4 py-3 space-y-3">
+            <GlobalSearch user={user} />
+            <SavedFilterTemplatesDropdown onApplyFilter={(filters) => {
+              console.log('Apply filters from header:', filters);
+              window.dispatchEvent(new CustomEvent('applyGlobalFilters', { 
+                detail: { filters } 
+              }));
+              setIsMobileMenuOpen(false);
+            }} />
+            <div className="flex items-center justify-between">
+              <button className="px-3 py-1.5 rounded-md border bg-white dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-600 border-gray-300 dark:border-gray-600 text-sm flex items-center gap-1 transition-colors">
+                <Bell size={16}/> Alerts
+              </button>
+              <ThemeToggle />
             </div>
           </div>
-        )}
+        </div>
         {/* Navigation Tabs */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <nav className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide">
