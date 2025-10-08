@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { CircleCheck, Bell, User2 } from "lucide-react";
+import { CircleCheck, Bell, User2, Menu, X } from "lucide-react";
 import GlobalSearch from "./GlobalSearch";
 import SavedFilterTemplatesDropdown from "./SavedFilterTemplatesDropdown";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Layout({ children, user, onLogout }) {
   const tabs = [
