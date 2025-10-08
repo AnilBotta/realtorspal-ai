@@ -584,7 +584,7 @@ export default function Dashboard({ user }){
       <div className="mb-4">
         <button
           onClick={() => setShowActivityBoard(!showActivityBoard)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 flex items-center gap-2 transition-colors"
         >
           <Calendar size={16} />
           Activities
