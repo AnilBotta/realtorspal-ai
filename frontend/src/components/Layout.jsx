@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { CircleCheck, Bell, User2, Menu, X } from "lucide-react";
 import GlobalSearch from "./GlobalSearch";
