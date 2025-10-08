@@ -616,7 +616,6 @@ export default function Dashboard({ user }){
             </DndContext>
           </div>
         </div>
-
         <AddLeadModal open={openAdd} onClose={()=>setOpenAdd(false)} onCreate={onCreate} />
         <LeadDrawer open={openDrawer} lead={activeLead} onClose={()=>setOpenDrawer(false)} onSave={handleLeadUpdate} onDelete={handleLeadDelete} />
         <CommunicationModal open={openComm} lead={commLead} type={commType} onClose={closeCommunication} user={user} />
