@@ -6,6 +6,7 @@ import SavedFilterTemplatesDropdown from "./SavedFilterTemplatesDropdown";
 import ThemeToggle from "./ThemeToggle";
 
 export default function Layout({ children, user, onLogout }) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const tabs = [
     { to: "/", label: "Dashboard", color: "bg-blue-500 hover:bg-blue-600 text-white" },
     { to: "/leads", label: "Leads", color: "bg-green-500 hover:bg-green-600 text-white" },
