@@ -89,18 +89,19 @@ export default function Layout({ children, user, onLogout }) {
             </div>
           </div>
         )}
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <nav className="flex items-center gap-3 overflow-x-auto">
+        {/* Navigation Tabs */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <nav className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide">
             {tabs.map(t => (
               <NavLink 
                 key={t.to} 
                 to={t.to} 
                 end 
                 className={({isActive}) => 
-                  `px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm whitespace-nowrap ${
+                  `px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 shadow-sm whitespace-nowrap ${
                     isActive 
                       ? `${t.color} shadow-md transform scale-105` 
-                      : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 hover:border-slate-300'
+                      : 'bg-white dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-600 border border-slate-200 dark:border-gray-600 hover:border-slate-300 dark:hover:border-gray-500'
                   }`
                 }
               >
@@ -112,12 +113,14 @@ export default function Layout({ children, user, onLogout }) {
       </div>
 
       {/* Body */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         {children}
       </div>
 
       {/* Footer */}
-      <div className="py-6 text-center text-xs text-slate-400">Built for real estate teams • <CircleCheck className="inline -mt-1" size={14}/> Stable MVP</div>
+      <div className="py-4 sm:py-6 text-center text-xs text-slate-400 dark:text-gray-500">
+        Built for real estate teams • <CircleCheck className="inline -mt-1" size={14}/> Stable MVP
+      </div>
     </div>
   );
 }
