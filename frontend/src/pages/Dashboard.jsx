@@ -173,7 +173,7 @@ function LeadCard({ lead, onOpen, onCommunicate, onAIAgent, dragHandle, onPipeli
               <select
                 value={pipeline}
                 onChange={handlePipelineChange}
-                className="text-xs text-blue-600 font-medium bg-transparent border-none p-0 focus:ring-0 focus:outline-none cursor-pointer hover:bg-blue-50 rounded px-1 max-w-full"
+                className="text-xs text-blue-600 dark:text-blue-400 font-medium bg-transparent border-none p-0 focus:ring-0 focus:outline-none cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 rounded px-1 max-w-full"
                 style={{ appearance: 'none' }}
               >
                 {pipelineOptions.map(option => (
