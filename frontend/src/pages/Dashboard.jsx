@@ -611,8 +611,9 @@ export default function Dashboard({ user }){
                 <button onClick={addLead} className="w-full mt-3 text-xs px-2 py-1 rounded-lg border border-dashed text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600 transition-colors">+ Add Lead</button>
               </DroppableColumn>
             ))}
-          </div>
-        </DndContext>
+            </div>
+          </DndContext>
+        </div>
       </div>
 
       <AddLeadModal open={openAdd} onClose={()=>setOpenAdd(false)} onCreate={onCreate} />
