@@ -61,19 +61,21 @@ export default function App(){
   );
 
   return (
-    <BrowserRouter>
-      <Layout user={session.user}>
-        <Routes>
-          <Route path="/" element={<Dashboard user={session.user} />} />
-          <Route path="/leads" element={<Leads user={session.user} />} />
-          <Route path="/agents" element={<AIAgents user={session.user} />} />
-          <Route path="/analytics" element={<Analytics user={session.user} />} />
-          <Route path="/data" element={<DataPage user={session.user} />} />
-          <Route path="/agent-config" element={<AgentConfig user={session.user} />} />
-          <Route path="/settings" element={<Settings user={session.user} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Layout>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Layout user={session.user}>
+          <Routes>
+            <Route path="/" element={<Dashboard user={session.user} />} />
+            <Route path="/leads" element={<Leads user={session.user} />} />
+            <Route path="/agents" element={<AIAgents user={session.user} />} />
+            <Route path="/analytics" element={<Analytics user={session.user} />} />
+            <Route path="/data" element={<DataPage user={session.user} />} />
+            <Route path="/agent-config" element={<AgentConfig user={session.user} />} />
+            <Route path="/settings" element={<Settings user={session.user} />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Layout>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
