@@ -159,15 +159,15 @@ function LeadCard({ lead, onOpen, onCommunicate, onAIAgent, dragHandle, onPipeli
   };
 
   return (
-    <div className={`bg-white rounded-2xl border p-3 shadow-sm overflow-hidden`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-3 shadow-sm overflow-hidden`}>
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-3 cursor-pointer flex-1 min-w-0" onClick={() => onOpen(lead)}>
-          <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 flex items-center justify-center text-xs font-medium flex-shrink-0">
             {initialsFromName(nameToShow)}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-semibold text-slate-800 leading-none truncate">{nameToShow}</div>
-            <div className="text-xs text-slate-500 mt-1 truncate">{propertyType} - {neighborhood}</div>
+            <div className="font-semibold text-slate-800 dark:text-gray-200 leading-none truncate">{nameToShow}</div>
+            <div className="text-xs text-slate-500 dark:text-gray-400 mt-1 truncate">{propertyType} - {neighborhood}</div>
             {/* Pipeline Dropdown */}
             <div className="mt-1" onClick={(e) => e.stopPropagation()}>
               <select
