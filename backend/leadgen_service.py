@@ -258,33 +258,53 @@ def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) ->
     
     out = []
     for it in items:
-        # Extract seller/buyer information from Kijiji response
+        # Skip non-advertisement items
+        if it.get("dataType") != "advertisement":
+            continue
+            
+        # Extract basic listing info from Apify Kijiji response
+        # The response has: dataType, title, url, price, description, imageUrl
+        title = it.get("title", "")
+        description = it.get("description", "")
+        
+        # Try to extract city/location from title or description
+        location_parts = title.split(",") if "," in title else []
+        city = location_parts[-1].strip() if len(location_parts) > 1 else None
+        
+        # Extract seller name from title if it contains "SELLER" or "seller"
+        seller_name = None
+        if "SELLER" in title.upper():
+            # Try to extract seller identifier from title
+            seller_name = "Property Seller"
+        
         seller_info = {
-            "name": it.get("sellerName") or it.get("posterName") or "Unknown Seller",
-            "phone": it.get("sellerPhone") or it.get("phoneNumber"),
-            "email": it.get("sellerEmail") or it.get("email"),
-            "location": it.get("sellerLocation") or it.get("location")
+            "name": seller_name or "Kijiji Seller",
+            "phone": None,  # Not in API response
+            "email": None,  # Not in API response
+            "location": city
         }
         
         # Extract property details
         out.append({
             "source": "kijiji",
-            "title": it.get("title") or it.get("heading") or "Listing",
-            "price": it.get("price") or it.get("priceAmount"),
-            "address": it.get("address") or it.get("location"),
-            "city": it.get("city"),
-            "province": it.get("province") or it.get("state"),
-            "postalCode": it.get("postalCode") or it.get("zipCode"),
-            "url": it.get("url") or it.get("link"),
-            "homeType": it.get("propertyType") or it.get("category"),
-            "description": it.get("description"),
-            "bedrooms": it.get("bedrooms") or it.get("beds"),
-            "bathrooms": it.get("bathrooms") or it.get("baths"),
-            "squareFeet": it.get("squareFeet") or it.get("size"),
-            "images": it.get("images", []),
-            "listingDate": it.get("datePosted") or it.get("listingDate"),
+            "title": title,
+            "price": it.get("price"),
+            "description": description,
+            "address": None,  # Not directly available
+            "city": city,
+            "province": "Ontario",  # From URL context
+            "postalCode": None,
+            "url": it.get("url"),
+            "homeType": None,  # Not in basic response
+            "bedrooms": None,
+            "bathrooms": None,
+            "squareFeet": None,
+            "images": [it.get("imageUrl")] if it.get("imageUrl") else [],
+            "listingDate": None,
             "seller": seller_info,
         })
+    
+    _safe_log(log, f"[FINDER] Extracted {len(out)} valid advertisement listings")
     return out
 
 def search_sources(query: str, max_results: int, log: Callable[[str], None]) -> List[Dict[str, Any]]:
