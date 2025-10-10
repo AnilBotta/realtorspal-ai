@@ -653,7 +653,7 @@ def _run_job(job_id: str, start_url: str, max_pages: int):
 def trigger_leadgen(req: RunRequest, background: BackgroundTasks):
     job_id = str(uuid.uuid4())
     JOBS[job_id] = {"status": "queued", "log": [], "result": None}
-    background.add_task(_run_job, job_id, req.query)
+    background.add_task(_run_job, job_id, req.startUrl, req.maxPages)
     return {"job_id": job_id, "status": "queued"}
 
 @app.get("/status/{job_id}")
