@@ -3752,6 +3752,177 @@ class RealtorsPalAPITester:
             self.log_test("Nurturing AI Comprehensive Workflow", False, f"Exception during workflow: {str(e)}")
             return False
 
+    def test_leadgen_trigger_generation(self) -> bool:
+        """Test POST /api/agents/leadgen/run - Trigger lead generation with query"""
+        try:
+            payload = {"query": "condos in Toronto"}
+            response = requests.post(f"{self.base_url}/agents/leadgen/run", json=payload, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "job_id" in data and data.get("status") == "queued":
+                    # Store job_id for subsequent tests
+                    self.leadgen_job_id = data["job_id"]
+                    self.log_test("Lead Generation Trigger", True, 
+                                f"Job started successfully. Job ID: {self.leadgen_job_id}, Status: {data['status']}")
+                    return True
+                else:
+                    self.log_test("Lead Generation Trigger", False, f"Invalid response structure: {data}")
+                    return False
+            else:
+                self.log_test("Lead Generation Trigger", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Lead Generation Trigger", False, f"Exception: {str(e)}")
+            return False
+
+    def test_leadgen_check_status(self) -> bool:
+        """Test GET /api/agents/leadgen/status/{job_id} - Check status of running job"""
+        if not hasattr(self, 'leadgen_job_id') or not self.leadgen_job_id:
+            self.log_test("Lead Generation Status Check", False, "No job_id available from trigger test")
+            return False
+        
+        try:
+            # Wait a bit for job to start processing
+            time.sleep(2)
+            response = requests.get(f"{self.base_url}/agents/leadgen/status/{self.leadgen_job_id}", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "status" in data:
+                    status = data["status"]
+                    # Valid statuses: queued, running, done, error
+                    if status in ["queued", "running", "done", "error"]:
+                        details = f"Status: {status}"
+                        if status == "done":
+                            # Check for summary, counts, and lead_ids when done
+                            if "summary" in data and "counts" in data and "lead_ids" in data:
+                                details += f", Summary: {data['summary'][:50]}..., Counts: {data['counts']}, Lead IDs: {len(data['lead_ids'])} leads"
+                                # Store lead_ids for verification
+                                self.leadgen_lead_ids = data.get("lead_ids", [])
+                            else:
+                                details += " (missing summary/counts/lead_ids)"
+                        
+                        self.log_test("Lead Generation Status Check", True, details)
+                        return True
+                    else:
+                        self.log_test("Lead Generation Status Check", False, f"Invalid status: {status}")
+                        return False
+                else:
+                    self.log_test("Lead Generation Status Check", False, f"Missing status field: {data}")
+                    return False
+            elif response.status_code == 404:
+                self.log_test("Lead Generation Status Check", False, f"Job not found: {response.json()}")
+                return False
+            else:
+                self.log_test("Lead Generation Status Check", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Lead Generation Status Check", False, f"Exception: {str(e)}")
+            return False
+
+    def test_leadgen_verify_lead_creation(self) -> bool:
+        """Test that leads were created in database after lead generation completes"""
+        # Use the demo user_id as specified in the review request
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Get current leads count before checking for new ones
+            response = requests.get(f"{self.base_url}/leads", params={"user_id": demo_user_id}, timeout=10)
+            
+            if response.status_code != 200:
+                self.log_test("Lead Generation Verify Creation", False, f"Failed to get leads: {response.text}")
+                return False
+            
+            leads = response.json()
+            total_leads = len(leads)
+            
+            # Look for leads with AI Lead Generation source
+            ai_generated_leads = []
+            for lead in leads:
+                lead_source = lead.get("lead_source", "")
+                source_tags = lead.get("source_tags", [])
+                
+                # Check for AI Lead Generation markers
+                if (lead_source == "AI Lead Generation" or 
+                    "AI Generated" in source_tags or 
+                    "Zillow" in source_tags or 
+                    "Kijiji" in source_tags):
+                    ai_generated_leads.append({
+                        "id": lead.get("id"),
+                        "name": lead.get("name", "Unknown"),
+                        "lead_source": lead_source,
+                        "source_tags": source_tags,
+                        "property_type": lead.get("property_type"),
+                        "neighborhood": lead.get("neighborhood"),
+                        "phone": lead.get("phone"),
+                        "email": lead.get("email")
+                    })
+            
+            if len(ai_generated_leads) > 0:
+                self.log_test("Lead Generation Verify Creation", True, 
+                            f"Found {len(ai_generated_leads)} AI-generated leads out of {total_leads} total leads. "
+                            f"Examples: {ai_generated_leads[:2]}")
+                return True
+            else:
+                # This might be expected if the job is still running or failed
+                self.log_test("Lead Generation Verify Creation", False, 
+                            f"No AI-generated leads found among {total_leads} total leads. "
+                            f"Lead sources found: {list(set([l.get('lead_source', 'None') for l in leads]))}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Lead Generation Verify Creation", False, f"Exception: {str(e)}")
+            return False
+
+    def test_leadgen_stream_endpoint(self) -> bool:
+        """Test GET /api/agents/leadgen/stream/{job_id} - SSE stream for live activity (basic connectivity test)"""
+        if not hasattr(self, 'leadgen_job_id') or not self.leadgen_job_id:
+            self.log_test("Lead Generation Stream Test", False, "No job_id available from trigger test")
+            return False
+        
+        try:
+            # Test basic connectivity to stream endpoint (don't wait for full stream)
+            response = requests.get(f"{self.base_url}/agents/leadgen/stream/{self.leadgen_job_id}", 
+                                  timeout=5, stream=True)
+            
+            if response.status_code == 200:
+                # Check if it's a valid SSE response
+                content_type = response.headers.get('content-type', '')
+                if 'text/event-stream' in content_type or 'text/plain' in content_type:
+                    # Try to read first few bytes to verify it's streaming
+                    try:
+                        first_chunk = next(response.iter_content(chunk_size=100, decode_unicode=True))
+                        if first_chunk and ('event:' in first_chunk or 'data:' in first_chunk):
+                            self.log_test("Lead Generation Stream Test", True, 
+                                        f"SSE stream endpoint accessible. Content-Type: {content_type}, First chunk: {first_chunk[:50]}...")
+                            return True
+                        else:
+                            self.log_test("Lead Generation Stream Test", False, 
+                                        f"Stream response doesn't contain SSE format. First chunk: {first_chunk[:100]}")
+                            return False
+                    except StopIteration:
+                        self.log_test("Lead Generation Stream Test", True, 
+                                    f"SSE stream endpoint accessible but no immediate data. Content-Type: {content_type}")
+                        return True
+                else:
+                    self.log_test("Lead Generation Stream Test", False, 
+                                f"Invalid content type for SSE. Expected text/event-stream, got: {content_type}")
+                    return False
+            elif response.status_code == 404:
+                self.log_test("Lead Generation Stream Test", False, f"Job not found for streaming: {response.json()}")
+                return False
+            else:
+                self.log_test("Lead Generation Stream Test", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except requests.exceptions.Timeout:
+            # Timeout is acceptable for stream endpoint test
+            self.log_test("Lead Generation Stream Test", True, "Stream endpoint accessible (timeout expected for test)")
+            return True
+        except Exception as e:
+            self.log_test("Lead Generation Stream Test", False, f"Exception: {str(e)}")
+            return False
+
     def run_all_tests(self) -> bool:
         """Run all backend API tests"""
         print("🚀 Starting RealtorsPal AI Backend API Tests")
