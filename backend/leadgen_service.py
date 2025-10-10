@@ -237,13 +237,21 @@ def search_zillow(query: str, max_results: int, log: Callable[[str], None]) -> L
 
 def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) -> List[Dict[str, Any]]:
     """
-    service-paradis~kijiji-crawler – using URL-based input format
+    service-paradis~kijiji-crawler – using URL-based input format matching Apify actor requirements
     """
-    # Kijiji crawler expects Start URLs and maximum pages
+    # Kijiji crawler expects this exact format based on Apify documentation
     actor_input = {
-        "startUrls": [{"url": start_url}],
-        "maxPagesPerQuery": max_pages,
-        "proxyConfiguration": {"useApifyProxy": False}
+        "debug": False,
+        "fetchAdsFromSearch": False,
+        "maxPagesToSearch": max_pages,
+        "proxy": {
+            "useApifyProxy": False
+        },
+        "startUrls": [
+            {
+                "url": start_url
+            }
+        ]
     }
     _safe_log(log, f"[FINDER] Searching Kijiji with URL: {start_url}, max pages: {max_pages}")
     items = _apify_run_actor(APIFY_KIJIJI_ACTOR, actor_input, log)
