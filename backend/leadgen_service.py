@@ -540,14 +540,8 @@ def run_pipeline(query: str, log: Callable[[str], None]) -> Dict[str, Any]:
 # FastAPI service + SSE
 # =========================
 
+# Create sub-application for mounting (no CORS middleware needed - main app handles it)
 app = FastAPI(title="RealtorPal LeadGen Agent")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # tighten in production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 class RunRequest(BaseModel):
     query: str
