@@ -573,10 +573,10 @@ def leadgen_status(job_id: str):
     if not job:
         return JSONResponse({"error": "job not found"}, status_code=404)
     res = {"status": job["status"]}
-    if job["result"]:
-        res["summary"] = job["result"]["summary"]
-        res["counts"] = job["result"]["counts"]
-        res["lead_ids"] = [p["lead_id"] for p in job["result"]["posted"]]
+    if job.get("result"):
+        res["summary"] = job["result"].get("summary", "Processing...")
+        res["counts"] = job["result"].get("counts", {})
+        res["lead_ids"] = [p["lead_id"] for p in job["result"].get("posted", [])]
     return res
 
 @app.get("/stream/{job_id}")
