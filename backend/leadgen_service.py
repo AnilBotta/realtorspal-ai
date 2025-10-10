@@ -62,7 +62,7 @@ APIFY_TOKEN = os.getenv(
 )
 APIFY_BASE = "https://api.apify.com/v2"
 APIFY_ZILLOW_ACTOR = os.getenv("APIFY_ZILLOW_ACTOR", "epctex~zillow-scraper")
-APIFY_KIJIJI_ACTOR = os.getenv("APIFY_KIJIJI_ACTOR", "epctex~kijiji-scraper")
+APIFY_KIJIJI_ACTOR = os.getenv("APIFY_KIJIJI_ACTOR", "service-paradis~kijiji-crawler")
 
 # Canadian postal code regex
 POSTAL_RE = re.compile(r"[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d")
