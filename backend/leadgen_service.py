@@ -48,7 +48,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 
-from crewai import Agent, Task, Crew, LLM
+from crewai import Agent, Task, Crew
 
 
 # =========================
