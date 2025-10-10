@@ -576,6 +576,56 @@ def summarize_counts(counts: Dict[str, int]) -> str:
     # CrewOutput has a .raw property that contains the string output
     return str(result.raw) if hasattr(result, 'raw') else str(result)
 
+def parse_listing_description(title: str, description: str, log: Callable[[str], None]) -> Dict[str, Any]:
+    """Use CrewAI to parse property listing description and extract structured data."""
+    try:
+        t = Task(
+            description=(
+                f"Parse this real estate listing and extract ALL available information:\n\n"
+                f"Title: {title}\n"
+                f"Description: {description}\n\n"
+                f"Extract and return a JSON object with these fields (use null for missing data):\n"
+                f"- seller_name: Name or identifier of the seller\n"
+                f"- seller_phone: Phone number if mentioned\n"
+                f"- seller_email: Email if mentioned\n"
+                f"- property_type: Type of property (house, condo, land, etc.)\n"
+                f"- bedrooms: Number of bedrooms\n"
+                f"- bathrooms: Number of bathrooms\n"
+                f"- square_feet: Property size in square feet\n"
+                f"- lot_size: Lot size if mentioned\n"
+                f"- city: City name\n"
+                f"- address: Full address if available\n"
+                f"- price_details: Any additional price information\n"
+                f"- features: List of key features mentioned\n"
+                f"Return ONLY valid JSON, no additional text."
+            ),
+            agent=description_parser,
+            expected_output="Valid JSON object with extracted data"
+        )
+        result = Crew(agents=[description_parser], tasks=[t]).kickoff()
+        result_text = str(result.raw) if hasattr(result, 'raw') else str(result)
+        
+        # Try to parse JSON from the result
+        try:
+            # Remove markdown code blocks if present
+            result_text = result_text.strip()
+            if result_text.startswith("```"):
+                result_text = result_text.split("```")[1]
+                if result_text.startswith("json"):
+                    result_text = result_text[4:]
+            result_text = result_text.strip()
+            
+            parsed_data = json.loads(result_text)
+            _safe_log(log, f"[PARSER] Successfully parsed description")
+            return parsed_data
+        except json.JSONDecodeError as e:
+            _safe_log(log, f"[PARSER] JSON parse error, using fallback: {e}")
+            return {}
+            
+    except Exception as e:
+        _safe_log(log, f"[PARSER] Error parsing description: {e}")
+        return {}
+
 def run_pipeline(start_url: str, max_pages: int, log: Callable[[str], None]) -> Dict[str, Any]:
     # Plan (CrewAI)
     plan = orchestrate_plan(f"Scrape Kijiji URL: {start_url} for {max_pages} pages")
