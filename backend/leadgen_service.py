@@ -470,7 +470,9 @@ def orchestrate_plan(query: str) -> str:
         agent=orchestrator,
         expected_output="A 4–6 bullet plan."
     )
-    return Crew(agents=[orchestrator], tasks=[t]).kickoff()
+    result = Crew(agents=[orchestrator], tasks=[t]).kickoff()
+    # CrewOutput has a .raw property that contains the string output
+    return str(result.raw) if hasattr(result, 'raw') else str(result)
 
 def summarize_counts(counts: Dict[str, int]) -> str:
     """CrewAI-generated bullet summary."""
@@ -482,7 +484,9 @@ def summarize_counts(counts: Dict[str, int]) -> str:
         agent=summarizer,
         expected_output="A short bullet list."
     )
-    return Crew(agents=[summarizer], tasks=[t]).kickoff()
+    result = Crew(agents=[summarizer], tasks=[t]).kickoff()
+    # CrewOutput has a .raw property that contains the string output
+    return str(result.raw) if hasattr(result, 'raw') else str(result)
 
 def run_pipeline(query: str, log: Callable[[str], None]) -> Dict[str, Any]:
     # Plan (CrewAI)
