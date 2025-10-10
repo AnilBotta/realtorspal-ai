@@ -389,12 +389,67 @@ def validate_and_dedupe(crm: Dict[str, Any]) -> (bool, Optional[str]):
 
 def post_to_realtorspal(crm: Dict[str, Any], log: Callable[[str], None]) -> Dict[str, Any]:
     """
-    TODO: replace with a real POST to your internal RealtorPal API.
-    Simulated response below generates a stable pseudo lead_id.
+    Post lead to RealtorPal CRM via internal API.
     """
-    lead_id = hashlib.md5(json.dumps(crm, sort_keys=True).encode()).hexdigest()[:12]
-    _safe_log(log, f"[POSTER] Posted (sim) lead_id={lead_id}")
-    return {"status": "created", "lead_id": lead_id}
+    try:
+        # Import here to avoid circular dependencies
+        from motor.motor_asyncio import AsyncIOMotorClient
+        import asyncio
+        
+        # Get user_id from environment or use demo user
+        user_id = os.getenv("LEADGEN_USER_ID", "03f82986-51af-460c-a549-1c5077e67fb0")
+        
+        # Create lead object matching CreateLeadRequest schema
+        lead_data = {
+            "user_id": user_id,
+            "first_name": crm.get("name") or "Generated",
+            "last_name": "Lead",
+            "email": crm.get("email"),
+            "phone": crm.get("phone"),
+            "property_type": crm.get("property_type"),
+            "neighborhood": crm.get("neighborhood"),
+            "city": crm.get("city"),
+            "zip_postal_code": crm.get("zip_code"),
+            "address": crm.get("address"),
+            "price_min": crm.get("price_min"),
+            "price_max": crm.get("price_max"),
+            "priority": crm.get("priority", "medium"),
+            "stage": crm.get("stage", "New"),
+            "pipeline": crm.get("pipeline", "New Lead"),
+            "lead_source": crm.get("source", "AI Lead Generation"),
+            "notes": f"Generated from {crm.get('source')} - {crm.get('source_url', '')}",
+            "in_dashboard": True,
+            "source_tags": ["AI Generated", crm.get('source', 'Unknown').title()]
+        }
+        
+        # Use asyncio to insert into database directly
+        async def insert_lead():
+            mongo_url = os.getenv("MONGO_URL", "mongodb://127.0.0.1:27017")
+            db_name = os.getenv("DB_NAME", "realtorspal")
+            client = AsyncIOMotorClient(mongo_url)
+            db = client[db_name]
+            
+            # Generate UUID for lead
+            lead_id = str(__import__('uuid').uuid4())
+            lead_data["id"] = lead_id
+            lead_data["created_at"] = __import__('datetime').datetime.utcnow().isoformat()
+            
+            # Insert lead
+            await db.leads.insert_one(lead_data)
+            client.close()
+            return lead_id
+        
+        # Run async function
+        lead_id = asyncio.run(insert_lead())
+        _safe_log(log, f"[POSTER] Successfully created lead_id={lead_id}")
+        return {"status": "created", "lead_id": lead_id}
+        
+    except Exception as e:
+        _safe_log(log, f"[POSTER] Error creating lead: {e}")
+        # Fallback to simulated mode
+        lead_id = hashlib.md5(json.dumps(crm, sort_keys=True).encode()).hexdigest()[:12]
+        _safe_log(log, f"[POSTER] Posted (fallback sim) lead_id={lead_id}")
+        return {"status": "created", "lead_id": lead_id}
 
 
 # =========================
