@@ -4,9 +4,8 @@ import { triggerLeadGeneration, getLeadGenStatus, getLeadGenStream } from '../ap
 
 const LeadGenModal = ({ isOpen, onClose, user }) => {
   const [searchParams, setSearchParams] = useState({
-    place: '',
-    propertyType: '',
-    maxResults: 10
+    startUrl: '',
+    maxPages: 2
   });
   const [jobId, setJobId] = useState(null);
   const [status, setStatus] = useState('idle'); // idle, running, done, error
