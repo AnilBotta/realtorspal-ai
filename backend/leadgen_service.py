@@ -266,7 +266,7 @@ def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) ->
     items = _apify_run_actor(APIFY_KIJIJI_ACTOR, actor_input, log)
     
     out = []
-    for it in items:
+    for idx, it in enumerate(items):
         # Skip non-advertisement items
         if it.get("dataType") != "advertisement":
             continue
@@ -276,44 +276,47 @@ def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) ->
         title = it.get("title", "")
         description = it.get("description", "")
         
-        # Try to extract city/location from title or description
+        _safe_log(log, f"[PARSER] Processing listing {idx+1}: {title[:50]}...")
+        
+        # Use CrewAI to parse the description and extract structured data
+        parsed_data = parse_listing_description(title, description, log)
+        
+        # Try to extract city/location from title or parsed data
         location_parts = title.split(",") if "," in title else []
-        city = location_parts[-1].strip() if len(location_parts) > 1 else None
+        city = parsed_data.get("city") or (location_parts[-1].strip() if len(location_parts) > 1 else None)
         
-        # Extract seller name from title if it contains "SELLER" or "seller"
-        seller_name = None
-        if "SELLER" in title.upper():
-            # Try to extract seller identifier from title
-            seller_name = "Property Seller"
-        
+        # Seller information from parsed data or fallback
         seller_info = {
-            "name": seller_name or "Kijiji Seller",
-            "phone": None,  # Not in API response
-            "email": None,  # Not in API response
+            "name": parsed_data.get("seller_name") or "Kijiji Seller",
+            "phone": parsed_data.get("seller_phone"),
+            "email": parsed_data.get("seller_email"),
             "location": city
         }
         
-        # Extract property details
+        # Extract property details combining Apify and parsed data
         out.append({
             "source": "kijiji",
             "title": title,
-            "price": it.get("price"),
+            "price": it.get("price") or parsed_data.get("price_details"),
             "description": description,
-            "address": None,  # Not directly available
+            "address": parsed_data.get("address"),
             "city": city,
             "province": "Ontario",  # From URL context
             "postalCode": None,
             "url": it.get("url"),
-            "homeType": None,  # Not in basic response
-            "bedrooms": None,
-            "bathrooms": None,
-            "squareFeet": None,
+            "homeType": parsed_data.get("property_type"),
+            "bedrooms": parsed_data.get("bedrooms"),
+            "bathrooms": parsed_data.get("bathrooms"),
+            "squareFeet": parsed_data.get("square_feet"),
+            "lotSize": parsed_data.get("lot_size"),
+            "features": parsed_data.get("features", []),
             "images": [it.get("imageUrl")] if it.get("imageUrl") else [],
             "listingDate": None,
             "seller": seller_info,
+            "parsed_data": parsed_data,  # Keep full parsed data for reference
         })
     
-    _safe_log(log, f"[FINDER] Extracted {len(out)} valid advertisement listings")
+    _safe_log(log, f"[FINDER] Extracted and parsed {len(out)} valid advertisement listings")
     return out
 
 def search_sources(query: str, max_results: int, log: Callable[[str], None]) -> List[Dict[str, Any]]:
