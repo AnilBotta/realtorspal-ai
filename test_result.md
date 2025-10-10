@@ -2258,6 +2258,117 @@ The AI Agent button functionality is **FULLY FUNCTIONAL** and meets all specifie
 
 **No critical issues found.** The AI Agent button functionality is production-ready and fully implements all requested features for the RealtorsPal AI CRM system.
 
+---
+
+## Lead Generation AI System Testing
+
+### Test Summary
+Comprehensive testing of the Lead Generation AI system has been completed. The system is **PARTIALLY FUNCTIONAL** with API endpoints working correctly but has **CRITICAL ISSUES** with the CrewAI/Apify integration that prevent successful lead generation.
+
+### Tests Performed
+
+#### 1. Lead Generation Trigger ✅
+- **Status**: PASSED
+- **Description**: Tested POST `/api/agents/leadgen/run` - Trigger lead generation with query
+- **Test Case**: Triggered lead generation with query "condos in Toronto"
+- **Result**: Successfully started job with ID `023e847d-a003-4065-8923-cb02d4bd649f` and status "queued"
+- **Verification**: API endpoint working correctly, returns proper job_id and status structure
+- **User ID**: "03f82986-51af-460c-a549-1c5077e67fb0" (demo user as requested)
+
+#### 2. Lead Generation Status Check ✅
+- **Status**: PASSED
+- **Description**: Tested GET `/api/agents/leadgen/status/{job_id}` - Check status of running job
+- **Test Case**: Checked status of job `023e847d-a003-4065-8923-cb02d4bd649f`
+- **Result**: Successfully retrieved job status showing "running" then "error"
+- **Verification**: Status endpoint working correctly, returns valid status values (queued, running, done, error)
+
+#### 3. Lead Generation Stream Endpoint ✅
+- **Status**: PASSED
+- **Description**: Tested GET `/api/agents/leadgen/stream/{job_id}` - SSE stream for live activity
+- **Test Case**: Connected to SSE stream for job monitoring
+- **Result**: Successfully connected to stream with proper Content-Type: text/event-stream
+- **Verification**: SSE stream endpoint accessible and returns proper event format
+- **Stream Data**: First chunk shows "event: status\ndata: running\n\nevent: status\ndata: r..."
+
+#### 4. Lead Generation Verify Creation ❌
+- **Status**: FAILED
+- **Description**: Tested that leads were created in database after lead generation completes
+- **Test Case**: Checked for leads with "AI Lead Generation" source or "AI Generated"/"Zillow"/"Kijiji" tags
+- **Result**: No AI-generated leads found in database
+- **Issue**: Job failed during execution, preventing lead creation
+- **Lead Sources Found**: Various existing sources but no AI-generated leads
+
+### API Endpoint Verification
+- **Trigger Lead Generation**: `POST /api/agents/leadgen/run` ✅ Working
+- **Check Status**: `GET /api/agents/leadgen/status/{job_id}` ✅ Working
+- **Stream Activity**: `GET /api/agents/leadgen/stream/{job_id}` ✅ Working
+- **Authentication**: Demo user session working correctly with user ID "03f82986-51af-460c-a549-1c5077e67fb0"
+
+### Critical Issues Identified
+
+#### Issue 1: CrewAI/Apify Integration Failure ❌
+- **Problem**: Lead generation jobs fail during execution phase
+- **Evidence**: Job status changes from "queued" → "running" → "error"
+- **Root Cause**: Backend logs show KeyError: 'summary' in leadgen_service.py line 577
+- **Impact**: HIGH - No leads are actually generated despite API endpoints working
+- **Error Details**: 
+  ```
+  res["summary"] = job["result"]["summary"]
+                   ~~~~~~~~~~~~~^^^^^^^^^^^
+  KeyError: 'summary'
+  ```
+
+#### Issue 2: Error Handling in Status Endpoint ❌
+- **Problem**: Status endpoint crashes when job result doesn't contain expected fields
+- **Evidence**: KeyError when accessing job["result"]["summary"]
+- **Root Cause**: Incomplete error handling in leadgen_service.py status endpoint
+- **Impact**: MEDIUM - Status endpoint fails instead of gracefully handling errors
+- **Fix Required**: Add proper error handling for missing result fields
+
+### Backend System Health
+- **Health Check**: ✅ PASSED
+- **Authentication**: ✅ PASSED (Demo session with user ID "03f82986-51af-460c-a549-1c5077e67fb0")
+- **API Routing**: ✅ PASSED (All leadgen endpoints responding correctly)
+- **Database Connectivity**: ✅ PASSED (MongoDB operations successful)
+- **CrewAI Integration**: ❌ FAILED (Job execution failing)
+
+### Key Findings
+1. **API Endpoints Working**: All three required endpoints are functional and return proper responses
+2. **Job Management**: Job creation, status tracking, and streaming infrastructure working
+3. **SSE Streaming**: Real-time activity streaming working correctly
+4. **Integration Failure**: CrewAI/Apify integration failing during job execution
+5. **Error Handling**: Status endpoint needs better error handling for failed jobs
+6. **Lead Creation**: No leads created due to job execution failures
+
+## Overall Assessment - Lead Generation AI System
+The Lead Generation AI system is **75% FUNCTIONAL** with core API infrastructure working but **CRITICAL INTEGRATION ISSUES** preventing actual lead generation:
+
+### ✅ **Working Features (3/4)**:
+- **API Endpoints**: All three endpoints (run, status, stream) responding correctly
+- **Job Management**: Job creation and tracking infrastructure working
+- **SSE Streaming**: Real-time activity streaming functional
+- **Authentication**: Demo user integration working correctly
+
+### ❌ **Critical Issues (1/4)**:
+- **Lead Generation Execution**: CrewAI/Apify integration failing during job execution
+- **Error Handling**: Status endpoint crashes on failed jobs instead of graceful error handling
+
+### **Production Readiness**: ❌ **NOT READY**
+The Lead Generation AI system is not production-ready due to:
+1. **Job Execution Failures**: CrewAI/Apify integration not working
+2. **No Lead Creation**: System fails to generate actual leads
+3. **Error Handling**: Status endpoint crashes on failed jobs
+4. **Integration Issues**: Likely missing API keys or configuration for Apify actors
+
+### **Recommended Actions**:
+1. **IMMEDIATE**: Fix CrewAI/Apify integration - check API keys and actor configuration
+2. **HIGH PRIORITY**: Add proper error handling in leadgen_service.py status endpoint
+3. **HIGH PRIORITY**: Debug job execution failure - check Apify actor availability and configuration
+4. **MEDIUM PRIORITY**: Add comprehensive logging for job execution debugging
+5. **LOW PRIORITY**: Add retry mechanism for failed jobs
+
+**The API infrastructure is solid, but the core lead generation functionality must be fixed before production deployment.**
+
 ## WebRTC Interface Initialization Issue Investigation
 
 ### Test Summary
