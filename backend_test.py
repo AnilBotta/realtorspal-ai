@@ -34,6 +34,8 @@ class RealtorsPalAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.created_lead_id: Optional[str] = None
+        self.leadgen_job_id: Optional[str] = None
+        self.leadgen_lead_ids: Optional[list] = None
 
     def log_test(self, name: str, success: bool, details: str = ""):
         """Log test result"""
