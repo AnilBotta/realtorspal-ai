@@ -553,10 +553,17 @@ const AIAgents = ({ user }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">AI Agents</h1>
-          <p className="text-sm text-gray-500">Monitor and configure your AI workforce</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI Agents</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Monitor and configure your AI workforce</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowLeadGenModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Search size={16} />
+            Run Lead Gen
+          </button>
           <button
             onClick={isStreaming ? stopLiveStream : startLiveStream}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors ${
