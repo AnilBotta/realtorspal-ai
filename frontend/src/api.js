@@ -90,4 +90,9 @@ export const executeAgent = (agent_code, lead_id, user_id, context = null) => {
   return api.post(`/orchestrator/execute-agent`, null, { params });
 };
 
+// Lead Generation AI APIs
+export const triggerLeadGeneration = (query) => api.post(`/agents/leadgen/run`, { query });
+export const getLeadGenStatus = (job_id) => api.get(`/agents/leadgen/status/${job_id}`);
+export const getLeadGenStream = (job_id) => `${API_BASE}/agents/leadgen/stream/${job_id}`;
+
 export default api;
