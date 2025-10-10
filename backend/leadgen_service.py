@@ -427,27 +427,36 @@ def post_to_realtorspal(crm: Dict[str, Any], log: Callable[[str], None]) -> Dict
         # Get user_id from environment or use demo user
         user_id = os.getenv("LEADGEN_USER_ID", "03f82986-51af-460c-a549-1c5077e67fb0")
         
+        # Extract seller information if available
+        seller = crm.get("seller", {})
+        seller_name_parts = (seller.get("name") or "").split(" ", 1)
+        first_name = seller_name_parts[0] if len(seller_name_parts) > 0 else "Unknown"
+        last_name = seller_name_parts[1] if len(seller_name_parts) > 1 else "Seller"
+        
         # Create lead object matching CreateLeadRequest schema
         lead_data = {
             "user_id": user_id,
-            "first_name": crm.get("name") or "Generated",
-            "last_name": "Lead",
-            "email": crm.get("email"),
-            "phone": crm.get("phone"),
-            "property_type": crm.get("property_type"),
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": seller.get("email") or crm.get("email"),
+            "phone": seller.get("phone") or crm.get("phone"),
+            "property_type": crm.get("property_type") or crm.get("homeType"),
             "neighborhood": crm.get("neighborhood"),
             "city": crm.get("city"),
-            "zip_postal_code": crm.get("zip_code"),
+            "zip_postal_code": crm.get("zip_code") or crm.get("postalCode"),
             "address": crm.get("address"),
             "price_min": crm.get("price_min"),
-            "price_max": crm.get("price_max"),
+            "price_max": crm.get("price_max") or crm.get("price"),
+            "bedrooms": crm.get("bedrooms"),
+            "bathrooms": crm.get("bathrooms"),
             "priority": crm.get("priority", "medium"),
             "stage": crm.get("stage", "New"),
             "pipeline": crm.get("pipeline", "New Lead"),
-            "lead_source": crm.get("source", "AI Lead Generation"),
-            "notes": f"Generated from {crm.get('source')} - {crm.get('source_url', '')}",
+            "lead_source": "AI Lead Generation",
+            "lead_type": "Seller" if seller.get("name") else "Property Lead",
+            "notes": f"Kijiji Listing: {crm.get('title', 'No title')}\nDescription: {crm.get('description', 'N/A')[:200]}\nListing URL: {crm.get('source_url', '')}",
             "in_dashboard": True,
-            "source_tags": ["AI Generated", crm.get('source', 'Unknown').title()]
+            "source_tags": ["AI Generated", "Kijiji", crm.get('homeType', 'Real Estate').title()]
         }
         
         # Use asyncio to insert into database directly
