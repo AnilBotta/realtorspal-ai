@@ -579,10 +579,68 @@ class RunRequest(BaseModel):
     startUrl: str
     maxPages: int = 2
 
-def _run_job(job_id: str, query: str):
+def _run_job(job_id: str, start_url: str, max_pages: int):
+    """Background job to orchestrate the lead generation run."""
+    def log_fn(msg: str):
+        """Append msg to job's log."""
+        JOBS[job_id]["log"].append(msg)
+
     try:
         JOBS[job_id]["status"] = "running"
-        result = run_pipeline(query, log=lambda m: _log(job_id, m))
+        _safe_log(log_fn, f"[START] Job {job_id} started with URL='{start_url}', pages={max_pages}")
+
+        # Orchestrator plan
+        plan = orchestrate_plan(f"Scrape Kijiji URL: {start_url} for {max_pages} pages")
+        _safe_log(log_fn, f"[ORCHESTRATOR] Plan => {plan}")
+
+        # Find - only use Kijiji with URL
+        kijiji_results = search_kijiji(start_url, max_pages, log_fn)
+        _safe_log(log_fn, f"[FINDER] Found {len(kijiji_results)} Kijiji listings")
+
+        # Extract (public fields)
+        extracted = [extract_listing_minimal(ls, log=log_fn) for ls in kijiji_results]
+
+        # Map to CRM
+        mapped = [map_to_crm_fields(e) for e in extracted]
+        _safe_log(log_fn, f"[MAPPER] Mapped {len(mapped)} leads to CRM fields")
+
+        # Validate + Dedupe
+        unique = []
+        duplicates = []
+        for crm in mapped:
+            ok, dupkey = validate_and_dedupe(crm)
+            if ok:
+                unique.append(crm)
+            else:
+                duplicates.append(crm)
+        _safe_log(log_fn, f"[ENRICHER] Unique={len(unique)} Duplicates={len(duplicates)}")
+
+        # Post
+        posted = []
+        for crm in unique:
+            res = post_to_realtorspal(crm, log=log_fn)
+            posted.append({"lead_id": res["lead_id"], "payload": crm})
+
+        counts = {
+            "found": len(kijiji_results),
+            "extracted": len(extracted),
+            "mapped": len(mapped),
+            "unique": len(unique),
+            "duplicates": len(duplicates),
+            "posted": len(posted),
+        }
+
+        # Summary (CrewAI)
+        summary = summarize_counts(counts)
+
+        result = {
+            "plan": plan,
+            "summary": summary,
+            "counts": counts,
+            "posted": posted,
+            "duplicates": duplicates,
+        }
+
         JOBS[job_id]["result"] = result
         JOBS[job_id]["status"] = "done"
         _log(job_id, "[SUMMARY] " + result["summary"].replace("\n", " "))
