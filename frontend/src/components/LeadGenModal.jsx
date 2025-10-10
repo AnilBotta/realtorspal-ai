@@ -213,7 +213,7 @@ const LeadGenModal = ({ isOpen, onClose, user }) => {
                     {status === 'queued' ? 'Queued' : 'Running'}
                   </h3>
                   <p className="text-sm text-blue-700 dark:text-blue-400">
-                    Searching {searchParams.place} for {searchParams.propertyType || 'properties'}...
+                    Scraping Kijiji listings ({searchParams.maxPages} pages)...
                   </p>
                 </div>
               </div>
