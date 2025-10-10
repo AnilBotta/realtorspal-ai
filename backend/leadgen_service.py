@@ -347,11 +347,14 @@ def map_to_crm_fields(extracted: Dict[str, Any]) -> Dict[str, Any]:
     else:
         price_num = None
 
+    # Get seller information
+    seller = extracted.get("seller", {})
+    
     crm = {
-        # Basic Information
-        "name": None,
-        "email": None,
-        "phone": None,
+        # Basic Information - from seller
+        "name": seller.get("name"),
+        "email": seller.get("email"),
+        "phone": seller.get("phone"),
         "work_phone": None,
         "home_phone": None,
 
@@ -362,16 +365,16 @@ def map_to_crm_fields(extracted: Dict[str, Any]) -> Dict[str, Any]:
         "priority": "medium",
         "lead_rating": None,
 
-        # Property Information
-        "property_type": extracted.get("property_type"),
+        # Property Information - from listing
+        "property_type": extracted.get("property_type") or extracted.get("homeType"),
         "buying_in": None,
-        "house_to_sell": None,
-        "owns_rents": None,
+        "house_to_sell": extracted.get("address"),
+        "owns_rents": "owns",  # Assuming seller owns the property
 
-        # Address
-        "address": addr_parts["address"],
-        "city": addr_parts["city"],
-        "zip_code": addr_parts["zip_code"],
+        # Address - from listing
+        "address": addr_parts["address"] or extracted.get("address"),
+        "city": addr_parts["city"] or extracted.get("city"),
+        "zip_code": addr_parts["zip_code"] or extracted.get("postalCode"),
         "neighborhood": addr_parts["neighborhood"],
 
         # Spouse Information
@@ -389,12 +392,25 @@ def map_to_crm_fields(extracted: Dict[str, Any]) -> Dict[str, Any]:
         "budget": None,
         "price_min": price_num,
         "price_max": price_num,
+        "price": price_num,
+
+        # Property Details - additional fields
+        "bedrooms": extracted.get("bedrooms"),
+        "bathrooms": extracted.get("bathrooms"),
+        "squareFeet": extracted.get("squareFeet"),
+        "title": extracted.get("title"),
+        "listingDate": extracted.get("listingDate"),
+        "images": extracted.get("images", []),
+        "homeType": extracted.get("homeType"),
+        "postalCode": extracted.get("postalCode"),
 
         # Description
-        "description": extracted.get("title") or "Property lead",
+        "description": extracted.get("description") or extracted.get("title") or "Property lead",
+        
         # Metadata
         "source": extracted.get("source"),
         "source_url": extracted.get("url"),
+        "seller": seller,  # Keep seller info for later processing
     }
     return crm
 
