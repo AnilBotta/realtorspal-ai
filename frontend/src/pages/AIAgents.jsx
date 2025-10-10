@@ -558,13 +558,6 @@ const AIAgents = ({ user }) => {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowLeadGenModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Search size={16} />
-            Run Lead Gen
-          </button>
-          <button
             onClick={isStreaming ? stopLiveStream : startLiveStream}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors ${
               isStreaming ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
