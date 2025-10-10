@@ -237,9 +237,14 @@ def search_zillow(query: str, max_results: int, log: Callable[[str], None]) -> L
 
 def search_kijiji(query: str, max_results: int, log: Callable[[str], None]) -> List[Dict[str, Any]]:
     """
-    epctex~kijiji-scraper – adjust input if you customize actor.
+    service-paradis~kijiji-crawler – using correct actor input format
     """
-    actor_input = {"search": query, "maxItems": max_results}
+    # Kijiji crawler expects different input format - might need location and category
+    actor_input = {
+        "search": query,
+        "maxItems": max_results,
+        "category": "real-estate"  # Default to real estate category
+    }
     items = _apify_run_actor(APIFY_KIJIJI_ACTOR, actor_input, log)
     out = []
     for it in items:
@@ -248,7 +253,7 @@ def search_kijiji(query: str, max_results: int, log: Callable[[str], None]) -> L
             "title": it.get("title") or it.get("heading") or "Listing",
             "price": it.get("price"),
             "address": it.get("location") or it.get("address"),
-            "url": it.get("url"),
+            "url": it.get("url") or it.get("link"),
             "homeType": None,
         })
     return out
