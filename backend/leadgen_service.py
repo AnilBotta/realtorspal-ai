@@ -110,12 +110,13 @@ def _dedupe_key(lead: Dict[str, Any]) -> str:
 # CrewAI LLM + Agents
 # =========================
 
-def _get_llm_config() -> str:
-    """Return the LLM model string. CrewAI will use OpenAI API key from environment."""
+def _get_llm():
+    """Return the LLM object for CrewAI agents."""
+    from langchain_openai import ChatOpenAI
     key = os.getenv("OPENAI_API_KEY")
     if not key:
         raise ValueError("OPENAI_API_KEY not set in environment.")
-    return "gpt-4o-mini"
+    return ChatOpenAI(model="gpt-4o-mini", api_key=key, temperature=0.7)
 
 # Master Orchestrator (plans the run and explains steps)
 orchestrator = Agent(
