@@ -162,44 +162,36 @@ const LeadGenModal = ({ isOpen, onClose, user }) => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <MapPin size={16} className="inline mr-2" />
-                  Search Location *
+                  Kijiji Start URL *
                 </label>
                 <input
                   type="text"
-                  value={searchParams.place}
-                  onChange={(e) => setSearchParams(prev => ({ ...prev, place: e.target.value }))}
-                  placeholder="e.g., Toronto, GTA, Downtown Toronto"
+                  value={searchParams.startUrl}
+                  onChange={(e) => setSearchParams(prev => ({ ...prev, startUrl: e.target.value }))}
+                  placeholder="https://www.kijiji.ca/b-real-estate/ontario/..."
                   className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Paste the Kijiji search URL or seller page URL
+                </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <Home size={16} className="inline mr-2" />
-                  Property Type (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={searchParams.propertyType}
-                  onChange={(e) => setSearchParams(prev => ({ ...prev, propertyType: e.target.value }))}
-                  placeholder="e.g., detached houses, condos, townhouses"
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  <DollarSign size={16} className="inline mr-2" />
-                  Max Results
+                  Maximum Pages to Crawl
                 </label>
                 <input
                   type="number"
-                  value={searchParams.maxResults}
-                  onChange={(e) => setSearchParams(prev => ({ ...prev, maxResults: parseInt(e.target.value) || 10 }))}
+                  value={searchParams.maxPages}
+                  onChange={(e) => setSearchParams(prev => ({ ...prev, maxPages: parseInt(e.target.value) || 2 }))}
                   min="1"
-                  max="50"
+                  max="10"
                   className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Number of search result pages to scrape (recommended: 2-5)
+                </p>
               </div>
 
               <button
