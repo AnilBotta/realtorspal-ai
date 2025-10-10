@@ -4766,3 +4766,13 @@ async def analyze_reply(user_id: str, lead_id: str, reply_text: str):
             content={"status": "error", "message": str(e)}
         )
     return await customer_service.process_task(task_data, user_id)
+
+# Mount Lead Generation Service
+from leadgen_service import app as leadgen_app
+
+# Mount the leadgen service routes
+app.mount("/api/agents/leadgen", leadgen_app)
+
+# =========================
+# Local run helper
+# =========================
