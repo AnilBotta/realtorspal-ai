@@ -4765,7 +4765,6 @@ async def analyze_reply(user_id: str, lead_id: str, reply_text: str):
             status_code=500,
             content={"status": "error", "message": str(e)}
         )
-    return await customer_service.process_task(task_data, user_id)
 
 # Mount Lead Generation Service
 from leadgen_service import app as leadgen_app
