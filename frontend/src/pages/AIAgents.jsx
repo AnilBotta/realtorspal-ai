@@ -579,8 +579,8 @@ const AIAgents = ({ user }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Agent Overview */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white rounded-xl border p-4">
-            <h3 className="text-lg font-semibold mb-4">Agent Status</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-4">
+            <h3 className="text-lg font-semibold mb-4 dark:text-white">Agent Status</h3>
             <div className="space-y-3">
               {agents.map(agent => (
                 <div 
