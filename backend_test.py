@@ -4331,10 +4331,12 @@ class RealtorsPalAPITester:
             self.test_email_send_setup_required,
             self.test_smtp_settings_integration,
             
-            # Lead Generation AI functionality tests
-            self.test_leadgen_trigger_generation,
-            self.test_leadgen_check_status,
+            # Lead Generation AI functionality tests (Updated for Review Request)
+            self.test_leadgen_simple_job,
+            self.test_leadgen_status_polling,
             self.test_leadgen_verify_lead_creation,
+            self.test_leadgen_crewai_output_handling,
+            self.test_leadgen_error_handling,
             self.test_leadgen_stream_endpoint,
             
             # Lead Generation AI Webhook System Tests
