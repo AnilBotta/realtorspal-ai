@@ -555,7 +555,8 @@ def run_pipeline(query: str, log: Callable[[str], None]) -> Dict[str, Any]:
 app = FastAPI(title="RealtorPal LeadGen Agent")
 
 class RunRequest(BaseModel):
-    query: str
+    startUrl: str
+    maxPages: int = 2
 
 def _run_job(job_id: str, query: str):
     try:
