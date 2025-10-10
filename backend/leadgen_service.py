@@ -434,10 +434,12 @@ def map_to_crm_fields(extracted: Dict[str, Any]) -> Dict[str, Any]:
         "price_max": price_num,
         "price": price_num,
 
-        # Property Details - additional fields
+        # Property Details - additional fields from parsed data
         "bedrooms": extracted.get("bedrooms"),
         "bathrooms": extracted.get("bathrooms"),
         "squareFeet": extracted.get("squareFeet"),
+        "lotSize": extracted.get("lotSize"),
+        "features": extracted.get("features", []),
         "title": extracted.get("title"),
         "listingDate": extracted.get("listingDate"),
         "images": extracted.get("images", []),
