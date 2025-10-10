@@ -235,26 +235,47 @@ def search_zillow(query: str, max_results: int, log: Callable[[str], None]) -> L
         })
     return out
 
-def search_kijiji(query: str, max_results: int, log: Callable[[str], None]) -> List[Dict[str, Any]]:
+def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) -> List[Dict[str, Any]]:
     """
-    service-paradis~kijiji-crawler – using correct actor input format
+    service-paradis~kijiji-crawler – using URL-based input format
     """
-    # Kijiji crawler expects different input format - might need location and category
+    # Kijiji crawler expects Start URLs and maximum pages
     actor_input = {
-        "search": query,
-        "maxItems": max_results,
-        "category": "real-estate"  # Default to real estate category
+        "startUrls": [{"url": start_url}],
+        "maxPagesPerQuery": max_pages,
+        "proxyConfiguration": {"useApifyProxy": False}
     }
+    _safe_log(log, f"[FINDER] Searching Kijiji with URL: {start_url}, max pages: {max_pages}")
     items = _apify_run_actor(APIFY_KIJIJI_ACTOR, actor_input, log)
+    
     out = []
     for it in items:
+        # Extract seller/buyer information from Kijiji response
+        seller_info = {
+            "name": it.get("sellerName") or it.get("posterName") or "Unknown Seller",
+            "phone": it.get("sellerPhone") or it.get("phoneNumber"),
+            "email": it.get("sellerEmail") or it.get("email"),
+            "location": it.get("sellerLocation") or it.get("location")
+        }
+        
+        # Extract property details
         out.append({
             "source": "kijiji",
             "title": it.get("title") or it.get("heading") or "Listing",
-            "price": it.get("price"),
-            "address": it.get("location") or it.get("address"),
+            "price": it.get("price") or it.get("priceAmount"),
+            "address": it.get("address") or it.get("location"),
+            "city": it.get("city"),
+            "province": it.get("province") or it.get("state"),
+            "postalCode": it.get("postalCode") or it.get("zipCode"),
             "url": it.get("url") or it.get("link"),
-            "homeType": None,
+            "homeType": it.get("propertyType") or it.get("category"),
+            "description": it.get("description"),
+            "bedrooms": it.get("bedrooms") or it.get("beds"),
+            "bathrooms": it.get("bathrooms") or it.get("baths"),
+            "squareFeet": it.get("squareFeet") or it.get("size"),
+            "images": it.get("images", []),
+            "listingDate": it.get("datePosted") or it.get("listingDate"),
+            "seller": seller_info,
         })
     return out
 
