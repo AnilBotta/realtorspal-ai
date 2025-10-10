@@ -123,7 +123,7 @@ orchestrator = Agent(
     goal="Plan and oversee the RealtorPal lead generation workflow from sources → CRM.",
     backstory="A senior AI operator that explains the plan, logs milestones, and ensures quality.",
     tools=[],
-    llm=_openai_llm()
+    llm=_get_llm_config()
 )
 
 # Finder (discovers candidate listings)
@@ -132,7 +132,7 @@ finder = Agent(
     goal="Find permitted Zillow & Kijiji listings for the given search query.",
     backstory="Understands marketplace constraints, robots.txt, and ToS.",
     tools=[],
-    llm=_openai_llm()
+    llm=_get_llm_config()
 )
 
 # Extractor (pulls minimal details safely)
@@ -141,7 +141,7 @@ extractor = Agent(
     goal="Extract publicly allowed property details from each listing.",
     backstory="Avoids scraping private/forbidden data; uses only public fields.",
     tools=[],
-    llm=_openai_llm()
+    llm=_get_llm_config()
 )
 
 # Mapper (maps to RealtorPal CRM fields)
@@ -150,7 +150,7 @@ mapper_agent = Agent(
     goal="Map listing fields into RealtorPal CRM headers exactly as required by the UI.",
     backstory="Knows RealtorPal schema, fills unknowns as None or sensible defaults.",
     tools=[],
-    llm=_openai_llm()
+    llm=_get_llm_config()
 )
 
 # Enricher/Deduper
@@ -159,7 +159,7 @@ enricher = Agent(
     goal="Normalize, validate, and deduplicate leads before posting.",
     backstory="Keeps the database clean and consistent.",
     tools=[],
-    llm=_openai_llm()
+    llm=_get_llm_config()
 )
 
 # Poster
@@ -168,7 +168,7 @@ poster = Agent(
     goal="Post mapped leads to RealtorPal API.",
     backstory="Handles auth and payload formats.",
     tools=[],
-    llm=_openai_llm()
+    llm=_get_llm_config()
 )
 
 # Summarizer
@@ -177,7 +177,7 @@ summarizer = Agent(
     goal="Summarize results clearly for the user.",
     backstory="Writes crisp summaries in bullet points.",
     tools=[],
-    llm=_openai_llm()
+    llm=_get_llm_config()
 )
 
 
