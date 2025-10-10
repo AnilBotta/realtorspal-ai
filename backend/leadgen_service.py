@@ -558,14 +558,14 @@ def _run_job(job_id: str, query: str):
         JOBS[job_id]["result"] = {"error": str(e)}
         _log(job_id, f"[ERROR] {e}")
 
-@app.post("/api/agents/leadgen/run")
+@app.post("/run")
 def trigger_leadgen(req: RunRequest, background: BackgroundTasks):
     job_id = str(uuid.uuid4())
     JOBS[job_id] = {"status": "queued", "log": [], "result": None}
     background.add_task(_run_job, job_id, req.query)
     return {"job_id": job_id, "status": "queued"}
 
-@app.get("/api/agents/leadgen/status/{job_id}")
+@app.get("/status/{job_id}")
 def leadgen_status(job_id: str):
     job = JOBS.get(job_id)
     if not job:
@@ -577,7 +577,7 @@ def leadgen_status(job_id: str):
         res["lead_ids"] = [p["lead_id"] for p in job["result"]["posted"]]
     return res
 
-@app.get("/api/agents/leadgen/stream/{job_id}")
+@app.get("/stream/{job_id}")
 async def leadgen_stream(job_id: str):
     if job_id not in JOBS:
         return JSONResponse({"error": "job not found"}, status_code=404)
