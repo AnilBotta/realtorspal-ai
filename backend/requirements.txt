@@ -14,6 +14,7 @@ certifi==2025.8.3
 cffi==1.17.1
 charset-normalizer==3.4.3
 click==8.2.1
+crewai==0.51.0
 cryptography==45.0.6
 distro==1.9.0
 dnspython==2.7.0
