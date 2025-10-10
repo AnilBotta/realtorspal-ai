@@ -11,7 +11,7 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
   const [callResult, setCallResult] = useState(null);
   const [callMode, setCallMode] = useState('simple'); // 'bridge', 'webrtc', 'simple'
 
-  const baseUrl = process.env.REACT_APP_BACKEND_URL || 'https://aicrm-realtor.preview.emergentagent.com';
+  const baseUrl = process.env.REACT_APP_BACKEND_URL || 'https://ai-agent-crm-1.preview.emergentagent.com';
 
   // Reset state when modal opens/closes
   React.useEffect(() => {

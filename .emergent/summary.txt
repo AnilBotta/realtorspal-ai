@@ -1,91 +1,111 @@
 <analysis>
-The previous AI engineer effectively transitioned the RealtorsPal AI CRM from an MVP to a robust application. The work stream began by stabilizing core lead management, then expanded significantly to include advanced Twilio WebRTC communication and comprehensive SMTP email with LLM drafting capabilities. Following this, a major lead management overhaul was undertaken, introducing an expanded lead model, a tabbed , and dynamic custom fields. The provided trajectory details the subsequent refinement of pipeline options, which evolved into a complete redesign of the Leads page to a professional table format. Interspersed with these feature additions were critical bug fixes for form input, data synchronization, and layout issues. The final significant implementation was a sophisticated global search and filter template system, dramatically enhancing lead targeting and application-wide search functionality, bringing the CRM to a highly advanced and production-ready state.
+The trajectory details the evolution of the RealtorsPal AI CRM, starting with bug fixes and UI enhancements. Initially, a filter template bug and global search issues were resolved, followed by a major upgrade to a multi-agent AI system with LLM integration and comprehensive configuration options. User requests then drove the implementation of an AI Agent button on lead cards in both Kanban and table views, enabling per-lead AI orchestration. This led to the development of a Lead Generation AI with a webhook-first auto-upsert flow and a Nurturing AI featuring an interactive Activity Board. Deployment readiness was assessed and critical hardcoding issues were resolved. The most recent significant work involved implementing dark/light mode and mobile responsiveness, which included fixing mobile menu rendering issues. The current task is integrating a new CrewAI-based lead generation service.
 </analysis>
 
 <product_requirements>
-The RealtorsPal AI CRM, built with React, FastAPI, and MongoDB, aims to be a live, responsive application with a modern emerald theme. It provides core lead management through a Kanban dashboard with KPIs, drag-and-drop functionality, and comprehensive lead creation/import. It also features LLM integration for various tasks.
-
-Recent feature enhancements include:
-1.  **Twilio Communication**: Full WebRTC calling, SMS, and WhatsApp integration from lead cards, configured via Twilio API keys and custom TwiML.
-2.  **SMTP Email Integration**: SMTP configuration in settings, an Email modal for LLM-powered drafting (using Emergent LLM Key) with templates/tones, and email history.
-3.  **Comprehensive Lead Management**:
-    *   Expanded  model with over 37 new fields.
-    *   Tabbed  for creating/editing leads.
-    *    for dynamic custom field creation.
-    *   Redesigned  page from card/list to a professional table format.
-    *   Specific pipeline dropdown options (15 statuses, including 'Not set', 'New Lead').
-    *   Real-time Kanban card movement based on pipeline status changes.
-    *   Call and SMS buttons in the Leads table to open existing communication modals.
-    *   Selective Add to Dashboard / Remove from Dashboard functionality for leads.
-4.  **Advanced Filtering**: Global search functionality across the entire application and a comprehensive filter template system with quick action buttons, smart primary filters (Temperature, Budget, Timeline), and an expandable advanced panel.
+The RealtorsPal AI CRM manages real estate leads using AI. Key features include advanced lead filtering with saved templates and a quick-access dropdown, and a comprehensive global search for leads, app pages, features, and settings. A sophisticated multi-agent AI system (Crew AI-style) comprising six specialized agents (Orchestrator, Lead Generator, Nurturer, Customer Service, Onboarding, Call Log Analyst) automates CRM tasks. Each agent is configurable with LLM models (OpenAI, Anthropic, Google), prompts, and rules. The AI Agents page provides live monitoring and a Human-in-the-Loop (HITL) approval queue for critical actions, though Lead Generation AI operates automatically via webhooks. Users can manually trigger AI agents on specific leads, choosing an agent or deferring to the Orchestrator. The system now features a Nurturing AI with an Activity Board, displaying AI-suggested tasks (calls, SMS, emails) and message drafts, accessible via a dedicated button above the lead pipeline on the dashboard. The application is also expected to be mobile-responsive and support dark/light mode.
 </product_requirements>
 
 <key_technical_concepts>
--   **Backend**: FastAPI, Motor (MongoDB), Pydantic, Twilio SDK, ,  (LLM).
--   **Frontend**: React, Tailwind CSS, Zustand, Axios, React Router, dnd-kit.
--   **Database**: MongoDB (UUIDs for IDs).
--   **Deployment**: Kubernetes, Supervisor,  ingress routing, CORS.
--   **Communication**: Twilio WebRTC, SMTP email.
--   **AI**: LLM integration for email drafting via .
+- **Backend**: FastAPI, Motor (async MongoDB driver), Pydantic for data validation, CrewAI for multi-agent orchestration, Apify for data scraping.
+- **Frontend**: React, Tailwind CSS (with ), Zustand for state management.
+- **AI/LLM Integration**:  library for multi-provider LLM support (OpenAI, Anthropic, Google).
+- **Communication**: Axios for API calls, Custom Browser Events for cross-component state sync, Server-Sent Events (SSE) for real-time logs.
+- **Persistence**: MongoDB, .
+- **UI/UX**: Modals, Kanban board, custom theming (dark/light mode).
 </key_technical_concepts>
 
 <code_architecture>
-The application employs a full-stack architecture with a FastAPI backend and a React frontend.
+The application utilizes a monorepo structure with a React frontend and a FastAPI backend.
 
--   ****:
-    -   **Importance**: Core FastAPI application.
-    -   **Changes**: Updated  model's pipeline field validation to include 15 new statuses.
--   ****:
-    -   **Importance**: Main dashboard with the Kanban board.
-    -   **Changes**:
-        -   Implemented pipeline-to-stage mapping for 5 Kanban columns and adjusted lead grouping logic.
-        -   Added a dropdown to  for direct pipeline status changes with real-time card movement.
-        -   Fixed layout issues, added communication counts (Calls, Emails, SMS) to lead cards.
-        -   Modified lead fetching to only display leads explicitly marked .
--   ****:
-    -   **Importance**: Displays the comprehensive list of all leads.
-    -   **Changes**:
-        -   Rewritten from card/list view to a professional, scrollable table format.
-        -   Removed auto-refresh, added a manual Refresh button.
-        -   Added Add to Dashboard / Remove from Dashboard buttons and Call, SMS buttons (integrated with ) to each lead row.
-        -   Fixed  bug by adding type checking in .
-        -   Integrated advanced filtering UI and  component.
--   ****:
-    -   **Importance**: Centralized form for creating and editing leads.
-    -   **Changes**:
-        -   Fixed a critical form input focus issue by refactoring  component and using .
-        -   Ensured new leads are created with  by default.
-        -   Enhanced Create Lead button styling and validation feedback.
--   ** (NEW)**:
-    -   **Importance**: Provides a global search modal for app-wide data search.
-    -   **Changes**: New component created and integrated into  header.
--   ** (NEW)**:
-    -   **Importance**: Enables users to create, save, and apply complex filter combinations.
-    -   **Changes**: New component created with tabs for template creation/saving, a comprehensive list of 59 filter options, and integrated into  and .
--   ****:
-    -   **Importance**: Top-level layout and navigation.
-    -   **Changes**: Integrated  and  buttons into the main navigation.
+
+
+-   ****
+    -   **Importance**: Central FastAPI backend, managing all API endpoints, business logic, and database interactions.
+    -   **Changes**: Heavily modified to include comprehensive AI Agent system endpoints, Lead Generation AI webhook (), Nurturing AI logic and endpoints, new MongoDB collections and logging functions (, , ), and deployment-related fixes (environment variable for DB name). It orchestrates agent tasks and handles activity streams.
+
+-   ** (NEW)**
+    -   **Importance**: A new, dedicated service for CrewAI-based lead generation, including Apify integrations for Zillow and Kijiji.
+    -   **Changes**: Created from user-provided code, it defines CrewAI agents (Orchestrator, Finder, Extractor, Mapper, Enricher, Poster, Summarizer), Apify integration functions, and FastAPI endpoints for triggering lead generation (), checking status (), and streaming live activity ().
+
+-   ****
+    -   **Importance**: Centralizes all frontend API calls.
+    -   **Changes**: Extended with new functions for AI Agent interaction (orchestration, activities), Nurturing AI, and Lead Generation AI APIs. Deployment fixes removed hardcoded localhost URLs.
+
+-   ****
+    -   **Importance**: Main entry point for the React application.
+    -   **Changes**: Wrapped the application with  for dark/light mode support.
+
+-   ** (NEW)**
+    -   **Importance**: Allows users to select an AI agent or Main Orchestrator to act on a specific lead.
+    -   **Changes**: Created to handle agent selection and trigger API calls for orchestration.
+
+-   ** (NEW)**
+    -   **Importance**: Displays AI-generated nurturing activities for leads.
+    -   **Changes**: Created to render the activity plan. Its content was later moved into .
+
+-   ** (NEW)**
+    -   **Importance**: Modal wrapper for the Activity Board, allowing it to be opened on demand.
+    -   **Changes**: Created from the content of , it now includes lead names, message draft viewing, activity selection, removal functionality, and placeholder buttons for Add new group, Person, and Group by.
+
+-   ****
+    -   **Importance**: Application-wide search.
+    -   **Changes**: Deployment fixes removed hardcoded localhost URLs.
+
+-   ****
+    -   **Importance**: Defines the main application layout (header, navigation, content area).
+    -   **Changes**: Integrated , implemented mobile responsiveness with a hamburger menu, and fixed mobile menu visibility/rendering issues using appropriate CSS and state management.
+
+-   ****
+    -   **Importance**: Provides quick access to saved filter templates.
+    -   **Changes**: Deployment fixes removed hardcoded localhost URLs.
+
+-   ** (NEW)**
+    -   **Importance**: UI component for switching between light and dark modes.
+    -   **Changes**: Created to manage theme state and render the toggle button.
+
+-   ** (NEW)**
+    -   **Importance**: Provides a React Context for managing and consuming the application's theme (dark/light mode).
+    -   **Changes**: Created to encapsulate theme state and toggle logic.
+
+-   ****
+    -   **Importance**: Displays leads in a table view.
+    -   **Changes**: Added AI Agent button to each lead row, integrated  with state and handlers.
+
+-   ****
+    -   **Importance**: Central hub for monitoring and configuring AI Agents.
+    -   **Changes**: Updated to display the new Live Activity Stream based on , , and .
+
+-   ****
+    -   **Importance**: Main dashboard with Kanban board for leads.
+    -   **Changes**: Added AI Agent button to  components, integrated . The  was initially integrated directly but later replaced by an Activities button that opens . Updated various components and styling for dark/light mode and mobile responsiveness.
+
+-   ****
+    -   **Importance**: Configuration for Tailwind CSS.
+    -   **Changes**: Enabled  to support theme switching based on a class on the HTML element.
 </code_architecture>
 
 <pending_tasks>
--   Full LLM integration (streaming responses for chat, prompts editor UX, model/provider binding to backend settings).
--   UI polish: Replace basic CSS with Tailwind + shadcn components, pixel-perfect fidelity, and Headless UI for components.
--   Advanced analytics: More dashboards (Agent Performance, Lead Sources, Trends), sparklines, time-range filters.
--   Real Google Drive/Sheets integration for lead import.
--   Re-enable user login with features like remember me and Switch User.
+- Full LLM integration for features beyond the AI Agent system (e.g., streaming responses for chat, prompts editor UX).
+- UI polish: Replace basic CSS with Tailwind + shadcn components for pixel-perfect fidelity.
+- Advanced analytics dashboards.
+- Real Google Drive/Sheets integration for lead import.
+- Re-enable user login with features like remember me and Switch User.
+- Implement Add new group, Person, and Group by functionalities in the Activity Board Modal.
+- Mount and fully integrate the new  into  and the frontend.
 </pending_tasks>
 
 <current_work>
-Immediately before this summary request, the AI engineer successfully implemented a comprehensive global search and advanced filter template system. This involved:
-1.  **Global Search ()**: A new component providing an app-wide search modal, integrated into the main navigation header (). It allows searching across all lead data.
-2.  **Filter Templates ()**: A new component allowing users to build, save, and apply custom filter combinations. It features:
-    *   A modal with Create Template and Saved Templates tabs.
-    *   A left panel listing 59 detailed filter options across categories like Communication, Pipeline, Lead Details, etc.
-    *   A right panel (Template Builder) for naming and managing selected filters.
-    *   Action buttons: Clear Filters, Apply and Preview, Save as New.
-This system was integrated into the main navigation header and the Leads page, replacing basic filters. Testing confirmed all components (search box, quick action buttons, smart filters, advanced panel, filter templates modal, and its sub-features) are working as requested, providing a sophisticated filtering and search experience.
+The most recent work involved integrating a new, comprehensive CrewAI-based lead generation service. This service, provided as a complete  file, includes multiple specialized AI agents (Orchestrator, Finder, Extractor, Mapper, Enricher, Poster, Summarizer) and Apify integrations for Zillow and Kijiji data scraping. It also defines FastAPI endpoints for running lead generation jobs (), checking their status (), and streaming live activity ().
+
+The AI engineer has successfully:
+1.  Created the  file in the backend with the exact code provided by the user.
+2.  Attempted to update  to include , , , , and , which initially led to dependency conflicts.
+3.  Successfully installed  separately after the conflict.
+
+The next immediate step is to mount the newly created  into the main  by adding its FastAPI routes. Following this, the frontend will need to be updated to trigger this lead generation service from the AI Agents page or other relevant sections, implementing the popup with SSE for live activity and polling for status updates as specified in the user's instructions.
 </current_work>
 
 <optional_next_step>
-The global search and filter template system is fully implemented and working. I will ask the user for any further refinements or enhancements.
+Mount the  by adding its routes to the main .
 </optional_next_step>
