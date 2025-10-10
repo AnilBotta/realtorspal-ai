@@ -145,6 +145,15 @@ extractor = Agent(
     llm=_get_llm()
 )
 
+# Description Parser (parses listing descriptions to extract structured data)
+description_parser = Agent(
+    role="Description Parser",
+    goal="Parse property listing descriptions to extract structured seller and property information.",
+    backstory="Expert at understanding real estate listings and extracting contact details, property features, and seller information from natural language text.",
+    tools=[],
+    llm=_get_llm()
+)
+
 # Mapper (maps to RealtorPal CRM fields)
 mapper_agent = Agent(
     role="CRM Field Mapper",
