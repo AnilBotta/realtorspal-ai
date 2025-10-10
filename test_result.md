@@ -1,4 +1,29 @@
 # Backend Testing Results
+# Lead Generation AI Integration Testing
+
+## Integration Status: UPDATED ✅
+
+### Changes Made (Latest):
+1. **Fixed CrewAI CrewOutput Error**: Updated orchestrate_plan() and summarize_counts() to handle CrewOutput objects properly using .raw attribute
+2. **Updated Apify Actor**: Changed Kijiji actor from "epctex~kijiji-scraper" to correct "service-paradis~kijiji-crawler"
+3. **UI Update**: Moved "Run Lead Gen" button from header to Lead Generator AI card in Agent Status section
+4. **Backend Integration**: Mounted leadgen_service routes to main server.py at /api/agents/leadgen/*
+5. **API Keys**: Added OpenAI and Apify API keys to backend/.env
+
+### Endpoints Available:
+- POST /api/agents/leadgen/run - Triggers lead generation job
+- GET /api/agents/leadgen/status/{job_id} - Returns job status and results
+- GET /api/agents/leadgen/stream/{job_id} - SSE stream for live activity
+
+### Frontend:
+- LeadGenModal component created with search parameters form
+- SSE streaming for real-time activity logs
+- Status polling with progress tracking
+- "Run Lead Gen" button now in Lead Generator AI card (Agent Status section)
+
+---
+
+
 
 ## Comprehensive Lead Model Testing
 
