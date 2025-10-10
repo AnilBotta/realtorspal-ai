@@ -897,6 +897,15 @@ const AIAgents = ({ user }) => {
           onClose={() => setShowConfigModal(false)}
         />
       )}
+
+      {/* Lead Generation Modal */}
+      {showLeadGenModal && (
+        <LeadGenModal 
+          isOpen={showLeadGenModal}
+          onClose={() => setShowLeadGenModal(false)}
+          user={user}
+        />
+      )}
     </div>
   );
 };
