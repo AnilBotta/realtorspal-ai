@@ -514,14 +514,14 @@ def summarize_counts(counts: Dict[str, int]) -> str:
     # CrewOutput has a .raw property that contains the string output
     return str(result.raw) if hasattr(result, 'raw') else str(result)
 
-def run_pipeline(query: str, log: Callable[[str], None]) -> Dict[str, Any]:
+def run_pipeline(start_url: str, max_pages: int, log: Callable[[str], None]) -> Dict[str, Any]:
     # Plan (CrewAI)
-    plan = orchestrate_plan(query)
+    plan = orchestrate_plan(f"Scrape Kijiji URL: {start_url} for {max_pages} pages")
     _safe_log(log, "[ORCHESTRATOR] Plan -> " + plan.replace("\n", " "))
 
-    # 1) Find
-    listings = search_sources(query, max_results=10, log=log)
-    _safe_log(log, f"[FINDER] Found {len(listings)} listings")
+    # 1) Find - only use Kijiji with URL
+    listings = search_kijiji(start_url, max_pages, log)
+    _safe_log(log, f"[FINDER] Found {len(listings)} Kijiji listings")
 
     # 2) Extract (public fields)
     extracted = [extract_listing_minimal(ls, log=log) for ls in listings]
