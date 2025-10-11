@@ -247,7 +247,7 @@ def _apify_run_actor(actor_id: str, actor_input: Dict[str, Any], log: Callable[[
     
     url = f"{APIFY_BASE}/acts/{actor_id}/runs?token={apify_token}"
     _safe_log(log, f"[APIFY] Starting actor {actor_id}...")
-    _safe_log(log, f"[APIFY] Token available: {bool(APIFY_TOKEN)}, length: {len(APIFY_TOKEN) if APIFY_TOKEN else 0}")
+    _safe_log(log, f"[APIFY] Token available: {bool(apify_token)}, length: {len(apify_token) if apify_token else 0}")
     
     try:
         # Start the actor run
