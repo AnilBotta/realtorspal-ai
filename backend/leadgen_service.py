@@ -621,6 +621,7 @@ def post_to_realtorspal(crm: Dict[str, Any], log: Callable[[str], None]) -> Dict
 
 def orchestrate_plan(query: str) -> str:
     """Ask the Master Orchestrator to produce a short plan for the run."""
+    orchestrator = get_agent("orchestrator")
     t = Task(
         description=(
             "Create a short 4–6 bullet plan for a lead generation run given the query.\n"
