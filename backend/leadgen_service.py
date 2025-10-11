@@ -146,9 +146,10 @@ def _dedupe_key(lead: Dict[str, Any]) -> str:
 def _get_llm():
     """Return the LLM object for CrewAI agents."""
     from langchain_openai import ChatOpenAI
-    key = os.getenv("OPENAI_API_KEY")
+    # Get key from database first, then fall back to environment
+    key = get_api_secret_sync("OPENAI_API_KEY")
     if not key:
-        raise ValueError("OPENAI_API_KEY not set in environment.")
+        raise ValueError("OPENAI_API_KEY not found in database or environment.")
     return ChatOpenAI(model="gpt-4o-mini", api_key=key, temperature=0.7)
 
 # Master Orchestrator (plans the run and explains steps)
