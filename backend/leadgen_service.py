@@ -47,6 +47,7 @@ from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from crewai import Agent, Task, Crew
 
