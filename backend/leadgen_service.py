@@ -274,7 +274,7 @@ def _apify_run_actor(actor_id: str, actor_input: Dict[str, Any], log: Callable[[
         time.sleep(poll_interval)
         
         # Check run status
-        r = requests.get(f"{APIFY_BASE}/actor-runs/{run_id}?token={APIFY_TOKEN}", timeout=30)
+        r = requests.get(f"{APIFY_BASE}/actor-runs/{run_id}?token={apify_token}", timeout=30)
         r.raise_for_status()
         rd = r.json().get("data", {})
         
