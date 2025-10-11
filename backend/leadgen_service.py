@@ -613,11 +613,17 @@ def map_to_crm_fields(extracted: Dict[str, Any]) -> Dict[str, Any]:
     # Get seller information
     seller = extracted.get("seller", {})
     
+    # Debug: Get phone from multiple possible sources
+    phone_number = (seller.get("phone") or 
+                   extracted.get("phone") or 
+                   extracted.get("phoneNumber") or 
+                   None)
+    
     crm = {
         # Basic Information - from seller
         "name": seller.get("name"),
         "email": seller.get("email"),
-        "phone": seller.get("phone"),
+        "phone": phone_number,
         "work_phone": None,
         "home_phone": None,
 
