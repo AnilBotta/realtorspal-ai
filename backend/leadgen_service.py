@@ -874,10 +874,20 @@ def _run_job(job_id: str, start_url: str, max_pages: int):
         _safe_log(log_fn, f"[ENRICHER] Unique={len(unique)} Duplicates={len(duplicates)}")
 
         # Post
+        _safe_log(log_fn, f"[POSTER] Starting to post {len(unique)} unique leads")
         posted = []
-        for crm in unique:
-            res = post_to_realtorspal(crm, log=log_fn)
-            posted.append({"lead_id": res["lead_id"], "payload": crm})
+        failed = []
+        for idx, crm in enumerate(unique):
+            try:
+                res = post_to_realtorspal(crm, log=log_fn)
+                posted.append({"lead_id": res["lead_id"], "payload": crm})
+                if (idx + 1) % 10 == 0:
+                    _safe_log(log_fn, f"[POSTER] Posted {idx + 1}/{len(unique)} leads")
+            except Exception as e:
+                _safe_log(log_fn, f"[POSTER] Error posting lead {idx+1}: {str(e)}")
+                failed.append({"error": str(e), "payload": crm})
+        
+        _safe_log(log_fn, f"[POSTER] Successfully posted {len(posted)} leads, failed: {len(failed)}")
 
         counts = {
             "found": len(kijiji_results),
