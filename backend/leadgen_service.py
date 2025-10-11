@@ -343,6 +343,92 @@ def search_zillow(query: str, max_results: int, log: Callable[[str], None]) -> L
         })
     return out
 
+def search_google_maps(search_terms: str, location: str, max_results: int, log: Callable[[str], None]) -> List[Dict[str, Any]]:
+    """
+    Google Maps Scraper (nwua9Gu5YrADL7ZDj) - extract real estate agents and sellers from Google Maps
+    """
+    # Get token fresh from cache or database
+    token = get_api_secret_sync("APIFY_TOKEN")
+    _safe_log(log, f"[FINDER] Token retrieved: {bool(token)}, length: {len(token) if token else 0}")
+    
+    # Google Maps Scraper input format
+    actor_input = {
+        "searchStringsArray": [search_terms],
+        "locationQuery": location,
+        "maxCrawledPlacesPerSearch": max_results,
+        "language": "en",
+        "includeWebResults": False,
+        "includeHistogram": False
+    }
+    
+    _safe_log(log, f"[FINDER] Searching Google Maps: '{search_terms}' in {location}, max results: {max_results}")
+    items = _apify_run_actor(APIFY_GOOGLE_MAPS_ACTOR, actor_input, log, token)
+    
+    _safe_log(log, f"[FINDER] Received {len(items)} items from Apify")
+    
+    # Debug: Log structure of first few items
+    if len(items) > 0:
+        _safe_log(log, f"[FINDER] First item keys: {list(items[0].keys())[:15]}")
+        sample = items[0]
+        _safe_log(log, f"[FINDER] Fields check - title: {bool(sample.get('title'))}, phone: {bool(sample.get('phoneNumber'))}, website: {bool(sample.get('website'))}")
+    
+    out = []
+    skipped = 0
+    
+    for idx, it in enumerate(items):
+        # Extract from Google Maps response
+        title = it.get("title") or it.get("name") or ""
+        phone = it.get("phoneNumber") or it.get("phone") or ""
+        website = it.get("website") or it.get("url") or ""
+        address = it.get("address") or ""
+        
+        # Skip items without title (need at least business name)
+        if not title:
+            skipped += 1
+            if idx < 3:
+                _safe_log(log, f"[FINDER] Skipping item {idx+1}: No title. Keys: {list(it.keys())[:5]}")
+            continue
+        
+        # Extract location details
+        city = it.get("city") or it.get("addressComponents", {}).get("city") or ""
+        state = it.get("state") or it.get("addressComponents", {}).get("state") or ""
+        postal_code = it.get("postalCode") or it.get("zip") or ""
+        
+        # Seller/Agent information
+        seller_info = {
+            "name": title,
+            "phone": phone,
+            "email": None,  # Google Maps doesn't provide email
+            "website": website,
+            "location": f"{city}, {state}" if city and state else location
+        }
+        
+        # Create listing object
+        listing = {
+            "source": "google_maps",
+            "title": title,
+            "phone": phone,
+            "website": website,
+            "description": it.get("categoryName") or it.get("businessStatus") or "",
+            "address": address,
+            "city": city,
+            "province": state,
+            "postalCode": postal_code,
+            "url": it.get("url") or website,
+            "rating": it.get("rating"),
+            "reviews_count": it.get("reviewsCount") or it.get("totalScore"),
+            "category": it.get("categoryName"),
+            "latitude": it.get("location", {}).get("lat") if isinstance(it.get("location"), dict) else None,
+            "longitude": it.get("location", {}).get("lng") if isinstance(it.get("location"), dict) else None,
+            "images": it.get("imageUrls", []),
+            "seller": seller_info,
+            "raw_data": it
+        }
+        out.append(listing)
+    
+    _safe_log(log, f"[FINDER] Extracted {len(out)} listings (skipped {skipped} without title)")
+    return out
+
 def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) -> List[Dict[str, Any]]:
     """
     service-paradis~kijiji-crawler – using URL-based input format matching Apify actor requirements
