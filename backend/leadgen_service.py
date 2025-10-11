@@ -87,7 +87,7 @@ def get_api_secret_sync(key_name: str) -> str:
     """Synchronous wrapper for getting API keys."""
     try:
         return asyncio.run(get_api_secret(key_name))
-    except:
+    except Exception:
         # If event loop is already running, return from cache or env
         return _API_KEYS_CACHE.get(key_name) or os.getenv(key_name, "")
 
