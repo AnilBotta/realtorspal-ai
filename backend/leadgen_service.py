@@ -592,6 +592,34 @@ def validate_and_dedupe(crm: Dict[str, Any]) -> (bool, Optional[str]):
     _seen_keys.add(key)
     return True, None
 
+async def save_partial_lead(lead_data: Dict[str, Any]) -> str:
+    """Save partial lead data to a separate collection when full lead creation fails."""
+    try:
+        from motor.motor_asyncio import AsyncIOMotorClient
+        import uuid
+        from datetime import datetime
+        
+        mongo_url = os.getenv("MONGO_URL", "mongodb://127.0.0.1:27017")
+        db_name = os.getenv("DB_NAME", "realtorspal")
+        client = AsyncIOMotorClient(mongo_url)
+        db = client[db_name]
+        
+        partial_lead = {
+            "id": str(uuid.uuid4()),
+            "raw_data": lead_data,
+            "source": "AI Lead Generation - Partial",
+            "created_at": datetime.utcnow().isoformat(),
+            "status": "needs_review",
+            "notes": "Partial lead data - needs manual review and completion"
+        }
+        
+        await db.partial_leads.insert_one(partial_lead)
+        client.close()
+        return partial_lead["id"]
+    except Exception as e:
+        print(f"Error saving partial lead: {e}")
+        return None
+
 def post_to_realtorspal(crm: Dict[str, Any], log: Callable[[str], None]) -> Dict[str, Any]:
     """
     Post lead to RealtorPal CRM via internal API.
