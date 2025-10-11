@@ -36,8 +36,36 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 app = FastAPI(title="RealtorsPal AI - FastAPI Backend")
 
 # Custom validation error handler
+from fastapi.encoders import jsonable_encoder
+
+def loc_to_dot_sep(loc: tuple) -> str:
+    """Convert location tuple to dot-separated string"""
+    path = ""
+    for i, x in enumerate(loc):
+        if isinstance(x, str):
+            if i > 0:
+                path += "."
+            path += x
+        elif isinstance(x, int):
+            path += f"[{x}]"
+        else:
+            path += f".{x}"
+    return path
+
+def convert_validation_errors(validation_error: RequestValidationError) -> list:
+    """Convert validation errors to serializable format"""
+    converted = []
+    for error in validation_error.errors():
+        # Build simplified error info excluding problematic fields like 'input'
+        converted.append({
+            "type": error.get("type", "validation_error"),
+            "loc": loc_to_dot_sep(error.get("loc", ())),
+            "msg": error.get("msg", "Validation failed"),
+        })
+    return converted
+
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
     print(f"Validation error on {request.method} {request.url}")
     print(f"Validation errors: {exc.errors()}")
     
@@ -48,12 +76,15 @@ async def validation_exception_handler(request, exc):
     except Exception as e:
         print(f"Could not read request body: {e}")
     
+    # Convert errors to serializable format
+    errors = convert_validation_errors(exc)
+    
     return JSONResponse(
         status_code=422,
-        content={
-            "detail": exc.errors(),
+        content=jsonable_encoder({
+            "detail": errors,
             "message": "Validation failed"
-        }
+        })
     )
 
 # CORS
