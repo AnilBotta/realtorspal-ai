@@ -298,18 +298,25 @@ def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) ->
     _safe_log(log, f"[FINDER] Searching Kijiji with URL: {start_url}, max pages: {max_pages}")
     items = _apify_run_actor(APIFY_KIJIJI_ACTOR, actor_input, log)
     
+    _safe_log(log, f"[FINDER] Received {len(items)} items from Apify")
+    
+    # Debug: Log structure of first item
+    if len(items) > 0:
+        _safe_log(log, f"[FINDER] First item structure: {list(items[0].keys())[:10]}")
+        _safe_log(log, f"[FINDER] Sample data - dataType: {items[0].get('dataType')}, title: {items[0].get('title', 'N/A')[:30]}")
+    
     out = []
     for idx, it in enumerate(items):
-        # Skip non-advertisement items
-        if it.get("dataType") != "advertisement":
-            continue
-            
         # Extract basic listing info from Apify Kijiji response
-        # The response has: dataType, title, url, price, description, imageUrl
         title = it.get("title", "")
         description = it.get("description", "")
         
-        _safe_log(log, f"[PARSER] Processing listing {idx+1}: {title[:50]}...")
+        # Skip items without title (likely not real listings)
+        if not title:
+            _safe_log(log, f"[FINDER] Skipping item {idx+1}: No title")
+            continue
+        
+        _safe_log(log, f"[PARSER] Processing listing {idx+1}/{len(items)}: {title[:50]}...")
         
         # Use CrewAI to parse the description and extract structured data
         parsed_data = parse_listing_description(title, description, log)
