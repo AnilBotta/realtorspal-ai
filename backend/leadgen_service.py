@@ -688,7 +688,18 @@ def post_to_realtorspal(crm: Dict[str, Any], log: Callable[[str], None]) -> Dict
         
     except Exception as e:
         _safe_log(log, f"[POSTER] Error creating lead: {e}")
-        # Fallback to simulated mode
+        _safe_log(log, f"[POSTER] Attempting to save as partial lead...")
+        
+        # Try to save as partial lead
+        try:
+            partial_id = asyncio.run(save_partial_lead(crm))
+            if partial_id:
+                _safe_log(log, f"[POSTER] Saved as partial lead: {partial_id}")
+                return {"status": "partial", "lead_id": partial_id}
+        except:
+            pass
+        
+        # Final fallback to simulated mode
         lead_id = hashlib.md5(json.dumps(crm, sort_keys=True).encode()).hexdigest()[:12]
         _safe_log(log, f"[POSTER] Posted (fallback sim) lead_id={lead_id}")
         return {"status": "created", "lead_id": lead_id}
