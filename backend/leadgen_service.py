@@ -971,9 +971,9 @@ def _run_job(job_id: str, search_terms: str, location: str, max_results: int):
         _safe_log(log_fn, f"[FINDER] Found {len(google_maps_results)} Google Maps listings")
 
         # Extract (public fields)
-        _safe_log(log_fn, f"[EXTRACTOR] Starting extraction for {len(kijiji_results)} listings")
+        _safe_log(log_fn, f"[EXTRACTOR] Starting extraction for {len(google_maps_results)} listings")
         extracted = []
-        for idx, ls in enumerate(kijiji_results):
+        for idx, ls in enumerate(google_maps_results):
             try:
                 ext = extract_listing_minimal(ls, log=log_fn)
                 extracted.append(ext)
