@@ -232,7 +232,7 @@ const LeadGenModal = ({ isOpen, onClose, user }) => {
                     {status === 'queued' ? 'Queued' : 'Running'}
                   </h3>
                   <p className="text-sm text-blue-700 dark:text-blue-400">
-                    Scraping Kijiji listings ({searchParams.maxPages} pages)...
+                    Searching Google Maps for "{searchParams.searchTerms}" in {searchParams.location}...
                   </p>
                 </div>
               </div>
