@@ -595,8 +595,8 @@ export default function Leads({ user }) {
   // Table component for lead row
   const LeadTableRow = ({ lead, index }) => (
     <tr className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
-      {/* INFO */}
-      <td className="px-3 py-3 border-b w-48">
+      {/* INFO - Sticky Column */}
+      <td className="sticky left-0 bg-inherit px-3 py-3 border-b border-r w-48 z-10">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
             {((lead.first_name || '').charAt(0) + (lead.last_name || '').charAt(0)).toUpperCase() || 'L'}
