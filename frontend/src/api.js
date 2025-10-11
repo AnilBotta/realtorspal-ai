@@ -43,6 +43,12 @@ export const updateLead = (lead_id, payload) => api.put(`/leads/${lead_id}`, pay
 export const deleteLead = (lead_id) => api.delete(`/leads/${lead_id}`);
 export const importLeads = (payload) => api.post(`/leads/import`, payload);
 
+// Partial Leads APIs
+export const getPartialLeads = () => api.get(`/partial-leads`);
+export const getPartialLead = (lead_id) => api.get(`/partial-leads/${lead_id}`);
+export const deletePartialLead = (lead_id) => api.delete(`/partial-leads/${lead_id}`);
+export const convertPartialLead = (lead_id, payload) => api.post(`/partial-leads/${lead_id}/convert`, payload);
+
 export const getDashboardAnalytics = (user_id) => api.get(`/analytics/dashboard`, { params: { user_id } });
 
 export const chat = (payload) => api.post(`/ai/chat`, payload);
