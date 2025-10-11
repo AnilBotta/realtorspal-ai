@@ -1079,7 +1079,7 @@ export default function Leads({ user }) {
             <table className="w-full min-w-[1500px]">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
+                  <th className="sticky left-0 bg-gray-50 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48 border-r z-20">
                     INFO
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
