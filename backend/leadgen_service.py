@@ -362,21 +362,34 @@ def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) ->
     
     _safe_log(log, f"[FINDER] Received {len(items)} items from Apify")
     
-    # Debug: Log structure of first item
+    # Debug: Log structure of first few items
     if len(items) > 0:
-        _safe_log(log, f"[FINDER] First item structure: {list(items[0].keys())[:10]}")
-        _safe_log(log, f"[FINDER] Sample data - dataType: {items[0].get('dataType')}, title: {items[0].get('title', 'N/A')[:30]}")
+        _safe_log(log, f"[FINDER] First item keys: {list(items[0].keys())}")
+        _safe_log(log, f"[FINDER] First item sample: {str(items[0])[:200]}")
+        
+        # Check what fields are actually present
+        sample = items[0]
+        _safe_log(log, f"[FINDER] Fields check - title: {bool(sample.get('title'))}, url: {bool(sample.get('url'))}, description: {bool(sample.get('description'))}")
     
     out = []
+    skipped = 0
     for idx, it in enumerate(items):
         # Extract basic listing info from Apify Kijiji response
-        title = it.get("title", "")
-        description = it.get("description", "")
+        # Check multiple possible field names
+        title = it.get("title") or it.get("heading") or it.get("name") or ""
+        description = it.get("description") or it.get("desc") or ""
+        url = it.get("url") or it.get("link") or it.get("href") or ""
         
-        # Skip items without title (likely not real listings)
-        if not title:
-            _safe_log(log, f"[FINDER] Skipping item {idx+1}: No title")
+        # Skip items without title OR url (need at least one identifier)
+        if not title and not url:
+            skipped += 1
+            if idx < 3:  # Log first 3 skipped items for debugging
+                _safe_log(log, f"[FINDER] Skipping item {idx+1}: No title/url. Keys: {list(it.keys())[:5]}")
             continue
+        
+        # If no title but has URL, use URL as title
+        if not title:
+            title = f"Listing from {url[:50]}"
         
         if (idx + 1) % 10 == 0:
             _safe_log(log, f"[FINDER] Processing listing {idx+1}/{len(items)}...")
