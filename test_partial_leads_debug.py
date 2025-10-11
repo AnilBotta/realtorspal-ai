@@ -36,6 +36,15 @@ def test_partial_leads_endpoints():
     except Exception as e:
         print(f"   Exception: {e}")
     
+    # Test 2b: GET /api/partial-leads/{lead_id} with real ID
+    print("\n2b. Testing GET /api/partial-leads/ed436bf7-f679-4a5e-99eb-1c9d57dd488e")
+    try:
+        response = requests.get(f"{BASE_URL}/partial-leads/ed436bf7-f679-4a5e-99eb-1c9d57dd488e", timeout=10)
+        print(f"   Status: {response.status_code}")
+        print(f"   Response: {response.text[:500]}...")
+    except Exception as e:
+        print(f"   Exception: {e}")
+    
     # Test 3: POST /api/partial-leads/{lead_id}/convert with non-existent ID
     print("\n3. Testing POST /api/partial-leads/non-existent-id/convert")
     try:
