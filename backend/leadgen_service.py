@@ -576,15 +576,30 @@ def search_sources(query: str, max_results: int, log: Callable[[str], None]) -> 
 # =========================
 
 def extract_listing_minimal(listing: Dict[str, Any], log: Callable[[str], None]) -> Dict[str, Any]:
-    """Keep only public/allowed fields."""
+    """Keep only public/allowed fields. Pass through all Google Maps data."""
     _safe_log(log, f"[EXTRACTOR] Extract from {listing.get('url')}")
+    
+    # Pass through ALL fields from Google Maps listing
     return {
         "source": listing.get("source"),
         "title": listing.get("title"),
+        "phone": listing.get("phone"),  # ✓ Keep phone
+        "website": listing.get("website"),  # ✓ Keep website
         "price": listing.get("price"),
+        "address": listing.get("address"),  # Full address string
         "address_full": listing.get("address"),
+        "street": listing.get("street"),
+        "city": listing.get("city"),
+        "province": listing.get("province"),
+        "postalCode": listing.get("postalCode"),
+        "countryCode": listing.get("countryCode"),
         "url": listing.get("url"),
         "property_type": listing.get("homeType"),
+        "category": listing.get("category"),
+        "rating": listing.get("rating"),
+        "reviews_count": listing.get("reviews_count"),
+        "seller": listing.get("seller"),  # ✓ Keep seller info with phone
+        "raw_data": listing.get("raw_data")  # Keep raw data for debugging
     }
 
 def map_to_crm_fields(extracted: Dict[str, Any]) -> Dict[str, Any]:
