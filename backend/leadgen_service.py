@@ -1067,21 +1067,38 @@ def _run_job(job_id: str, search_terms: str, location: str, max_results: int):
                 duplicates.append(crm)
         _safe_log(log_fn, f"[ENRICHER] Unique={len(unique)} Duplicates={len(duplicates)}")
 
-        # Post
+        # Post - with partial lead detection
         _safe_log(log_fn, f"[POSTER] Starting to post {len(unique)} unique leads")
         posted = []
+        partial = []
         failed = []
+        
         for idx, crm in enumerate(unique):
             try:
-                res = post_to_realtorspal(crm, log=log_fn)
-                posted.append({"lead_id": res["lead_id"], "payload": crm})
+                # Check if lead is complete (has required fields)
+                seller = crm.get("seller", {})
+                is_complete = bool(
+                    seller.get("phone") or crm.get("phone")  # Has phone OR
+                ) and bool(crm.get("title"))  # Has title
+                
+                if is_complete:
+                    # Complete lead - post to main leads
+                    res = post_to_realtorspal(crm, log=log_fn)
+                    posted.append({"lead_id": res["lead_id"], "payload": crm})
+                else:
+                    # Incomplete lead - save to partial_leads
+                    partial_id = asyncio.run(save_partial_lead(crm))
+                    partial.append({"lead_id": partial_id, "payload": crm})
+                    _safe_log(log_fn, f"[POSTER] Lead {idx+1} saved as partial (missing: {'phone' if not (seller.get('phone') or crm.get('phone')) else 'title'})")
+                
                 if (idx + 1) % 10 == 0:
-                    _safe_log(log_fn, f"[POSTER] Posted {idx + 1}/{len(unique)} leads")
+                    _safe_log(log_fn, f"[POSTER] Processed {idx + 1}/{len(unique)} leads")
+                    
             except Exception as e:
                 _safe_log(log_fn, f"[POSTER] Error posting lead {idx+1}: {str(e)}")
                 failed.append({"error": str(e), "payload": crm})
         
-        _safe_log(log_fn, f"[POSTER] Successfully posted {len(posted)} leads, failed: {len(failed)}")
+        _safe_log(log_fn, f"[POSTER] Posted {len(posted)} complete leads, {len(partial)} partial leads, {len(failed)} failed")
 
         counts = {
             "found": len(google_maps_results),
