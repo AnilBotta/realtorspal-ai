@@ -337,6 +337,10 @@ def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) ->
     """
     service-paradis~kijiji-crawler – using URL-based input format matching Apify actor requirements
     """
+    # Get token fresh from cache or database
+    token = get_api_secret_sync("APIFY_TOKEN")
+    _safe_log(log, f"[FINDER] Token retrieved: {bool(token)}, length: {len(token) if token else 0}")
+    
     # Kijiji crawler expects this exact format based on Apify documentation
     actor_input = {
         "debug": False,
@@ -352,7 +356,7 @@ def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) ->
         ]
     }
     _safe_log(log, f"[FINDER] Searching Kijiji with URL: {start_url}, max pages: {max_pages}")
-    items = _apify_run_actor(APIFY_KIJIJI_ACTOR, actor_input, log)
+    items = _apify_run_actor(APIFY_KIJIJI_ACTOR, actor_input, log, token)
     
     _safe_log(log, f"[FINDER] Received {len(items)} items from Apify")
     
