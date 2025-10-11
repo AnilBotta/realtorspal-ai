@@ -837,11 +837,30 @@ def _run_job(job_id: str, start_url: str, max_pages: int):
         _safe_log(log_fn, f"[FINDER] Found {len(kijiji_results)} Kijiji listings")
 
         # Extract (public fields)
-        extracted = [extract_listing_minimal(ls, log=log_fn) for ls in kijiji_results]
+        _safe_log(log_fn, f"[EXTRACTOR] Starting extraction for {len(kijiji_results)} listings")
+        extracted = []
+        for idx, ls in enumerate(kijiji_results):
+            try:
+                ext = extract_listing_minimal(ls, log=log_fn)
+                extracted.append(ext)
+            except Exception as e:
+                _safe_log(log_fn, f"[EXTRACTOR] Error extracting listing {idx+1}: {str(e)}")
+        
+        _safe_log(log_fn, f"[EXTRACTOR] Successfully extracted {len(extracted)} listings")
 
         # Map to CRM
-        mapped = [map_to_crm_fields(e) for e in extracted]
-        _safe_log(log_fn, f"[MAPPER] Mapped {len(mapped)} leads to CRM fields")
+        _safe_log(log_fn, f"[MAPPER] Starting mapping for {len(extracted)} extracted listings")
+        mapped = []
+        for idx, e in enumerate(extracted):
+            try:
+                crm = map_to_crm_fields(e)
+                mapped.append(crm)
+                if idx == 0:  # Log first mapped item
+                    _safe_log(log_fn, f"[MAPPER] First mapped item keys: {list(crm.keys())[:10]}")
+            except Exception as e:
+                _safe_log(log_fn, f"[MAPPER] Error mapping listing {idx+1}: {str(e)}")
+        
+        _safe_log(log_fn, f"[MAPPER] Successfully mapped {len(mapped)} leads to CRM fields")
 
         # Validate + Dedupe
         unique = []
