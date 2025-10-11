@@ -68,6 +68,7 @@ export default function App(){
           <Routes>
             <Route path="/" element={<Dashboard user={session.user} />} />
             <Route path="/leads" element={<Leads user={session.user} />} />
+            <Route path="/partial-leads" element={<PartialLeads user={session.user} />} />
             <Route path="/agents" element={<AIAgents user={session.user} />} />
             <Route path="/analytics" element={<Analytics user={session.user} />} />
             <Route path="/data" element={<DataPage user={session.user} />} />
