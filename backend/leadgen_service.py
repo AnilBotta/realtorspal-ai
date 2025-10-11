@@ -152,77 +152,70 @@ def _get_llm():
         raise ValueError("OPENAI_API_KEY not found in database or environment.")
     return ChatOpenAI(model="gpt-4o-mini", api_key=key, temperature=0.7)
 
-# Master Orchestrator (plans the run and explains steps)
-orchestrator = Agent(
-    role="Master Orchestrator",
-    goal="Plan and oversee the RealtorPal lead generation workflow from sources → CRM.",
-    backstory="A senior AI operator that explains the plan, logs milestones, and ensures quality.",
-    tools=[],
-    llm=_get_llm()
-)
+# Lazy-loaded agents (initialized on first use)
+_AGENTS_CACHE = {}
 
-# Finder (discovers candidate listings)
-finder = Agent(
-    role="Listing Source Scout",
-    goal="Find permitted Zillow & Kijiji listings for the given search query.",
-    backstory="Understands marketplace constraints, robots.txt, and ToS.",
-    tools=[],
-    llm=_get_llm()
-)
-
-# Extractor (pulls minimal details safely)
-extractor = Agent(
-    role="Lead Extractor",
-    goal="Extract publicly allowed property details from each listing.",
-    backstory="Avoids scraping private/forbidden data; uses only public fields.",
-    tools=[],
-    llm=_get_llm()
-)
-
-# Description Parser (parses listing descriptions to extract structured data)
-description_parser = Agent(
-    role="Description Parser",
-    goal="Parse property listing descriptions to extract structured seller and property information.",
-    backstory="Expert at understanding real estate listings and extracting contact details, property features, and seller information from natural language text.",
-    tools=[],
-    llm=_get_llm()
-)
-
-# Mapper (maps to RealtorPal CRM fields)
-mapper_agent = Agent(
-    role="CRM Field Mapper",
-    goal="Map listing fields into RealtorPal CRM headers exactly as required by the UI.",
-    backstory="Knows RealtorPal schema, fills unknowns as None or sensible defaults.",
-    tools=[],
-    llm=_get_llm()
-)
-
-# Enricher/Deduper
-enricher = Agent(
-    role="Enricher & Deduper",
-    goal="Normalize, validate, and deduplicate leads before posting.",
-    backstory="Keeps the database clean and consistent.",
-    tools=[],
-    llm=_get_llm()
-)
-
-# Poster
-poster = Agent(
-    role="RealtorPal Poster",
-    goal="Post mapped leads to RealtorPal API.",
-    backstory="Handles auth and payload formats.",
-    tools=[],
-    llm=_get_llm()
-)
-
-# Summarizer
-summarizer = Agent(
-    role="Operations Summarizer",
-    goal="Summarize results clearly for the user.",
-    backstory="Writes crisp summaries in bullet points.",
-    tools=[],
-    llm=_get_llm()
-)
+def get_agent(agent_name: str):
+    """Get or create an agent (lazy loading)."""
+    if agent_name in _AGENTS_CACHE:
+        return _AGENTS_CACHE[agent_name]
+    
+    llm = _get_llm()
+    
+    agents_config = {
+        "orchestrator": {
+            "role": "Master Orchestrator",
+            "goal": "Plan and oversee the RealtorPal lead generation workflow from sources → CRM.",
+            "backstory": "A senior AI operator that explains the plan, logs milestones, and ensures quality.",
+        },
+        "finder": {
+            "role": "Listing Source Scout",
+            "goal": "Find permitted Zillow & Kijiji listings for the given search query.",
+            "backstory": "Understands marketplace constraints, robots.txt, and ToS.",
+        },
+        "extractor": {
+            "role": "Lead Extractor",
+            "goal": "Extract publicly allowed property details from each listing.",
+            "backstory": "Avoids scraping private/forbidden data; uses only public fields.",
+        },
+        "mapper": {
+            "role": "CRM Field Mapper",
+            "goal": "Map listing fields into RealtorPal CRM headers exactly as required by the UI.",
+            "backstory": "Knows RealtorPal schema, fills unknowns as None or sensible defaults.",
+        },
+        "enricher": {
+            "role": "Enricher & Deduper",
+            "goal": "Normalize, validate, and deduplicate leads before posting.",
+            "backstory": "Keeps the database clean and consistent.",
+        },
+        "poster": {
+            "role": "RealtorPal Poster",
+            "goal": "Post mapped leads to RealtorPal API.",
+            "backstory": "Handles auth and payload formats.",
+        },
+        "summarizer": {
+            "role": "Operations Summarizer",
+            "goal": "Summarize results clearly for the user.",
+            "backstory": "Writes crisp summaries in bullet points.",
+        },
+        "description_parser": {
+            "role": "Description Parser",
+            "goal": "Parse property listing descriptions to extract structured seller and property information.",
+            "backstory": "Expert at understanding real estate listings and extracting contact details, property features, and seller information from natural language text.",
+        }
+    }
+    
+    if agent_name in agents_config:
+        config = agents_config[agent_name]
+        _AGENTS_CACHE[agent_name] = Agent(
+            role=config["role"],
+            goal=config["goal"],
+            backstory=config["backstory"],
+            tools=[],
+            llm=llm
+        )
+    
+    return _AGENTS_CACHE.get(agent_name)
 
 
 # =========================
