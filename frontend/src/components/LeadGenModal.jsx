@@ -31,9 +31,9 @@ const LeadGenModal = ({ isOpen, onClose, user }) => {
 
   const handleStart = async () => {
     try {
-      // Validate URL
-      if (!searchParams.startUrl || !searchParams.startUrl.includes('kijiji.ca')) {
-        alert('Please enter a valid Kijiji URL');
+      // Validate search terms
+      if (!searchParams.searchTerms || searchParams.searchTerms.trim() === '') {
+        alert('Please enter search terms (e.g., "real estate agents")');
         return;
       }
 
@@ -43,10 +43,11 @@ const LeadGenModal = ({ isOpen, onClose, user }) => {
       setLeadIds([]);
       setStatus('running');
 
-      // Start lead generation with URL and pages
+      // Start lead generation with Google Maps search
       const requestData = {
-        startUrl: searchParams.startUrl,
-        maxPages: searchParams.maxPages
+        searchTerms: searchParams.searchTerms,
+        location: searchParams.location,
+        maxResults: searchParams.maxResults
       };
       const response = await triggerLeadGeneration(requestData);
       const newJobId = response.data.job_id;
