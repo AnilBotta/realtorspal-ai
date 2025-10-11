@@ -56,11 +56,43 @@ from crewai import Agent, Task, Crew
 # Global configuration
 # =========================
 
-# Apify token (uses env override if provided)
-APIFY_TOKEN = os.getenv(
-    "APIFY_TOKEN",
-    "apify_api_ZL39dX4gxpcwa89OMVDN3kXemAxWrf3le8T3"  # <-- your provided token
-)
+# API Keys Cache
+_API_KEYS_CACHE = {}
+
+async def get_api_secret(key_name: str) -> str:
+    """Retrieve API key from database (cached)."""
+    if key_name in _API_KEYS_CACHE:
+        return _API_KEYS_CACHE[key_name]
+    
+    try:
+        mongo_url = os.getenv("MONGO_URL", "mongodb://127.0.0.1:27017")
+        db_name = os.getenv("DB_NAME", "realtorspal")
+        client = AsyncIOMotorClient(mongo_url)
+        db = client[db_name]
+        
+        doc = await db.api_secrets.find_one({"service_name": "global_api_secrets"})
+        if doc and "secrets" in doc:
+            _API_KEYS_CACHE.update(doc["secrets"])
+            client.close()
+            return _API_KEYS_CACHE.get(key_name, "")
+        
+        client.close()
+        return ""
+    except Exception as e:
+        print(f"Error retrieving API key {key_name}: {e}")
+        # Fallback to environment variable
+        return os.getenv(key_name, "")
+
+def get_api_secret_sync(key_name: str) -> str:
+    """Synchronous wrapper for getting API keys."""
+    try:
+        return asyncio.run(get_api_secret(key_name))
+    except:
+        # If event loop is already running, return from cache or env
+        return _API_KEYS_CACHE.get(key_name) or os.getenv(key_name, "")
+
+# Apify token (uses database override if available, then env, then fallback)
+APIFY_TOKEN = get_api_secret_sync("APIFY_TOKEN") or "apify_api_ZL39dX4gxpcwa89OMVDN3kXemAxWrf3le8T3"
 APIFY_BASE = "https://api.apify.com/v2"
 APIFY_ZILLOW_ACTOR = os.getenv("APIFY_ZILLOW_ACTOR", "epctex~zillow-scraper")
 APIFY_KIJIJI_ACTOR = os.getenv("APIFY_KIJIJI_ACTOR", "service-paradis~kijiji-crawler")
