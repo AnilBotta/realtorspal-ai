@@ -241,7 +241,7 @@ def _apify_run_actor(actor_id: str, actor_input: Dict[str, Any], log: Callable[[
     dataset_id = data.get("defaultDatasetId")
     
     _safe_log(log, f"[APIFY] Actor run started with ID: {run_id}")
-    _safe_log(log, f"[APIFY] Waiting for actor to complete (this may take 1-3 minutes)...")
+    _safe_log(log, "[APIFY] Waiting for actor to complete (this may take 1-3 minutes)...")
 
     # Poll for run completion (wait up to 5 minutes)
     max_polls = 150  # 150 * 2 seconds = 5 minutes max
@@ -264,7 +264,7 @@ def _apify_run_actor(actor_id: str, actor_input: Dict[str, Any], log: Callable[[
         
         # Check if run is complete
         if status == "SUCCEEDED":
-            _safe_log(log, f"[APIFY] ✓ Actor completed successfully!")
+            _safe_log(log, "[APIFY] ✓ Actor completed successfully!")
             break
         elif status in ["FAILED", "ABORTED", "TIMED-OUT"]:
             _safe_log(log, f"[APIFY] ✗ Actor run failed with status: {status}")
@@ -272,7 +272,7 @@ def _apify_run_actor(actor_id: str, actor_input: Dict[str, Any], log: Callable[[
     else:
         # Max polls reached without completion
         _safe_log(log, f"[APIFY] ⚠ Timeout: Actor still running after {max_polls * poll_interval} seconds")
-        _safe_log(log, f"[APIFY] Attempting to fetch partial results...")
+        _safe_log(log, "[APIFY] Attempting to fetch partial results...")
 
     # Fetch dataset items
     if not dataset_id:
@@ -695,7 +695,7 @@ def parse_listing_description(title: str, description: str, log: Callable[[str],
             result_text = result_text.strip()
             
             parsed_data = json.loads(result_text)
-            _safe_log(log, f"[PARSER] Successfully parsed description")
+            _safe_log(log, "[PARSER] Successfully parsed description")
             return parsed_data
         except json.JSONDecodeError as e:
             _safe_log(log, f"[PARSER] JSON parse error, using fallback: {e}")
