@@ -4,6 +4,7 @@ import "./index.css";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
+import PartialLeads from "./pages/PartialLeads";
 import Analytics from "./pages/Analytics";
 import DataPage from "./pages/Data";
 import AIAgents from "./pages/AIAgents";
