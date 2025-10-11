@@ -952,7 +952,7 @@ class RunRequest(BaseModel):
     location: str = "Canada"  # Location to search
     maxResults: int = 20  # Number of places to extract per search term
 
-def _run_job(job_id: str, start_url: str, max_pages: int):
+def _run_job(job_id: str, search_terms: str, location: str, max_results: int):
     """Background job to orchestrate the lead generation run."""
     def log_fn(msg: str):
         """Append msg to job's log."""
@@ -960,15 +960,15 @@ def _run_job(job_id: str, start_url: str, max_pages: int):
 
     try:
         JOBS[job_id]["status"] = "running"
-        _safe_log(log_fn, f"[START] Job {job_id} started with URL='{start_url}', pages={max_pages}")
+        _safe_log(log_fn, f"[START] Job {job_id} started with search='{search_terms}', location={location}, max={max_results}")
 
         # Orchestrator plan
-        plan = orchestrate_plan(f"Scrape Kijiji URL: {start_url} for {max_pages} pages")
+        plan = orchestrate_plan(f"Search Google Maps for '{search_terms}' in {location}, extract up to {max_results} results")
         _safe_log(log_fn, f"[ORCHESTRATOR] Plan => {plan}")
 
-        # Find - only use Kijiji with URL
-        kijiji_results = search_kijiji(start_url, max_pages, log_fn)
-        _safe_log(log_fn, f"[FINDER] Found {len(kijiji_results)} Kijiji listings")
+        # Find - use Google Maps
+        google_maps_results = search_google_maps(search_terms, location, max_results, log_fn)
+        _safe_log(log_fn, f"[FINDER] Found {len(google_maps_results)} Google Maps listings")
 
         # Extract (public fields)
         _safe_log(log_fn, f"[EXTRACTOR] Starting extraction for {len(kijiji_results)} listings")
