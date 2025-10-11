@@ -91,8 +91,8 @@ def get_api_secret_sync(key_name: str) -> str:
         # If event loop is already running, return from cache or env
         return _API_KEYS_CACHE.get(key_name) or os.getenv(key_name, "")
 
-# Apify token (uses database override if available, then env, then fallback)
-APIFY_TOKEN = get_api_secret_sync("APIFY_TOKEN") or "apify_api_ZL39dX4gxpcwa89OMVDN3kXemAxWrf3le8T3"
+# Apify token (retrieved from database or environment)
+APIFY_TOKEN = get_api_secret_sync("APIFY_TOKEN")
 APIFY_BASE = "https://api.apify.com/v2"
 APIFY_ZILLOW_ACTOR = os.getenv("APIFY_ZILLOW_ACTOR", "epctex~zillow-scraper")
 APIFY_KIJIJI_ACTOR = os.getenv("APIFY_KIJIJI_ACTOR", "service-paradis~kijiji-crawler")
