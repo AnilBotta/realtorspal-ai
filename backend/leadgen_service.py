@@ -303,7 +303,7 @@ def _apify_run_actor(actor_id: str, actor_input: Dict[str, Any], log: Callable[[
         return []
 
     _safe_log(log, f"[APIFY] Fetching results from dataset {dataset_id}...")
-    items = requests.get(f"{APIFY_BASE}/datasets/{dataset_id}/items?token={APIFY_TOKEN}", timeout=90)
+    items = requests.get(f"{APIFY_BASE}/datasets/{dataset_id}/items?token={apify_token}", timeout=90)
     items.raise_for_status()
     rows = items.json()
     _safe_log(log, f"[APIFY] ✓ Successfully fetched {len(rows)} items")
