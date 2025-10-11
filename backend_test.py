@@ -4319,6 +4319,13 @@ class RealtorsPalAPITester:
             self.test_import_leads_invalid_data,
             self.test_import_leads_user_excel_format,  # New test for user's Excel format
             self.test_delete_all_import_workflow,  # NEW: Complete DELETE ALL → IMPORT workflow test
+            
+            # Partial Leads API tests (as requested in review)
+            self.test_partial_leads_get_all,
+            self.test_partial_leads_get_specific,
+            self.test_partial_leads_convert,
+            self.test_partial_leads_convert_with_validation_error,
+            
             # WebRTC calling functionality tests
             self.test_twilio_access_token_with_valid_credentials,
             self.test_twilio_access_token_missing_credentials,
