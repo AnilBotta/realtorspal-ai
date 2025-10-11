@@ -163,36 +163,53 @@ const LeadGenModal = ({ isOpen, onClose, user }) => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  <MapPin size={16} className="inline mr-2" />
-                  Kijiji Start URL *
+                  <Search size={16} className="inline mr-2" />
+                  Search Terms *
                 </label>
                 <input
                   type="text"
-                  value={searchParams.startUrl}
-                  onChange={(e) => setSearchParams(prev => ({ ...prev, startUrl: e.target.value }))}
-                  placeholder="https://www.kijiji.ca/b-real-estate/ontario/..."
+                  value={searchParams.searchTerms}
+                  onChange={(e) => setSearchParams(prev => ({ ...prev, searchTerms: e.target.value }))}
+                  placeholder="e.g., real estate agents, realtors, property sellers"
                   className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Paste the Kijiji search URL or seller page URL
+                  What type of leads are you looking for?
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <MapPin size={16} className="inline mr-2" />
+                  Location
+                </label>
+                <input
+                  type="text"
+                  value={searchParams.location}
+                  onChange={(e) => setSearchParams(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="e.g., Toronto, Ontario, Canada"
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Where do you want to search? (City, State/Province, Country)
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <Home size={16} className="inline mr-2" />
-                  Maximum Pages to Crawl
+                  Maximum Results
                 </label>
                 <input
                   type="number"
-                  value={searchParams.maxPages}
-                  onChange={(e) => setSearchParams(prev => ({ ...prev, maxPages: parseInt(e.target.value) || 2 }))}
+                  value={searchParams.maxResults}
+                  onChange={(e) => setSearchParams(prev => ({ ...prev, maxResults: parseInt(e.target.value) || 20 }))}
                   min="1"
-                  max="10"
+                  max="100"
                   className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Number of search result pages to scrape (recommended: 2-5)
+                  Number of leads to extract (recommended: 10-50)
                 </p>
               </div>
 
