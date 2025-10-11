@@ -860,9 +860,13 @@ def _run_job(job_id: str, start_url: str, max_pages: int):
         JOBS[job_id]["status"] = "done"
         _log(job_id, "[SUMMARY] " + result["summary"].replace("\n", " "))
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         JOBS[job_id]["status"] = "error"
-        JOBS[job_id]["result"] = {"error": str(e)}
-        _log(job_id, f"[ERROR] {e}")
+        JOBS[job_id]["result"] = {"error": str(e), "traceback": error_details}
+        _safe_log(log_fn, f"[ERROR] {str(e)}")
+        _safe_log(log_fn, f"[ERROR] Traceback: {error_details}")
+        print(f"[LEADGEN ERROR] Job {job_id}: {error_details}")
 
 @app.post("/run")
 def trigger_leadgen(req: RunRequest, background: BackgroundTasks):
