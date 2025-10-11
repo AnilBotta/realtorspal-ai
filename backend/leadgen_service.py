@@ -862,8 +862,9 @@ def run_pipeline(start_url: str, max_pages: int, log: Callable[[str], None]) -> 
 app = FastAPI(title="RealtorPal LeadGen Agent")
 
 class RunRequest(BaseModel):
-    startUrl: str
-    maxPages: int = 2
+    searchTerms: str  # e.g., "real estate agents in Toronto"
+    location: str = "Canada"  # Location to search
+    maxResults: int = 20  # Number of places to extract per search term
 
 def _run_job(job_id: str, start_url: str, max_pages: int):
     """Background job to orchestrate the lead generation run."""
