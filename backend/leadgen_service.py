@@ -93,6 +93,7 @@ def get_api_secret_sync(key_name: str) -> str:
 
 # Apify token (retrieved from database or environment)
 APIFY_TOKEN = get_api_secret_sync("APIFY_TOKEN")
+print(f"[LEADGEN_SERVICE] APIFY_TOKEN loaded: {APIFY_TOKEN[:20] if APIFY_TOKEN else 'NONE'}...")
 APIFY_BASE = "https://api.apify.com/v2"
 APIFY_ZILLOW_ACTOR = os.getenv("APIFY_ZILLOW_ACTOR", "epctex~zillow-scraper")
 APIFY_KIJIJI_ACTOR = os.getenv("APIFY_KIJIJI_ACTOR", "service-paradis~kijiji-crawler")
