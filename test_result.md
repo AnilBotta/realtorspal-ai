@@ -23,7 +23,105 @@
 
 ---
 
+## Partial Leads API Testing
 
+### Test Summary
+Comprehensive testing of the Partial Leads API endpoints has been completed. The system is **MOSTLY FUNCTIONAL** with 3 out of 4 core features working correctly, but has **1 CRITICAL ISSUE** with validation error handling that causes 422 errors to return as 500 Internal Server Errors.
+
+### Tests Performed
+
+#### 1. Get All Partial Leads ✅
+- **Status**: PASSED
+- **Description**: Tested GET `/api/partial-leads` to retrieve all partial leads
+- **Result**: Successfully retrieved 13 partial leads from the system
+- **Verification**: API returns proper JSON array with partial lead objects containing id, raw_data, source, created_at, status, and notes fields
+
+#### 2. Get Specific Partial Lead ✅
+- **Status**: PASSED
+- **Description**: Tested GET `/api/partial-leads/{lead_id}` with both valid and invalid lead IDs
+- **Test Cases**:
+  - **Valid ID**: `ed436bf7-f679-4a5e-99eb-1c9d57dd488e` → Returns 200 with complete partial lead data
+  - **Invalid ID**: `non-existent-id` → Returns 404 with proper error message "Partial lead not found"
+- **Result**: Both scenarios working correctly with appropriate HTTP status codes and error messages
+
+#### 3. Convert Partial Lead to Full Lead ✅
+- **Status**: PASSED
+- **Description**: Tested POST `/api/partial-leads/{lead_id}/convert` with valid partial lead and proper payload
+- **Test Case**: Converted partial lead `ed436bf7-f679-4a5e-99eb-1c9d57dd488e` to full lead
+- **Payload**: Valid user_id, first_name, last_name, email, phone (E.164 format), property_type, stage
+- **Result**: Successfully converted partial lead to full lead with ID `a6841961-cece-4598-87f8-d72144f4cafb`
+- **Verification**: 
+  - Partial lead removed from partial_leads collection
+  - Full lead created in leads collection with all provided fields
+  - Phone number properly normalized to E.164 format
+  - Default values applied (pipeline: "New Lead", status: "Open", lead_source: "Converted from Partial")
+
+#### 4. Convert Partial Lead Validation Error ❌
+- **Status**: **CRITICAL FAILURE**
+- **Description**: Tested POST `/api/partial-leads/{lead_id}/convert` with invalid phone format to trigger validation error
+- **Test Case**: Used invalid phone format "invalid-phone" to test validation handling
+- **Expected**: HTTP 422 with validation error details
+- **Actual**: HTTP 500 Internal Server Error
+- **Root Cause**: Bug in validation exception handler at `/app/backend/server.py` line 51
+- **Error Details**: `TypeError: Object of type ValueError is not JSON serializable`
+- **Impact**: **HIGH** - Frontend receives 500 errors instead of proper 422 validation errors, making it difficult to handle validation issues properly
+
+### API Endpoint Verification
+- **Get All Partial Leads**: `GET /api/partial-leads` ✅ Working
+- **Get Specific Partial Lead**: `GET /api/partial-leads/{lead_id}` ✅ Working
+- **Convert Partial Lead**: `POST /api/partial-leads/{lead_id}/convert` ✅ Working (with validation bug)
+- **Authentication**: Demo user session working correctly with user ID "03f82986-51af-460c-a549-1c5077e67fb0"
+
+### Key Findings
+1. **Core Functionality**: Partial lead retrieval and conversion working correctly
+2. **Data Integrity**: Conversion process properly handles field mapping, phone normalization, and default values
+3. **Error Handling**: Proper 404 responses for non-existent partial leads
+4. **Validation Bug**: Critical issue with validation exception handler causing 500 errors instead of 422
+5. **Phone Normalization**: E.164 phone format validation and normalization working correctly for valid inputs
+6. **Database Operations**: Partial lead deletion and full lead creation working atomically
+
+### Critical Issue Requiring Immediate Fix
+
+#### Issue: Validation Error Handler Bug
+- **Problem**: Phone validation errors (and other Pydantic validation errors) return 500 Internal Server Error instead of 422
+- **Location**: `/app/backend/server.py` lines 39-57 (validation_exception_handler)
+- **Cause**: Attempting to serialize ValueError object in JSON response
+- **Fix Required**: Update exception handler to properly serialize validation errors
+- **Priority**: **CRITICAL** - This is the exact 422 validation error the user reported
+
+### Backend System Health
+- **Health Check**: ✅ PASSED
+- **Authentication**: ✅ PASSED (Demo session with user ID "03f82986-51af-460c-a549-1c5077e67fb0")
+- **Database Connectivity**: ✅ PASSED (MongoDB operations successful with partial_leads collection)
+- **API Routing**: ✅ PASSED (All partial leads endpoints responding correctly)
+
+## Overall Assessment - Partial Leads API
+The Partial Leads API is **75% FUNCTIONAL** with core features working correctly, but has **1 CRITICAL VALIDATION BUG** that must be fixed:
+
+### ✅ **Working Features (3/4)**:
+- **Partial Lead Retrieval**: GET endpoints working correctly with proper 404 handling
+- **Partial Lead Conversion**: Successfully converts partial leads to full leads with proper field mapping
+- **Data Validation**: Phone normalization and field validation working for valid inputs
+- **Database Operations**: Atomic operations for partial lead deletion and full lead creation
+
+### ❌ **Critical Issue (1/4)**:
+- **Validation Error Handling**: Returns 500 instead of 422 for validation errors (CRITICAL BUG)
+
+### **Production Readiness**: 
+**NOT READY** - The validation error bug is critical and matches the exact issue reported by the user. This prevents proper error handling in the frontend when users submit invalid data.
+
+### **Root Cause of User's 422 Error**:
+The user is experiencing 500 Internal Server Errors (not 422) when trying to convert partial leads with invalid phone numbers or other validation issues. The frontend likely expects 422 responses but receives 500 errors instead.
+
+### **Recommended Actions**:
+1. **IMMEDIATE**: Fix validation exception handler in `/app/backend/server.py` to properly serialize validation errors
+2. **HIGH PRIORITY**: Test all validation scenarios to ensure proper 422 responses
+3. **MEDIUM PRIORITY**: Add comprehensive error logging for partial lead conversion failures
+4. **LOW PRIORITY**: Consider adding batch conversion endpoint for multiple partial leads
+
+**The partial lead conversion functionality is working correctly, but the validation error handling must be fixed before production deployment.**
+
+---
 
 ## Comprehensive Lead Model Testing
 
