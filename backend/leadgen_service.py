@@ -638,6 +638,7 @@ def orchestrate_plan(query: str) -> str:
 
 def summarize_counts(counts: Dict[str, int]) -> str:
     """CrewAI-generated bullet summary."""
+    summarizer = get_agent("summarizer")
     t = Task(
         description=(
             "Summarize these counts in 4–6 concise bullets:\n"
