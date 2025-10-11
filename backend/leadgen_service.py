@@ -251,6 +251,12 @@ def _apify_run_actor(actor_id: str, actor_input: Dict[str, Any], log: Callable[[
     items.raise_for_status()
     rows = items.json()
     _safe_log(log, f"[APIFY] ✓ Successfully fetched {len(rows)} items")
+    
+    # Debug: Log first item structure
+    if len(rows) > 0:
+        first_item_keys = list(rows[0].keys()) if isinstance(rows[0], dict) else "Not a dict"
+        _safe_log(log, f"[APIFY] First item keys: {first_item_keys}")
+    
     return rows
 
 def search_zillow(query: str, max_results: int, log: Callable[[str], None]) -> List[Dict[str, Any]]:
