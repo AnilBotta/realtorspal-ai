@@ -316,44 +316,45 @@ def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) ->
             _safe_log(log, f"[FINDER] Skipping item {idx+1}: No title")
             continue
         
-        _safe_log(log, f"[PARSER] Processing listing {idx+1}/{len(items)}: {title[:50]}...")
+        if (idx + 1) % 10 == 0:
+            _safe_log(log, f"[FINDER] Processing listing {idx+1}/{len(items)}...")
         
-        # Use CrewAI to parse the description and extract structured data
-        parsed_data = parse_listing_description(title, description, log)
-        
-        # Try to extract city/location from title or parsed data
+        # Try to extract city/location from title
         location_parts = title.split(",") if "," in title else []
-        city = parsed_data.get("city") or (location_parts[-1].strip() if len(location_parts) > 1 else None)
+        city = location_parts[-1].strip() if len(location_parts) > 1 else None
         
-        # Seller information from parsed data or fallback
+        # Seller information - basic extraction from title
+        seller_name = "Kijiji Seller"
+        if "seller" in title.lower():
+            seller_name = "Property Seller"
+        
         seller_info = {
-            "name": parsed_data.get("seller_name") or "Kijiji Seller",
-            "phone": parsed_data.get("seller_phone"),
-            "email": parsed_data.get("seller_email"),
+            "name": seller_name,
+            "phone": None,
+            "email": None,
             "location": city
         }
         
-        # Extract property details combining Apify and parsed data
+        # Extract property details directly from Apify data
         out.append({
             "source": "kijiji",
             "title": title,
-            "price": it.get("price") or parsed_data.get("price_details"),
+            "price": it.get("price"),
             "description": description,
-            "address": parsed_data.get("address"),
+            "address": None,
             "city": city,
             "province": "Ontario",  # From URL context
             "postalCode": None,
             "url": it.get("url"),
-            "homeType": parsed_data.get("property_type"),
-            "bedrooms": parsed_data.get("bedrooms"),
-            "bathrooms": parsed_data.get("bathrooms"),
-            "squareFeet": parsed_data.get("square_feet"),
-            "lotSize": parsed_data.get("lot_size"),
-            "features": parsed_data.get("features", []),
+            "homeType": None,
+            "bedrooms": None,
+            "bathrooms": None,
+            "squareFeet": None,
+            "lotSize": None,
+            "features": [],
             "images": [it.get("imageUrl")] if it.get("imageUrl") else [],
             "listingDate": None,
             "seller": seller_info,
-            "parsed_data": parsed_data,  # Keep full parsed data for reference
         })
     
     _safe_log(log, f"[FINDER] Extracted and parsed {len(out)} valid advertisement listings")
