@@ -85,11 +85,25 @@ async def get_api_secret(key_name: str) -> str:
 
 def get_api_secret_sync(key_name: str) -> str:
     """Synchronous wrapper for getting API keys."""
+    # First check cache
+    if key_name in _API_KEYS_CACHE:
+        return _API_KEYS_CACHE[key_name]
+    
+    # Try to get from environment
+    env_value = os.getenv(key_name, "")
+    if env_value:
+        return env_value
+    
+    # Try async retrieval
     try:
-        return asyncio.run(get_api_secret(key_name))
-    except Exception:
-        # If event loop is already running, return from cache or env
-        return _API_KEYS_CACHE.get(key_name) or os.getenv(key_name, "")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(get_api_secret(key_name))
+        loop.close()
+        return result
+    except Exception as e:
+        print(f"Error in get_api_secret_sync for {key_name}: {e}")
+        return ""
 
 # Apify token (retrieved from database or environment)
 APIFY_TOKEN = get_api_secret_sync("APIFY_TOKEN")
