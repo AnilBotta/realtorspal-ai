@@ -1112,6 +1112,12 @@ def _run_job(job_id: str, search_terms: str, location: str, max_results: int):
 
         # Summary (CrewAI)
         summary = summarize_counts(counts)
+        _safe_log(log_fn, f"[SUMMARIZER] {summary}")
+        
+        # Add partial leads info if any
+        if len(partial) > 0:
+            _safe_log(log_fn, f"[INFO] {len(partial)} leads saved as partial (missing required fields)")
+            _safe_log(log_fn, f"[INFO] View partial leads in the 'Partial Leads' section")
 
         result = {
             "plan": plan,
