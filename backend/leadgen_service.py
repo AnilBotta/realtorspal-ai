@@ -411,16 +411,17 @@ def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) ->
         }
         
         # Extract property details directly from Apify data
-        out.append({
+        # Create listing object with all available data
+        listing = {
             "source": "kijiji",
             "title": title,
             "price": it.get("price"),
             "description": description,
             "address": None,
             "city": city,
-            "province": "Ontario",  # From URL context
+            "province": "Ontario",
             "postalCode": None,
-            "url": it.get("url"),
+            "url": url,
             "homeType": None,
             "bedrooms": None,
             "bathrooms": None,
@@ -430,9 +431,11 @@ def search_kijiji(start_url: str, max_pages: int, log: Callable[[str], None]) ->
             "images": [it.get("imageUrl")] if it.get("imageUrl") else [],
             "listingDate": None,
             "seller": seller_info,
-        })
+            "raw_data": it  # Store raw Apify data for debugging
+        }
+        out.append(listing)
     
-    _safe_log(log, f"[FINDER] Extracted and parsed {len(out)} valid advertisement listings")
+    _safe_log(log, f"[FINDER] Extracted {len(out)} listings (skipped {skipped} without title/url)")
     return out
 
 def search_sources(query: str, max_results: int, log: Callable[[str], None]) -> List[Dict[str, Any]]:
