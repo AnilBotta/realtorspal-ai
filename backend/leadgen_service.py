@@ -1107,6 +1107,7 @@ def _run_job(job_id: str, search_terms: str, location: str, max_results: int):
             "unique": len(unique),
             "duplicates": len(duplicates),
             "posted": len(posted),
+            "partial": len(partial),
         }
 
         # Summary (CrewAI)
