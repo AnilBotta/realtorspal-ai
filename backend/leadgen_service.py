@@ -239,12 +239,24 @@ def get_agent(agent_name: str):
 
 def _apify_run_actor(actor_id: str, actor_input: Dict[str, Any], log: Callable[[str], None]) -> List[Dict[str, Any]]:
     """Run an Apify actor and return dataset items. Waits for completion."""
+    if not APIFY_TOKEN:
+        _safe_log(log, "[APIFY] ERROR: APIFY_TOKEN is empty or None!")
+        return []
+    
     url = f"{APIFY_BASE}/acts/{actor_id}/runs?token={APIFY_TOKEN}"
     _safe_log(log, f"[APIFY] Starting actor {actor_id}...")
+    _safe_log(log, f"[APIFY] Token available: {bool(APIFY_TOKEN)}, length: {len(APIFY_TOKEN) if APIFY_TOKEN else 0}")
     
-    # Start the actor run
-    run = requests.post(url, json=actor_input, timeout=60)
-    run.raise_for_status()
+    try:
+        # Start the actor run
+        run = requests.post(url, json=actor_input, timeout=60)
+        run.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        _safe_log(log, f"[APIFY] HTTP Error: {e.response.status_code} - {e.response.text[:200]}")
+        return []
+    except Exception as e:
+        _safe_log(log, f"[APIFY] Error starting actor: {str(e)}")
+        return []
     data = run.json().get("data", {})
     run_id = data.get("id")
     dataset_id = data.get("defaultDatasetId")
