@@ -738,9 +738,20 @@ def post_to_realtorspal(crm: Dict[str, Any], log: Callable[[str], None]) -> Dict
         
         # Extract seller information if available
         seller = crm.get("seller", {})
-        seller_name_parts = (seller.get("name") or "").split(" ", 1)
-        first_name = seller_name_parts[0] if len(seller_name_parts) > 0 else "Unknown"
-        last_name = seller_name_parts[1] if len(seller_name_parts) > 1 else "Seller"
+        business_name = seller.get("name") or crm.get("title") or "Unknown Business"
+        
+        # Parse business name intelligently
+        # Example: "Royal LePage County Realty" -> First: "Royal LePage", Last: "County Realty"
+        name_parts = business_name.split(" ", 2)
+        if len(name_parts) >= 3:
+            first_name = " ".join(name_parts[:2])  # First 2 words
+            last_name = name_parts[2]  # Rest
+        elif len(name_parts) == 2:
+            first_name = name_parts[0]
+            last_name = name_parts[1]
+        else:
+            first_name = business_name
+            last_name = "Agency"
         
         # Create lead object matching CreateLeadRequest schema
         lead_data = {
