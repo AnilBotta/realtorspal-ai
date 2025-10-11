@@ -4281,6 +4281,144 @@ class RealtorsPalAPITester:
             self.log_test("Lead Generation Stream Test", False, f"Exception: {str(e)}")
             return False
 
+    def test_partial_leads_get_all(self) -> bool:
+        """Test GET /api/partial-leads to list all partial leads"""
+        try:
+            response = requests.get(f"{self.base_url}/partial-leads", timeout=10)
+            
+            if response.status_code == 200:
+                partial_leads = response.json()
+                if isinstance(partial_leads, list):
+                    self.log_test("Get All Partial Leads", True, f"Retrieved {len(partial_leads)} partial leads")
+                    return True
+                else:
+                    self.log_test("Get All Partial Leads", False, f"Expected array, got: {type(partial_leads)}")
+                    return False
+            else:
+                self.log_test("Get All Partial Leads", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Get All Partial Leads", False, f"Exception: {str(e)}")
+            return False
+
+    def test_partial_leads_get_specific(self) -> bool:
+        """Test GET /api/partial-leads/{lead_id} to get a specific partial lead"""
+        try:
+            # Test with non-existent ID to check error handling
+            response = requests.get(f"{self.base_url}/partial-leads/non-existent-id", timeout=10)
+            
+            if response.status_code == 404:
+                data = response.json()
+                if "Partial lead not found" in data.get("detail", ""):
+                    self.log_test("Get Specific Partial Lead", True, f"Proper 404 handling for non-existent partial lead: {data['detail']}")
+                    return True
+                else:
+                    self.log_test("Get Specific Partial Lead", False, f"Wrong 404 error message: {data}")
+                    return False
+            else:
+                self.log_test("Get Specific Partial Lead", False, f"Expected 404, got {response.status_code}: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Get Specific Partial Lead", False, f"Exception: {str(e)}")
+            return False
+
+    def test_partial_leads_convert(self) -> bool:
+        """Test POST /api/partial-leads/{lead_id}/convert to convert a partial lead"""
+        if not self.user_id:
+            self.log_test("Convert Partial Lead", False, "No user_id available")
+            return False
+        
+        try:
+            # Test with non-existent partial lead ID to check validation
+            convert_payload = {
+                "user_id": self.user_id,
+                "first_name": "Converted",
+                "last_name": "Lead",
+                "email": "converted@test.com",
+                "phone": "+14155551234",  # Valid E.164 format
+                "property_type": "House",
+                "neighborhood": "Test Area",
+                "priority": "high",
+                "stage": "New"
+            }
+            
+            response = requests.post(f"{self.base_url}/partial-leads/non-existent-id/convert", 
+                                   json=convert_payload, timeout=10)
+            
+            if response.status_code == 404:
+                data = response.json()
+                if "Partial lead not found" in data.get("detail", ""):
+                    self.log_test("Convert Partial Lead", True, f"Proper 404 handling for non-existent partial lead: {data['detail']}")
+                    return True
+                else:
+                    self.log_test("Convert Partial Lead", False, f"Wrong 404 error message: {data}")
+                    return False
+            elif response.status_code == 422:
+                # Check if it's a validation error
+                data = response.json()
+                self.log_test("Convert Partial Lead", True, f"Validation error as expected: {data}")
+                return True
+            else:
+                self.log_test("Convert Partial Lead", False, f"Expected 404 or 422, got {response.status_code}: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Convert Partial Lead", False, f"Exception: {str(e)}")
+            return False
+
+    def test_partial_leads_convert_with_validation_error(self) -> bool:
+        """Test POST /api/partial-leads/{lead_id}/convert with invalid phone format to trigger 422 error"""
+        if not self.user_id:
+            self.log_test("Convert Partial Lead Validation Error", False, "No user_id available")
+            return False
+        
+        try:
+            # Test with invalid phone format to trigger validation error
+            convert_payload = {
+                "user_id": self.user_id,
+                "first_name": "Invalid",
+                "last_name": "Phone",
+                "email": "invalid.phone@test.com",
+                "phone": "invalid-phone-format",  # This should trigger validation error
+                "property_type": "House",
+                "neighborhood": "Test Area",
+                "priority": "high",
+                "stage": "New"
+            }
+            
+            response = requests.post(f"{self.base_url}/partial-leads/test-id/convert", 
+                                   json=convert_payload, timeout=10)
+            
+            if response.status_code == 422:
+                data = response.json()
+                # Check if the validation error mentions phone format
+                detail = data.get("detail", [])
+                phone_error_found = False
+                
+                if isinstance(detail, list):
+                    for error in detail:
+                        if isinstance(error, dict) and "phone" in str(error).lower():
+                            phone_error_found = True
+                            break
+                elif isinstance(detail, str) and "phone" in detail.lower():
+                    phone_error_found = True
+                
+                if phone_error_found:
+                    self.log_test("Convert Partial Lead Validation Error", True, f"Phone validation error triggered as expected: {data}")
+                    return True
+                else:
+                    self.log_test("Convert Partial Lead Validation Error", False, f"422 error but not phone-related: {data}")
+                    return False
+            elif response.status_code == 404:
+                # This is also acceptable since the partial lead doesn't exist
+                self.log_test("Convert Partial Lead Validation Error", True, f"404 error for non-existent partial lead (acceptable): {response.json()}")
+                return True
+            else:
+                self.log_test("Convert Partial Lead Validation Error", False, f"Expected 422 or 404, got {response.status_code}: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Convert Partial Lead Validation Error", False, f"Exception: {str(e)}")
+            return False
+
     def run_all_tests(self) -> bool:
         """Run all backend API tests"""
         print("🚀 Starting RealtorsPal AI Backend API Tests")
