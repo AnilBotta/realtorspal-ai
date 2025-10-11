@@ -775,10 +775,17 @@ def post_to_realtorspal(crm: Dict[str, Any], log: Callable[[str], None]) -> Dict
             client.close()
             return lead_id
         
-        # Run async function
-        lead_id = asyncio.run(insert_lead())
-        _safe_log(log, f"[POSTER] Successfully created lead_id={lead_id}")
-        return {"status": "created", "lead_id": lead_id}
+        # Run async function - use new event loop since we're in background task
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            lead_id = loop.run_until_complete(insert_lead())
+            loop.close()
+            _safe_log(log, f"[POSTER] Successfully created lead_id={lead_id}")
+            return {"status": "created", "lead_id": lead_id}
+        except Exception as db_error:
+            _safe_log(log, f"[POSTER] Database insert error: {db_error}")
+            raise  # Re-raise to trigger partial lead fallback
         
     except Exception as e:
         _safe_log(log, f"[POSTER] Error creating lead: {e}")
