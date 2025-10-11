@@ -24,7 +24,7 @@ Comprehensive testing of the Lead Generation AI system has been completed succes
 
 ### 3. Verify Lead Creation in Database ✅
 - **Status**: PASSED
-- **Description**: Tested GET `/api/leads?user_id=03f82986-51af-460c-a549-1c5077e67fb0` to verify lead creation
+- **Description**: Tested GET `/api/leads?user_id=ai-realty-crm` to verify lead creation
 - **Result**: Database integration working correctly
 - **Verification**:
   - Leads with lead_source: "AI Lead Generation" properly identified

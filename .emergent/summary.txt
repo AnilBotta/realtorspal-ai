@@ -1,18 +1,18 @@
 <analysis>
-The trajectory details the evolution of the RealtorsPal AI CRM, starting with bug fixes and UI enhancements. Initially, a filter template bug and global search issues were resolved, followed by a major upgrade to a multi-agent AI system with LLM integration and comprehensive configuration options. User requests then drove the implementation of an AI Agent button on lead cards in both Kanban and table views, enabling per-lead AI orchestration. This led to the development of a Lead Generation AI with a webhook-first auto-upsert flow and a Nurturing AI featuring an interactive Activity Board. Deployment readiness was assessed and critical hardcoding issues were resolved. The most recent significant work involved implementing dark/light mode and mobile responsiveness, which included fixing mobile menu rendering issues. The current task is integrating a new CrewAI-based lead generation service.
+The AI engineer successfully built the RealtorsPal AI CRM from an MVP, primarily focusing on enhancing its multi-agent AI capabilities. Initial work involved UI bug fixes, followed by a major upgrade to a multi-agent system (CrewAI-style) with LLM integrations and configurable agents. Key features implemented include an AI Agent button for lead orchestration, a Lead Generation AI (initially with Apify Kijiji, then switched to Google Maps Scraper), and a Nurturing AI with an interactive Activity Board. The development also addressed dark/light mode, mobile responsiveness, and robust API key management by migrating sensitive data from  to the database. The process was iterative, involving extensive debugging, particularly with external API integrations (Apify) and handling asynchronous operations, leading to the current task of implementing a Partial Leads feature to manage incomplete lead data.
 </analysis>
 
 <product_requirements>
-The RealtorsPal AI CRM manages real estate leads using AI. Key features include advanced lead filtering with saved templates and a quick-access dropdown, and a comprehensive global search for leads, app pages, features, and settings. A sophisticated multi-agent AI system (Crew AI-style) comprising six specialized agents (Orchestrator, Lead Generator, Nurturer, Customer Service, Onboarding, Call Log Analyst) automates CRM tasks. Each agent is configurable with LLM models (OpenAI, Anthropic, Google), prompts, and rules. The AI Agents page provides live monitoring and a Human-in-the-Loop (HITL) approval queue for critical actions, though Lead Generation AI operates automatically via webhooks. Users can manually trigger AI agents on specific leads, choosing an agent or deferring to the Orchestrator. The system now features a Nurturing AI with an Activity Board, displaying AI-suggested tasks (calls, SMS, emails) and message drafts, accessible via a dedicated button above the lead pipeline on the dashboard. The application is also expected to be mobile-responsive and support dark/light mode.
+The RealtorsPal AI CRM is designed for real estate lead management, leveraging a multi-agent AI system. It features advanced lead filtering, global search, and a Crew AI-style architecture with agents like Orchestrator, Lead Generator, and Nurturer, each configurable with LLM models, prompts, and rules. The AI Agents page offers live monitoring and a Human-in-the-Loop approval queue. Users can manually trigger AI agents on specific leads, opening a popup for agent selection. For lead generation, after selecting an agent, a popup appears to input search parameters (e.g., Kijiji URLs, Google Maps queries) and displays live activity. The Nurturing AI includes an Activity Board for suggested tasks. The application supports mobile responsiveness and dark/light mode. Recently, a Partial Leads feature was requested to display incomplete leads in a dedicated table, similar to the main Leads page, with View and Remove actions.
 </product_requirements>
 
 <key_technical_concepts>
-- **Backend**: FastAPI, Motor (async MongoDB driver), Pydantic for data validation, CrewAI for multi-agent orchestration, Apify for data scraping.
-- **Frontend**: React, Tailwind CSS (with ), Zustand for state management.
-- **AI/LLM Integration**:  library for multi-provider LLM support (OpenAI, Anthropic, Google).
-- **Communication**: Axios for API calls, Custom Browser Events for cross-component state sync, Server-Sent Events (SSE) for real-time logs.
-- **Persistence**: MongoDB, .
-- **UI/UX**: Modals, Kanban board, custom theming (dark/light mode).
+- **Backend**: FastAPI, Motor (async MongoDB driver), Pydantic, CrewAI (multi-agent orchestration), Apify (data scraping for Kijiji, Google Maps),  for LLM.
+- **Frontend**: React, Tailwind CSS (with ), Axios for API calls.
+- **AI/LLM Integration**: OpenAI (via ).
+- **Communication**: Server-Sent Events (SSE) for real-time logs.
+- **Persistence**: MongoDB (with  collection for API keys), .
+- **UI/UX**: Modals, Kanban board, custom theming, mobile responsiveness.
 </key_technical_concepts>
 
 <code_architecture>
@@ -21,68 +21,47 @@ The application utilizes a monorepo structure with a React frontend and a FastAP
 
 
 -   ****
-    -   **Importance**: Central FastAPI backend, managing all API endpoints, business logic, and database interactions.
-    -   **Changes**: Heavily modified to include comprehensive AI Agent system endpoints, Lead Generation AI webhook (), Nurturing AI logic and endpoints, new MongoDB collections and logging functions (, , ), and deployment-related fixes (environment variable for DB name). It orchestrates agent tasks and handles activity streams.
-
+    -   **Importance**: Central FastAPI backend.
+    -   **Changes**: Initial fix for an extraneous  statement (line 4768). Modified to include API endpoints for the AI Agent system, Lead Generation AI (webhook, ), and Nurturing AI. It now also mounts 's routes. Database interaction for  was added to secure API keys.
 -   ** (NEW)**
-    -   **Importance**: A new, dedicated service for CrewAI-based lead generation, including Apify integrations for Zillow and Kijiji.
-    -   **Changes**: Created from user-provided code, it defines CrewAI agents (Orchestrator, Finder, Extractor, Mapper, Enricher, Poster, Summarizer), Apify integration functions, and FastAPI endpoints for triggering lead generation (), checking status (), and streaming live activity ().
-
+    -   **Importance**: Dedicated service for CrewAI-based lead generation, initially using Apify for Kijiji, then adapted for Google Maps Scraper. Handles agent definitions, Apify integration, and FastAPI endpoints.
+    -   **Changes**:
+        -   Initial setup with CrewAI agents, Apify Kijiji integration.
+        -   CORS middleware removed as it's handled by .
+        -   Route paths prefixed with .
+        -   Fixed  import and used .
+        -   Updated  to wait for actor completion and handle  objects.
+        -   Modified  and  for Apify's  array and  input format.
+        -   Temporarily disabled CrewAI parsing for speed, then re-enabled for Google Maps data.
+        -   Switched Apify actor to  ().
+        -   Updated  model and  to accept  and .
+        -   Migrated OpenAI and Apify API key retrieval from  to a  MongoDB collection.
+        -   Implemented lazy-loading for agents to prevent module import issues with database access.
+        -   Fixed  scope issue in background tasks by passing it as a parameter.
+        -   Added extensive debugging and error logging.
+        -   Fixed  issue in  by using .
+        -   Handled  errors on .
+        -   Improved  to correctly extract business , , ,  from Google Maps JSON.
+        -    now passes through all relevant fields instead of dropping them.
+        -   Added logic to detect and save partial leads if  or  are missing.
 -   ****
     -   **Importance**: Centralizes all frontend API calls.
-    -   **Changes**: Extended with new functions for AI Agent interaction (orchestration, activities), Nurturing AI, and Lead Generation AI APIs. Deployment fixes removed hardcoded localhost URLs.
-
+    -   **Changes**: Extended with  and  for new AI Agent APIs. Updated  to send  and  instead of  for Apify.
 -   ****
-    -   **Importance**: Main entry point for the React application.
-    -   **Changes**: Wrapped the application with  for dark/light mode support.
-
+    -   **Importance**: Main entry point, defines routes.
+    -   **Changes**: Will need to be updated to include a route for the new  page.
 -   ** (NEW)**
-    -   **Importance**: Allows users to select an AI agent or Main Orchestrator to act on a specific lead.
-    -   **Changes**: Created to handle agent selection and trigger API calls for orchestration.
-
--   ** (NEW)**
-    -   **Importance**: Displays AI-generated nurturing activities for leads.
-    -   **Changes**: Created to render the activity plan. Its content was later moved into .
-
--   ** (NEW)**
-    -   **Importance**: Modal wrapper for the Activity Board, allowing it to be opened on demand.
-    -   **Changes**: Created from the content of , it now includes lead names, message draft viewing, activity selection, removal functionality, and placeholder buttons for Add new group, Person, and Group by.
-
+    -   **Importance**: Frontend UI for triggering lead generation, collecting search parameters, and displaying live activity.
+    -   **Changes**: Created. Initially had a generic search input. Modified to accept  and  for Kijiji. Later updated to accept  and  for Google Maps Scraper, including corresponding placeholders and helper text.
 -   ****
-    -   **Importance**: Application-wide search.
-    -   **Changes**: Deployment fixes removed hardcoded localhost URLs.
-
--   ****
-    -   **Importance**: Defines the main application layout (header, navigation, content area).
-    -   **Changes**: Integrated , implemented mobile responsiveness with a hamburger menu, and fixed mobile menu visibility/rendering issues using appropriate CSS and state management.
-
--   ****
-    -   **Importance**: Provides quick access to saved filter templates.
-    -   **Changes**: Deployment fixes removed hardcoded localhost URLs.
-
--   ** (NEW)**
-    -   **Importance**: UI component for switching between light and dark modes.
-    -   **Changes**: Created to manage theme state and render the toggle button.
-
--   ** (NEW)**
-    -   **Importance**: Provides a React Context for managing and consuming the application's theme (dark/light mode).
-    -   **Changes**: Created to encapsulate theme state and toggle logic.
-
--   ****
-    -   **Importance**: Displays leads in a table view.
-    -   **Changes**: Added AI Agent button to each lead row, integrated  with state and handlers.
-
+    -   **Importance**: Main application layout and navigation.
+    -   **Changes**: Added Run Lead Gen button (temporarily), later removed and moved to . A new navigation link for Partial Leads has been added.
 -   ****
     -   **Importance**: Central hub for monitoring and configuring AI Agents.
-    -   **Changes**: Updated to display the new Live Activity Stream based on , , and .
-
--   ****
-    -   **Importance**: Main dashboard with Kanban board for leads.
-    -   **Changes**: Added AI Agent button to  components, integrated . The  was initially integrated directly but later replaced by an Activities button that opens . Updated various components and styling for dark/light mode and mobile responsiveness.
-
--   ****
-    -   **Importance**: Configuration for Tailwind CSS.
-    -   **Changes**: Enabled  to support theme switching based on a class on the HTML element.
+    -   **Changes**: Added Run Lead Gen button to the Lead Generator AI card. Dark mode classes were updated for consistency.
+-   ** (PROPOSED NEW)**
+    -   **Importance**: Will display leads that were identified as partial during the lead generation process.
+    -   **Changes**: This file is yet to be created but is implied by the user's latest request.
 </code_architecture>
 
 <pending_tasks>
@@ -92,20 +71,23 @@ The application utilizes a monorepo structure with a React frontend and a FastAP
 - Real Google Drive/Sheets integration for lead import.
 - Re-enable user login with features like remember me and Switch User.
 - Implement Add new group, Person, and Group by functionalities in the Activity Board Modal.
-- Mount and fully integrate the new  into  and the frontend.
+- Implement the Partial Leads page with a table similar to the Leads page, displaying only View and Remove buttons in the action column.
+- The View button on a Partial Lead should open an Add/Update Lead window.
 </pending_tasks>
 
 <current_work>
-The most recent work involved integrating a new, comprehensive CrewAI-based lead generation service. This service, provided as a complete  file, includes multiple specialized AI agents (Orchestrator, Finder, Extractor, Mapper, Enricher, Poster, Summarizer) and Apify integrations for Zillow and Kijiji data scraping. It also defines FastAPI endpoints for running lead generation jobs (), checking their status (), and streaming live activity ().
+The most recent work focused on debugging and completing the Google Maps Scraper integration for lead generation, ensuring leads are correctly extracted, mapped, and saved to the CRM. This involved:
+1.  **Debugging Lead Saving**: Identified and fixed an issue where leads, though reported as posted, weren't being saved to the database due to incorrect  usage within a background task ().
+2.  **Handling Partial Data**: Implemented a fallback mechanism to save leads with missing critical information (like  or ) into a new  collection.
+3.  **Correcting Data Mapping**: Addressed an error where  was called and refined  to accurately extract and map , , , and  from the Google Maps JSON structure to CRM lead fields.
+4.  **Preserving Raw Data**: Ensured  passes all necessary fields from the Apify output, preventing data loss during the initial extraction.
+5.  **Frontend Update (Partial Leads button)**: A Partial Leads navigation tab was added to the  in the frontend to provide access to these incomplete leads.
 
-The AI engineer has successfully:
-1.  Created the  file in the backend with the exact code provided by the user.
-2.  Attempted to update  to include , , , , and , which initially led to dependency conflicts.
-3.  Successfully installed  separately after the conflict.
+The system is now successfully generating leads from Google Maps, segregating complete leads into the main CRM and incomplete ones into the  collection.
 
-The next immediate step is to mount the newly created  into the main  by adding its FastAPI routes. Following this, the frontend will need to be updated to trigger this lead generation service from the AI Agents page or other relevant sections, implementing the popup with SSE for live activity and polling for status updates as specified in the user's instructions.
+The immediate next step, as per the user's latest request, is to implement the functionality for the Partial Leads page.
 </current_work>
 
 <optional_next_step>
-Mount the  by adding its routes to the main .
+Create the  page and its route in  to display partial leads in a table.
 </optional_next_step>
