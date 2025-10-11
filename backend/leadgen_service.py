@@ -376,11 +376,11 @@ def search_google_maps(search_terms: str, location: str, max_results: int, log: 
     skipped = 0
     
     for idx, it in enumerate(items):
-        # Extract from Google Maps response
-        title = it.get("title") or it.get("name") or ""
-        phone = it.get("phoneNumber") or it.get("phone") or ""
-        website = it.get("website") or it.get("url") or ""
-        address = it.get("address") or ""
+        # Extract from Google Maps response using ACTUAL field names
+        title = it.get("title", "")
+        phone = it.get("phone", "")  # Correct field name
+        website = it.get("website", "")  # Correct field name
+        street = it.get("street", "")
         
         # Skip items without title (need at least business name)
         if not title:
@@ -389,10 +389,14 @@ def search_google_maps(search_terms: str, location: str, max_results: int, log: 
                 _safe_log(log, f"[FINDER] Skipping item {idx+1}: No title. Keys: {list(it.keys())[:5]}")
             continue
         
-        # Extract location details
-        city = it.get("city") or it.get("addressComponents", {}).get("city") or ""
-        state = it.get("state") or it.get("addressComponents", {}).get("state") or ""
-        postal_code = it.get("postalCode") or it.get("zip") or ""
+        # Extract location details using ACTUAL field names
+        city = it.get("city", "")
+        state = it.get("state", "")
+        postal_code = it.get("postalCode", "")
+        country_code = it.get("countryCode", "CA")
+        
+        # Build full address
+        full_address = f"{street}, {city}, {state}" if street else f"{city}, {state}"
         
         # Seller/Agent information
         seller_info = {
@@ -403,28 +407,34 @@ def search_google_maps(search_terms: str, location: str, max_results: int, log: 
             "location": f"{city}, {state}" if city and state else location
         }
         
-        # Create listing object
+        # Create listing object with correct field mappings
         listing = {
             "source": "google_maps",
             "title": title,
             "phone": phone,
             "website": website,
-            "description": it.get("categoryName") or it.get("businessStatus") or "",
-            "address": address,
+            "description": it.get("categoryName", ""),
+            "address": full_address,
+            "street": street,
             "city": city,
             "province": state,
             "postalCode": postal_code,
-            "url": it.get("url") or website,
-            "rating": it.get("rating"),
-            "reviews_count": it.get("reviewsCount") or it.get("totalScore"),
+            "countryCode": country_code,
+            "url": it.get("url", ""),
+            "rating": it.get("totalScore"),  # Correct field name
+            "reviews_count": it.get("reviewsCount"),  # Correct field name
             "category": it.get("categoryName"),
-            "latitude": it.get("location", {}).get("lat") if isinstance(it.get("location"), dict) else None,
-            "longitude": it.get("location", {}).get("lng") if isinstance(it.get("location"), dict) else None,
+            "latitude": it.get("latitude"),
+            "longitude": it.get("longitude"),
             "images": it.get("imageUrls", []),
             "seller": seller_info,
             "raw_data": it
         }
         out.append(listing)
+        
+        # Log first item for verification
+        if idx == 0:
+            _safe_log(log, f"[FINDER] First listing: {title}, Phone: {phone or 'N/A'}, City: {city}")
     
     _safe_log(log, f"[FINDER] Extracted {len(out)} listings (skipped {skipped} without title)")
     return out
