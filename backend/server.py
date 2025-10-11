@@ -4766,6 +4766,233 @@ async def analyze_reply(user_id: str, lead_id: str, reply_text: str):
             content={"status": "error", "message": str(e)}
         )
 
+# =========================
+# Partial Leads API Endpoints
+# =========================
+
+class PartialLead(BaseModel):
+    id: str
+    raw_data: dict
+    source: str
+    created_at: str
+    status: str
+    notes: str
+
+class ConvertPartialLeadRequest(BaseModel):
+    user_id: str
+    # All the same fields as CreateLeadRequest but from the partial lead data
+    name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    lead_description: Optional[str] = None
+    
+    # Additional Contact Information
+    work_phone: Optional[str] = None
+    home_phone: Optional[str] = None
+    email_2: Optional[str] = None
+    
+    # Spouse Information
+    spouse_name: Optional[str] = None
+    spouse_first_name: Optional[str] = None
+    spouse_last_name: Optional[str] = None
+    spouse_email: Optional[str] = None
+    spouse_mobile_phone: Optional[str] = None
+    spouse_birthday: Optional[str] = None
+    
+    # Pipeline and Status
+    pipeline: Optional[str] = None
+    status: Optional[str] = None
+    ref_source: Optional[str] = None
+    lead_rating: Optional[str] = None
+    lead_source: Optional[str] = None
+    lead_type: Optional[str] = None
+    lead_type_2: Optional[str] = None
+    
+    # Property Information
+    house_to_sell: Optional[str] = None
+    buying_in: Optional[str] = None
+    selling_in: Optional[str] = None
+    owns_rents: Optional[str] = None
+    mortgage_type: Optional[str] = None
+    
+    # Address Information
+    city: Optional[str] = None
+    zip_postal_code: Optional[str] = None
+    address: Optional[str] = None
+    
+    # Property Details
+    property_type: Optional[str] = None
+    property_condition: Optional[str] = None
+    listing_status: Optional[str] = None
+    bedrooms: Optional[str] = None
+    bathrooms: Optional[str] = None
+    basement: Optional[str] = None
+    parking_type: Optional[str] = None
+    
+    # Dates and Anniversaries  
+    house_anniversary: Optional[str] = None
+    planning_to_sell_in: Optional[str] = None
+    
+    # Agent Assignments
+    main_agent: Optional[str] = None
+    mort_agent: Optional[str] = None
+    list_agent: Optional[str] = None
+    
+    # Custom Fields (flexible JSON structure)
+    custom_fields: Optional[dict] = None
+    
+    # Existing compatibility fields
+    neighborhood: Optional[str] = None
+    price_min: Optional[int] = None
+    price_max: Optional[int] = None
+    priority: Optional[str] = None
+    source_tags: Optional[List[str]] = None
+    notes: Optional[str] = None
+    stage: Optional[str] = None
+    in_dashboard: Optional[bool] = None
+
+    @field_validator("phone", "work_phone", "home_phone", "spouse_mobile_phone")
+    @classmethod
+    def validate_phone(cls, v):
+        if v is not None and v.strip() and not E164_RE.match(v):
+            # Try to normalize the phone number
+            normalized = normalize_phone(v)
+            if normalized and E164_RE.match(normalized):
+                return normalized
+            raise ValueError("Phone must be in E.164 format, e.g. +1234567890")
+        return v
+
+@app.get("/api/partial-leads", response_model=List[PartialLead])
+async def get_partial_leads():
+    """Get all partial leads"""
+    try:
+        partial_leads = await db.partial_leads.find().to_list(length=None)
+        return [PartialLead(**{k: v for k, v in lead.items() if k != "_id"}) for lead in partial_leads]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/partial-leads/{lead_id}", response_model=PartialLead)
+async def get_partial_lead(lead_id: str):
+    """Get a specific partial lead"""
+    try:
+        partial_lead = await db.partial_leads.find_one({"id": lead_id})
+        if not partial_lead:
+            raise HTTPException(status_code=404, detail="Partial lead not found")
+        return PartialLead(**{k: v for k, v in partial_lead.items() if k != "_id"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/partial-leads/{lead_id}")
+async def delete_partial_lead(lead_id: str):
+    """Delete a partial lead"""
+    try:
+        result = await db.partial_leads.delete_one({"id": lead_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Partial lead not found")
+        return {"message": "Partial lead deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/partial-leads/{lead_id}/convert", response_model=Lead)
+async def convert_partial_lead(lead_id: str, convert_data: ConvertPartialLeadRequest):
+    """Convert a partial lead to a full lead"""
+    try:
+        # Get the partial lead first
+        partial_lead = await db.partial_leads.find_one({"id": lead_id})
+        if not partial_lead:
+            raise HTTPException(status_code=404, detail="Partial lead not found")
+        
+        # Validate and normalize email
+        validated_email = None
+        if convert_data.email and convert_data.email.strip():
+            try:
+                validation = validate_email(convert_data.email.strip())
+                validated_email = validation.email
+            except EmailNotValidError:
+                validated_email = None
+        
+        # Normalize phone numbers
+        normalized_phone = normalize_phone(convert_data.phone) if convert_data.phone else None
+        normalized_work_phone = normalize_phone(convert_data.work_phone) if convert_data.work_phone else None
+        normalized_home_phone = normalize_phone(convert_data.home_phone) if convert_data.home_phone else None
+        normalized_spouse_phone = normalize_phone(convert_data.spouse_mobile_phone) if convert_data.spouse_mobile_phone else None
+        
+        # Create lead name if not provided
+        name = convert_data.name
+        if not name:
+            name = f"{convert_data.first_name or ''} {convert_data.last_name or ''}".strip() or "Converted Lead"
+        
+        # Create the full lead
+        lead = Lead(
+            user_id=convert_data.user_id,
+            name=name,
+            first_name=convert_data.first_name,
+            last_name=convert_data.last_name,
+            email=validated_email,
+            phone=normalized_phone,
+            lead_description=convert_data.lead_description,
+            work_phone=normalized_work_phone,
+            home_phone=normalized_home_phone,
+            email_2=convert_data.email_2,
+            spouse_name=convert_data.spouse_name,
+            spouse_first_name=convert_data.spouse_first_name,
+            spouse_last_name=convert_data.spouse_last_name,
+            spouse_email=convert_data.spouse_email,
+            spouse_mobile_phone=normalized_spouse_phone,
+            spouse_birthday=convert_data.spouse_birthday,
+            pipeline=convert_data.pipeline or "New Lead",
+            status=convert_data.status or "Open",
+            ref_source=convert_data.ref_source,
+            lead_rating=convert_data.lead_rating,
+            lead_source=convert_data.lead_source or "Converted from Partial",
+            lead_type=convert_data.lead_type,
+            lead_type_2=convert_data.lead_type_2,
+            house_to_sell=convert_data.house_to_sell,
+            buying_in=convert_data.buying_in,
+            selling_in=convert_data.selling_in,
+            owns_rents=convert_data.owns_rents,
+            mortgage_type=convert_data.mortgage_type,
+            city=convert_data.city,
+            zip_postal_code=convert_data.zip_postal_code,
+            address=convert_data.address,
+            property_type=convert_data.property_type,
+            property_condition=convert_data.property_condition,
+            listing_status=convert_data.listing_status,
+            bedrooms=convert_data.bedrooms,
+            bathrooms=convert_data.bathrooms,
+            basement=convert_data.basement,
+            parking_type=convert_data.parking_type,
+            house_anniversary=convert_data.house_anniversary,
+            planning_to_sell_in=convert_data.planning_to_sell_in,
+            main_agent=convert_data.main_agent,
+            mort_agent=convert_data.mort_agent,
+            list_agent=convert_data.list_agent,
+            custom_fields=convert_data.custom_fields,
+            neighborhood=convert_data.neighborhood,
+            price_min=convert_data.price_min,
+            price_max=convert_data.price_max,
+            priority=convert_data.priority or "medium",
+            source_tags=convert_data.source_tags or ["Converted from Partial"],
+            notes=convert_data.notes,
+            stage=convert_data.stage or "New",
+            in_dashboard=convert_data.in_dashboard if convert_data.in_dashboard is not None else True
+        )
+        
+        # Insert the new lead
+        await db.leads.insert_one(lead.model_dump(exclude_none=True))
+        
+        # Remove the partial lead
+        await db.partial_leads.delete_one({"id": lead_id})
+        
+        return lead
+        
+    except DuplicateKeyError:
+        raise HTTPException(status_code=409, detail="Lead with this email already exists")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Mount Lead Generation Service
 from leadgen_service import app as leadgen_app
 
