@@ -1024,7 +1024,7 @@ def _run_job(job_id: str, search_terms: str, location: str, max_results: int):
         _safe_log(log_fn, f"[POSTER] Successfully posted {len(posted)} leads, failed: {len(failed)}")
 
         counts = {
-            "found": len(kijiji_results),
+            "found": len(google_maps_results),
             "extracted": len(extracted),
             "mapped": len(mapped),
             "unique": len(unique),
