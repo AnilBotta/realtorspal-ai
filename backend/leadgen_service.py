@@ -303,17 +303,24 @@ def _apify_run_actor(actor_id: str, actor_input: Dict[str, Any], log: Callable[[
         return []
 
     _safe_log(log, f"[APIFY] Fetching results from dataset {dataset_id}...")
-    items = requests.get(f"{APIFY_BASE}/datasets/{dataset_id}/items?token={apify_token}", timeout=90)
-    items.raise_for_status()
-    rows = items.json()
-    _safe_log(log, f"[APIFY] ✓ Successfully fetched {len(rows)} items")
+    items_response = requests.get(f"{APIFY_BASE}/datasets/{dataset_id}/items?token={apify_token}", timeout=90)
+    items_response.raise_for_status()
+    rows = items_response.json()
+    _safe_log(log, f"[APIFY] ✓ Dataset fetch status: {items_response.status_code}")
+    _safe_log(log, f"[APIFY] ✓ Response type: {type(rows)}, length: {len(rows) if isinstance(rows, list) else 'N/A'}")
     
-    # Debug: Log first item structure
-    if len(rows) > 0:
+    # Debug: Log response details
+    if isinstance(rows, list) and len(rows) > 0:
         first_item_keys = list(rows[0].keys()) if isinstance(rows[0], dict) else "Not a dict"
         _safe_log(log, f"[APIFY] First item keys: {first_item_keys}")
+        _safe_log(log, f"[APIFY] First item preview: {str(rows[0])[:150]}")
+    elif isinstance(rows, list) and len(rows) == 0:
+        _safe_log(log, f"[APIFY] ⚠ Dataset exists but contains 0 items!")
+        _safe_log(log, f"[APIFY] This could mean: 1) No listings found at URL, 2) Actor configuration issue, 3) Scraping failed")
+    else:
+        _safe_log(log, f"[APIFY] ⚠ Unexpected response format: {type(rows)}")
     
-    return rows
+    return rows if isinstance(rows, list) else []
 
 def search_zillow(query: str, max_results: int, log: Callable[[str], None]) -> List[Dict[str, Any]]:
     """
