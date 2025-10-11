@@ -674,6 +674,12 @@ def map_to_crm_fields(extracted: Dict[str, Any]) -> Dict[str, Any]:
         "images": extracted.get("images", []),
         "homeType": extracted.get("homeType"),
         "postalCode": extracted.get("postalCode"),
+        
+        # Google Maps specific fields
+        "website": extracted.get("website") or seller.get("website"),
+        "rating": extracted.get("rating"),
+        "reviews_count": extracted.get("reviews_count"),
+        "category": extracted.get("category"),
 
         # Description
         "description": extracted.get("description") or extracted.get("title") or "Property lead",
