@@ -654,6 +654,7 @@ def summarize_counts(counts: Dict[str, int]) -> str:
 def parse_listing_description(title: str, description: str, log: Callable[[str], None]) -> Dict[str, Any]:
     """Use CrewAI to parse property listing description and extract structured data."""
     try:
+        description_parser = get_agent("description_parser")
         t = Task(
             description=(
                 f"Parse this real estate listing and extract ALL available information:\n\n"
