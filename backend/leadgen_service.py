@@ -319,8 +319,10 @@ def search_zillow(query: str, max_results: int, log: Callable[[str], None]) -> L
     """
     epctex~zillow-scraper – adjust input if you customize actor.
     """
+    # Get token fresh from cache or database
+    token = get_api_secret_sync("APIFY_TOKEN")
     actor_input = {"locationQuery": query, "maxItems": max_results, "includeSold": False}
-    items = _apify_run_actor(APIFY_ZILLOW_ACTOR, actor_input, log)
+    items = _apify_run_actor(APIFY_ZILLOW_ACTOR, actor_input, log, token)
     out = []
     for it in items:
         out.append({
