@@ -30,6 +30,7 @@ export default function Layout({ children, user, onLogout }) {
   const tabs = [
     { to: "/", label: "Dashboard", color: "bg-blue-500 hover:bg-blue-600 text-white" },
     { to: "/leads", label: "Leads", color: "bg-green-500 hover:bg-green-600 text-white" },
+    { to: "/partial-leads", label: "Partial Leads", color: "bg-yellow-500 hover:bg-yellow-600 text-white" },
     { to: "/agents", label: "AI Agents", color: "bg-purple-500 hover:bg-purple-600 text-white" },
     { to: "/analytics", label: "Analytics", color: "bg-orange-500 hover:bg-orange-600 text-white" },
     { to: "/data", label: "Data", color: "bg-teal-500 hover:bg-teal-600 text-white" },
