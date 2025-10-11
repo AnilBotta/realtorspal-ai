@@ -196,34 +196,61 @@ summarizer = Agent(
 # =========================
 
 def _apify_run_actor(actor_id: str, actor_input: Dict[str, Any], log: Callable[[str], None]) -> List[Dict[str, Any]]:
-    """Run an Apify actor and return dataset items."""
+    """Run an Apify actor and return dataset items. Waits for completion."""
     url = f"{APIFY_BASE}/acts/{actor_id}/runs?token={APIFY_TOKEN}"
-    _safe_log(log, f"[APIFY] Start {actor_id} input={actor_input}")
+    _safe_log(log, f"[APIFY] Starting actor {actor_id}...")
+    
+    # Start the actor run
     run = requests.post(url, json=actor_input, timeout=60)
     run.raise_for_status()
     data = run.json().get("data", {})
     run_id = data.get("id")
     dataset_id = data.get("defaultDatasetId")
+    
+    _safe_log(log, f"[APIFY] Actor run started with ID: {run_id}")
+    _safe_log(log, f"[APIFY] Waiting for actor to complete (this may take 1-3 minutes)...")
 
-    # Poll run for dataset if not ready
-    for _ in range(40):
-        if dataset_id:
-            break
-        time.sleep(1.25)
+    # Poll for run completion (wait up to 5 minutes)
+    max_polls = 150  # 150 * 2 seconds = 5 minutes max
+    poll_interval = 2  # seconds
+    
+    for poll_count in range(max_polls):
+        time.sleep(poll_interval)
+        
+        # Check run status
         r = requests.get(f"{APIFY_BASE}/actor-runs/{run_id}?token={APIFY_TOKEN}", timeout=30)
         r.raise_for_status()
         rd = r.json().get("data", {})
+        
+        status = rd.get("status")
         dataset_id = rd.get("defaultDatasetId")
-        _safe_log(log, f"[APIFY] Status: {rd.get('status')}")
+        
+        # Log progress every 10 polls (20 seconds)
+        if poll_count % 10 == 0 or status in ["SUCCEEDED", "FAILED", "ABORTED", "TIMED-OUT"]:
+            _safe_log(log, f"[APIFY] Status: {status} (checked {poll_count + 1} times)")
+        
+        # Check if run is complete
+        if status == "SUCCEEDED":
+            _safe_log(log, f"[APIFY] ✓ Actor completed successfully!")
+            break
+        elif status in ["FAILED", "ABORTED", "TIMED-OUT"]:
+            _safe_log(log, f"[APIFY] ✗ Actor run failed with status: {status}")
+            return []
+    else:
+        # Max polls reached without completion
+        _safe_log(log, f"[APIFY] ⚠ Timeout: Actor still running after {max_polls * poll_interval} seconds")
+        _safe_log(log, f"[APIFY] Attempting to fetch partial results...")
 
+    # Fetch dataset items
     if not dataset_id:
-        _safe_log(log, "[APIFY] No datasetId; returning 0 items.")
+        _safe_log(log, "[APIFY] No dataset ID available; returning 0 items.")
         return []
 
+    _safe_log(log, f"[APIFY] Fetching results from dataset {dataset_id}...")
     items = requests.get(f"{APIFY_BASE}/datasets/{dataset_id}/items?token={APIFY_TOKEN}", timeout=90)
     items.raise_for_status()
     rows = items.json()
-    _safe_log(log, f"[APIFY] Rows fetched: {len(rows)} (dataset {dataset_id})")
+    _safe_log(log, f"[APIFY] ✓ Successfully fetched {len(rows)} items")
     return rows
 
 def search_zillow(query: str, max_results: int, log: Callable[[str], None]) -> List[Dict[str, Any]]:
