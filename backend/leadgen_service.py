@@ -237,13 +237,15 @@ def get_agent(agent_name: str):
 # Apify calls (Zillow + Kijiji)
 # =========================
 
-def _apify_run_actor(actor_id: str, actor_input: Dict[str, Any], log: Callable[[str], None]) -> List[Dict[str, Any]]:
+def _apify_run_actor(actor_id: str, actor_input: Dict[str, Any], log: Callable[[str], None], token: str = None) -> List[Dict[str, Any]]:
     """Run an Apify actor and return dataset items. Waits for completion."""
-    if not APIFY_TOKEN:
+    # Use provided token or fall back to global APIFY_TOKEN
+    apify_token = token or APIFY_TOKEN
+    if not apify_token:
         _safe_log(log, "[APIFY] ERROR: APIFY_TOKEN is empty or None!")
         return []
     
-    url = f"{APIFY_BASE}/acts/{actor_id}/runs?token={APIFY_TOKEN}"
+    url = f"{APIFY_BASE}/acts/{actor_id}/runs?token={apify_token}"
     _safe_log(log, f"[APIFY] Starting actor {actor_id}...")
     _safe_log(log, f"[APIFY] Token available: {bool(APIFY_TOKEN)}, length: {len(APIFY_TOKEN) if APIFY_TOKEN else 0}")
     
