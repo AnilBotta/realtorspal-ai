@@ -752,10 +752,15 @@ def post_to_realtorspal(crm: Dict[str, Any], log: Callable[[str], None]) -> Dict
             "stage": crm.get("stage", "New"),
             "pipeline": crm.get("pipeline", "New Lead"),
             "lead_source": "AI Lead Generation",
-            "lead_type": "Seller" if seller.get("name") else "Property Lead",
-            "notes": f"Kijiji Listing: {crm.get('title', 'No title')}\nDescription: {crm.get('description', 'N/A')[:200]}\nListing URL: {crm.get('source_url', '')}",
+            "lead_type": "Agent" if seller.get("name") else "Contact",
+            "notes": f"{crm.get('title', 'No title')}\n" + 
+                     (f"Category: {crm.get('category', 'N/A')}\n" if crm.get('category') else "") +
+                     (f"Description: {crm.get('description', 'N/A')[:200]}\n" if crm.get('description') else "") +
+                     (f"Website: {seller.get('website', 'N/A')}\n" if seller.get('website') else "") +
+                     (f"Rating: {crm.get('rating')}/5 ({crm.get('reviews_count')} reviews)\n" if crm.get('rating') else "") +
+                     (f"URL: {crm.get('source_url', '')}" if crm.get('source_url') else ""),
             "in_dashboard": True,
-            "source_tags": ["AI Generated", "Kijiji", crm.get('homeType', 'Real Estate').title()]
+            "source_tags": ["AI Generated", crm.get('source', 'Unknown').title(), crm.get('category', 'Lead') or 'Lead']
         }
         
         # Use asyncio to insert into database directly
