@@ -4880,6 +4880,15 @@ class RealtorsPalAPITester:
             self.test_nurturing_ai_analyze_reply_neutral,
             self.test_nurturing_ai_comprehensive_workflow,
             
+            # Lead Nurturing AI Service Tests (CrewAI-based)
+            self.test_nurture_health_check,
+            self.test_nurture_start_with_valid_lead,
+            self.test_nurture_start_with_invalid_lead,
+            self.test_nurture_get_status,
+            self.test_nurture_activity_stream,
+            self.test_nurture_mongodb_integration,
+            self.test_nurture_crewai_dependencies,
+            
             # Main Orchestrator AI Live Activity Stream Tests
             self.test_orchestrator_live_activity_stream,
             self.test_orchestrator_agent_runs,
