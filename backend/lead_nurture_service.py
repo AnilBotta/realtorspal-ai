@@ -376,36 +376,129 @@ def pick_channel(lead: Dict[str, Any]) -> Optional[str]:
         return "whatsapp"
     return None
 
+async def analyze_and_update_stage(lead: Dict[str, Any], user_id: str) -> str:
+    """Use CrewAI orchestrator to analyze and determine lead stage"""
+    try:
+        llm = await _get_llm(user_id)
+        orchestrator, _, _ = create_agents(llm)
+        
+        # Analyze lead data to determine appropriate stage
+        lead_context = {
+            "current_stage": _get_stage(lead),
+            "contact_count": lead.get("nurture_contact_count", 0),
+            "last_contact": lead.get("last_nurture_contact"),
+            "lead_age_days": (datetime.now() - datetime.fromisoformat(lead.get("created_at", datetime.now().isoformat()))).days if lead.get("created_at") else 0,
+            "has_responses": lead.get("has_inbound_responses", False),
+            "pipeline": lead.get("pipeline"),
+            "priority": lead.get("priority")
+        }
+        
+        task_description = f"""
+        Analyze this lead's data and determine the most appropriate nurturing stage:
+        
+        Lead Context: {json.dumps(lead_context, indent=2)}
+        
+        Available stages:
+        - new: First time contact needed
+        - contacted: Initial contact made, awaiting response
+        - engaged: Lead is responding and showing interest
+        - appointment_proposed: Meeting/showing proposed
+        - appointment_confirmed: Meeting scheduled
+        - onboarding: Lead converted, stop nurturing
+        - not_interested: Lead explicitly declined, stop nurturing
+        - no_response: Multiple attempts with no response
+        - dormant: Long-term follow-up (3+ months)
+        
+        Rules:
+        - If contact_count = 0: "new"
+        - If contact_count > 0 and no responses: "contacted" or "no_response" (after 3+ attempts)
+        - If has_responses = true: "engaged"
+        - If lead_age_days > 90: "dormant"
+        - If pipeline contains "signed" or "sold": "onboarding"
+        
+        Return ONLY the stage name.
+        """
+        
+        from crewai import Task
+        task = Task(
+            description=task_description,
+            agent=orchestrator,
+            expected_output="Single stage name"
+        )
+        
+        result = Crew(agents=[orchestrator], tasks=[task]).kickoff()
+        stage = str(result.raw).strip().lower() if hasattr(result, 'raw') else str(result).strip().lower()
+        
+        # Validate stage
+        valid_stages = ["new", "contacted", "engaged", "appointment_proposed", "appointment_confirmed", 
+                      "onboarding", "not_interested", "no_response", "dormant"]
+        if stage not in valid_stages:
+            stage = _get_stage(lead)  # Fallback to current logic
+        
+        _log(lead["id"], f"[CREWAI] Stage analysis: {lead_context['current_stage']} → {stage}")
+        return stage
+        
+    except Exception as e:
+        _log(lead["id"], f"[ERROR] CrewAI stage analysis failed: {e}, using fallback")
+        return _get_stage(lead)  # Fallback to original logic
+
 async def send_nurture_message(lead: Dict[str, Any], purpose: str, user_id: str) -> Optional[str]:
-    """Send a nurturing message to lead"""
+    """Send a nurturing message to lead with full CrewAI logic"""
     lead_id = lead["id"]
     
-    # Check if we can send (consent, quiet hours, etc.)
+    # Step 1: Analyze and confirm stage using CrewAI
+    analyzed_stage = await analyze_and_update_stage(lead, user_id)
+    await _update_lead_stage(lead_id, analyzed_stage)
+    
+    # Step 2: Check channel preferences and consent
     channel = pick_channel(lead)
     if not channel:
-        _log(lead_id, "[SKIP] No available channels with consent")
+        _log(lead_id, "[COMPLIANCE] No available channels with consent")
         return None
         
+    # Step 3: Respect quiet hours (9 PM - 9 AM)
     if _in_quiet_hours(lead):
-        _log(lead_id, "[SKIP] In quiet hours (9 PM - 9 AM)")
+        _log(lead_id, "[COMPLIANCE] Quiet hours active (9 PM - 9 AM), scheduling for morning")
+        # Schedule for 9 AM next day
+        morning_time = (_now().replace(hour=9, minute=0, second=0, microsecond=0) + timedelta(days=1))
+        await db.leads.update_one(
+            {"id": lead_id},
+            {"$set": {"next_nurture_action": morning_time.isoformat()}}
+        )
         return None
     
-    # Craft and send message
+    # Step 4: Check 3-month limit rule
+    created_date = datetime.fromisoformat(lead.get("created_at", _now().isoformat()))
+    if (_now() - created_date).days > 90 and analyzed_stage not in ["engaged", "appointment_proposed", "appointment_confirmed"]:
+        _log(lead_id, "[RULE] 3-month limit reached, moving to dormant")
+        await _update_lead_stage(lead_id, "dormant")
+        return None
+    
+    # Step 5: Stop nurturing for final stages
+    if analyzed_stage in ["onboarding", "not_interested"]:
+        _log(lead_id, f"[COMPLETE] Nurturing stopped for stage: {analyzed_stage}")
+        return None
+    
+    # Step 6: Craft personalized message using CrewAI
     try:
+        _log(lead_id, f"[CREWAI] Crafting {purpose} message for {analyzed_stage} stage via {channel}")
         message = await craft_message(lead, purpose, channel, user_id)
+        
+        # Step 7: Send message via appropriate channel
         message_id = await deliver_message(lead, channel, message, user_id)
         
-        # Update lead's last contact info
+        # Step 8: Update lead tracking
         await db.leads.update_one(
             {"id": lead_id},
             {"$set": {
                 "last_nurture_contact": _now().isoformat(),
                 "last_nurture_channel": channel,
-                "nurture_contact_count": lead.get("nurture_contact_count", 0) + 1
+                "nurture_contact_count": lead.get("nurture_contact_count", 0) + 1,
+                "nurturing_stage": analyzed_stage
             }}
         )
         
-        _log(lead_id, f"[SENT] {purpose} via {channel}")
+        _log(lead_id, f"[SUCCESS] {purpose} sent via {channel} → {message_id}")
         return message_id
         
     except Exception as e:
