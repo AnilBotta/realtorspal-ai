@@ -637,46 +637,108 @@ async def start_nurturing(request: RunNurtureRequest, background_tasks: Backgrou
 
 @app.post("/inbound")
 async def handle_inbound(request: InboundMessageRequest):
-    """Handle inbound message from lead"""
+    """Handle inbound message from lead with full CrewAI logic"""
     lead = await _get_lead(request.lead_id)
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     
-    _log(request.lead_id, f"[INBOUND] Message via {request.channel}: {request.message[:50]}...")
+    _log(request.lead_id, f"[INBOUND] {request.channel.upper()} message: {request.message[:50]}...")
     
-    # Classify intent
+    # Step 1: Mark lead as having inbound responses
+    await db.leads.update_one(
+        {"id": request.lead_id},
+        {"$set": {"has_inbound_responses": True}}
+    )
+    
+    # Step 2: Classify intent using CrewAI
     intent, reason = await classify_intent(request.message, request.user_id)
-    _log(request.lead_id, f"[INTENT] Classified as: {intent} ({reason})")
+    _log(request.lead_id, f"[CREWAI] Intent: {intent} | Reason: {reason}")
     
-    # Handle based on intent
-    if intent == "not_interested":
-        await _update_lead_stage(request.lead_id, "not_interested")
-        _log(request.lead_id, "[ACTION] Marked as not interested - stopping nurturing")
+    # Step 3: Handle each intent with appropriate actions
+    auto_reply = None
+    new_stage = None
+    escalate = False
+    
+    if intent == "spam":
+        _log(request.lead_id, "[ACTION] Spam detected - ignored")
+        return {"intent": intent, "action": "ignored"}
+        
+    elif intent == "not_interested":
+        new_stage = "not_interested"
+        _log(request.lead_id, "[ACTION] Marked not interested - stopping nurture automation")
+        auto_reply = "Thank you for letting us know. We'll remove you from our follow-up sequence. Feel free to reach out if your situation changes in the future."
         
     elif intent in ["book", "reschedule"]:
-        await _update_lead_stage(request.lead_id, "appointment_proposed")
-        _log(request.lead_id, "[ACTION] Moving to appointment stage")
-        # TODO: Integrate with calendar booking
+        new_stage = "appointment_proposed" 
+        _log(request.lead_id, "[ACTION] Appointment interest detected")
+        
+        # Propose appointment times (stub - integrate with calendar later)
+        times = [
+            (_now() + timedelta(days=1, hours=10)).strftime("%a %b %d at %I:%M %p"),
+            (_now() + timedelta(days=2, hours=14)).strftime("%a %b %d at %I:%M %p"),
+            (_now() + timedelta(days=3, hours=16)).strftime("%a %b %d at %I:%M %p")
+        ]
+        
+        auto_reply = f"Great! I'd be happy to schedule a meeting. Here are some available times:\n\n"
+        auto_reply += f"• {times[0]}\n• {times[1]}\n• {times[2]}\n\n"
+        auto_reply += "Please reply with your preferred time, or let me know what works better for you."
         
     elif intent in ["questions", "objection_budget", "objection_area"]:
-        await _update_lead_stage(request.lead_id, "engaged")
-        _log(request.lead_id, "[ACTION] Engaging with lead questions")
-        # Send helpful response
-        await send_nurture_message(lead, "answer_question", request.user_id)
+        new_stage = "engaged"
+        _log(request.lead_id, "[ACTION] Questions/objections detected - crafting helpful response")
+        
+        # Use CrewAI to craft contextual response
+        try:
+            auto_reply = await craft_message(lead, "answer_question", request.channel, request.user_id)
+        except:
+            # Fallback template
+            if "budget" in intent:
+                auto_reply = "I understand budget is important. We work with clients at all price points and can help you find options that fit your needs. Would you like to discuss what you're comfortable with?"
+            elif "area" in intent:
+                auto_reply = "I'd be happy to share more information about different neighborhoods and areas. What specific concerns do you have about the location?"
+            else:
+                auto_reply = "Thanks for your question! I'd love to help provide more information. Could you share more details about what you'd like to know?"
         
     elif intent == "later":
-        await _update_lead_stage(request.lead_id, "no_response")
-        _log(request.lead_id, "[ACTION] Lead not ready - reducing frequency")
+        new_stage = "no_response"
+        _log(request.lead_id, "[ACTION] 'Later' response - adjusting follow-up frequency")
+        auto_reply = "I completely understand. I'll check back with you in a few weeks. In the meantime, feel free to reach out if you have any questions."
         
-    # Schedule next action based on new stage
-    new_stage = _get_stage(await _get_lead(request.lead_id))
-    await schedule_next_action(lead, new_stage)
+    else:
+        # Default: treat as general inquiry
+        new_stage = "engaged"
+        _log(request.lead_id, "[ACTION] General inquiry - providing helpful response")
+        escalate = True  # Escalate uncertain intents to human
+        
+        auto_reply = "Thanks for reaching out! I want to make sure I give you the most helpful response. Someone from our team will get back to you shortly with detailed information."
+    
+    # Step 4: Update lead stage
+    if new_stage:
+        await _update_lead_stage(request.lead_id, new_stage)
+    
+    # Step 5: Send auto-reply if appropriate
+    if auto_reply and not escalate:
+        try:
+            channel = request.channel
+            message_id = await deliver_message(lead, channel, auto_reply, request.user_id)
+            _log(request.lead_id, f"[AUTO-REPLY] Sent via {channel} → {message_id}")
+        except Exception as e:
+            _log(request.lead_id, f"[ERROR] Auto-reply failed: {e}")
+    
+    # Step 6: Schedule next action or stop automation
+    if new_stage in ["onboarding", "not_interested"]:
+        _log(request.lead_id, "[AUTOMATION] Stopping nurture automation")
+    else:
+        updated_lead = await _get_lead(request.lead_id)
+        await schedule_next_action(updated_lead, new_stage or _get_stage(updated_lead))
     
     return {
         "lead_id": request.lead_id,
         "intent": intent,
         "reason": reason,
-        "new_stage": new_stage
+        "new_stage": new_stage,
+        "auto_reply_sent": bool(auto_reply and not escalate),
+        "escalated": escalate
     }
 
 @app.post("/tick")
