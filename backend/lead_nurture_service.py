@@ -505,29 +505,59 @@ async def send_nurture_message(lead: Dict[str, Any], purpose: str, user_id: str)
         _log(lead_id, f"[ERROR] Failed to send {purpose}: {e}")
         return None
 
-def calculate_next_followup(lead: Dict[str, Any], stage: str) -> datetime:
-    """Calculate when next follow-up should occur"""
+def calculate_next_followup(lead: Dict[str, Any], stage: str) -> Optional[datetime]:
+    """Calculate when next follow-up should occur based on CrewAI rules"""
     now = _now()
     contact_count = lead.get("nurture_contact_count", 0)
+    created_date = datetime.fromisoformat(lead.get("created_at", now.isoformat()))
+    lead_age_days = (now - created_date).days
     
-    if stage == "new":
-        return now + timedelta(hours=2)  # Quick follow-up for new leads
-    elif stage == "contacted":
-        # Escalating schedule: 2 days, 5 days, 1 week, 2 weeks
-        if contact_count < 2:
-            return now + timedelta(days=2)
-        elif contact_count < 4:
-            return now + timedelta(days=5)
-        elif contact_count < 6:
-            return now + timedelta(weeks=1)
+    # Stop nurturing for final stages
+    if stage in ["onboarding", "not_interested"]:
+        return None
+    
+    # 3-month rule: Move to dormant after 90 days
+    if lead_age_days >= 90:
+        if stage != "dormant":
+            return now + timedelta(days=30)  # Monthly dormant check
         else:
-            return now + timedelta(weeks=2)
+            return now + timedelta(days=30)  # Continue monthly for dormant
+    
+    # Stage-based scheduling following your original cadence
+    if stage == "new":
+        return now + timedelta(hours=2)  # Immediate welcome sequence
+        
+    elif stage == "contacted":
+        # Welcome cadence: 0, 2, 5, 9 days, then weekly, then bi-weekly
+        if contact_count <= 1:
+            return now + timedelta(days=2)  # Day 2
+        elif contact_count <= 2:
+            return now + timedelta(days=5)  # Day 5  
+        elif contact_count <= 3:
+            return now + timedelta(days=9)  # Day 9
+        elif contact_count <= 5:
+            return now + timedelta(days=7)  # Weekly after initial sequence
+        else:
+            return now + timedelta(days=14)  # Bi-weekly
+            
     elif stage == "engaged":
         return now + timedelta(days=3)  # Keep engaged leads warm
+        
+    elif stage in ["appointment_proposed", "appointment_confirmed"]:
+        return now + timedelta(days=1)  # Follow up quickly on appointments
+        
     elif stage == "no_response":
-        return now + timedelta(weeks=2)  # Less frequent for non-responsive
+        # Less frequent for non-responsive
+        if contact_count < 5:
+            return now + timedelta(days=14)  # Bi-weekly
+        else:
+            return now + timedelta(days=30)  # Monthly before dormant
+            
+    elif stage == "dormant":
+        return now + timedelta(days=30)  # Monthly soft touch
+        
     else:
-        return now + timedelta(weeks=4)  # Monthly check-in for others
+        return now + timedelta(days=7)  # Default weekly
 
 async def schedule_next_action(lead: Dict[str, Any], stage: str) -> None:
     """Schedule the next nurturing action"""
