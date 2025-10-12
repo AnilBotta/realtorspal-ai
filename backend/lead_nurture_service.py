@@ -662,7 +662,18 @@ def calculate_next_followup(lead: Dict[str, Any], stage: str) -> Optional[dateti
     """Calculate when next follow-up should occur based on CrewAI rules"""
     now = _now()
     contact_count = lead.get("nurture_contact_count", 0)
-    created_date = datetime.fromisoformat(lead.get("created_at", now.isoformat()))
+    
+    # Handle timezone-aware datetime parsing
+    created_at_str = lead.get("created_at", now.isoformat())
+    try:
+        created_date = datetime.fromisoformat(created_at_str)
+        # Make timezone-aware if it's not
+        if created_date.tzinfo is None:
+            created_date = created_date.replace(tzinfo=timezone.utc)
+    except (ValueError, TypeError):
+        # Fallback to now if parsing fails
+        created_date = now
+    
     lead_age_days = (now - created_date).days
     
     # Stop nurturing for final stages
