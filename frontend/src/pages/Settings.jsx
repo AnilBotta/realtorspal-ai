@@ -466,7 +466,22 @@ export default function Settings({ user }){
 
       {/* SendGrid Configuration */}
       <div className="bg-white rounded-lg border p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-2">📧 SendGrid Configuration</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-semibold text-slate-800">📧 SendGrid Configuration</h3>
+          <div className="flex items-center gap-2">
+            {form.sendgrid_api_key ? (
+              <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                Configured
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                Not Configured
+              </div>
+            )}
+          </div>
+        </div>
         <div className="text-sm text-slate-500 mb-4">Configure SendGrid for reliable email delivery in lead nurturing (recommended for production)</div>
         <div className="space-y-4">
           <div>
