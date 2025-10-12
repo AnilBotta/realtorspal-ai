@@ -312,16 +312,83 @@ async def craft_message(lead: Dict[str, Any], purpose: str, channel: str, user_i
 # Channel Senders (integrate with existing Twilio/Email settings)
 # -------------------------
 async def send_email(lead: Dict[str, Any], message: str, user_id: str) -> str:
-    """Send email via configured email service"""
+    """Send email via SendGrid"""
     try:
+        # Get SendGrid API key from database settings
         settings = await _get_settings(user_id)
-        # TODO: Implement with SendGrid or existing email service
-        # For now, return simulation
-        email_id = f"email_{_sha(message)}"
-        _log(lead["id"], f"[EMAIL] Sent to {lead.get('email', 'unknown')} -> {email_id}")
-        return email_id
+        sendgrid_api_key = settings.get("sendgrid_api_key")
+        
+        if not sendgrid_api_key:
+            _log(lead["id"], "[EMAIL] SendGrid API key not configured in settings")
+            return f"error_no_api_key"
+        
+        # Get recipient email
+        to_email = lead.get("email")
+        if not to_email:
+            _log(lead["id"], "[EMAIL] No email address found for lead")
+            return f"error_no_email"
+        
+        # Get sender email from settings (fallback to default)
+        from_email = settings.get("smtp_from_email", "noreply@realtorspal.com")
+        from_name = settings.get("smtp_from_name", "RealtorsPal AI")
+        
+        # Import SendGrid components
+        import sendgrid
+        from sendgrid.helpers.mail import Mail, From, To, Subject, PlainTextContent, HtmlContent
+        
+        # Initialize SendGrid client
+        sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
+        
+        # Create email subject based on lead info
+        lead_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+        if lead_name:
+            email_subject = f"Hello {lead_name} - Your Real Estate Update"
+        else:
+            email_subject = "Your Real Estate Update"
+        
+        # Create HTML version of the message
+        html_message = message.replace('\n', '<br>')
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #2c5aa0;">Real Estate Update</h2>
+                <p>{html_message}</p>
+                <hr style="border: 1px solid #eee; margin: 20px 0;">
+                <p style="font-size: 12px; color: #666;">
+                    This email was sent by your real estate agent through RealtorsPal AI. 
+                    <br>If you no longer wish to receive these emails, please reply with "STOP".
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Create the mail object
+        mail = Mail(
+            from_email=From(from_email, from_name),
+            to_emails=To(to_email),
+            subject=Subject(email_subject),
+            plain_text_content=PlainTextContent(message),
+            html_content=HtmlContent(html_content)
+        )
+        
+        # Send email
+        _log(lead["id"], f"[EMAIL] Sending to {to_email} via SendGrid...")
+        response = sg.send(mail)
+        
+        # Check response
+        if response.status_code >= 200 and response.status_code < 300:
+            email_id = f"sg_{response.headers.get('X-Message-Id', _sha(message))}"
+            _log(lead["id"], f"[EMAIL] Successfully sent via SendGrid -> {email_id}")
+            return email_id
+        else:
+            _log(lead["id"], f"[EMAIL] SendGrid error: {response.status_code} - {response.body}")
+            return f"error_sg_{response.status_code}"
+            
     except Exception as e:
-        _log(lead["id"], f"[ERROR] Email send failed: {e}")
+        error_msg = str(e)[:100]  # Truncate long error messages
+        _log(lead["id"], f"[ERROR] SendGrid email failed: {error_msg}")
         return f"error_{_sha(str(e))}"
 
 async def send_sms(lead: Dict[str, Any], message: str, user_id: str) -> str:
