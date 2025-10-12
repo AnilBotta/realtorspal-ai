@@ -130,7 +130,7 @@ const NurtureModal = ({ isOpen, onClose, user }) => {
       pollIntervalRef.current = setInterval(async () => {
         try {
           const statusResponse = await fetch(
-            `${import.meta.env.REACT_APP_BACKEND_URL}/api/agents/nurture/status/${selectedLead.id}`
+            `${backendUrl}/api/agents/nurture/status/${selectedLead.id}`
           );
           
           if (statusResponse.ok) {
