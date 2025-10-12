@@ -69,7 +69,10 @@ const NurtureModal = ({ isOpen, onClose, user }) => {
       setStatus('running');
 
       // Start nurturing
-      const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL;
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
+      if (!backendUrl) {
+        throw new Error('Backend URL not configured');
+      }
       const response = await fetch(`${backendUrl}/api/agents/nurture/run`, {
         method: 'POST',
         headers: {
