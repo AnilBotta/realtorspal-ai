@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Settings, Activity, Clock, CheckCircle, AlertCircle, Brain, Users, MessageSquare, Phone, BarChart3, Zap, Eye, ThumbsUp, ThumbsDown, Edit3, X, Search } from 'lucide-react';
 import { getAIAgents, updateAIAgent, getAgentActivities, getApprovalQueue, handleApprovalDecision, createAgentActivity, orchestrateAgents, getLiveActivityStream, getAgentRuns, executeAgent } from '../api';
 import LeadGenModal from '../components/LeadGenModal';
+import NurtureModal from '../components/NurtureModal';
 
 const AIAgents = ({ user }) => {
   const [agents, setAgents] = useState([]);
