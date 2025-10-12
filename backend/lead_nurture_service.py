@@ -424,12 +424,29 @@ async def send_sms(lead: Dict[str, Any], message: str, user_id: str) -> str:
 async def send_whatsapp(lead: Dict[str, Any], message: str, user_id: str) -> str:
     """Send WhatsApp via Twilio"""
     try:
+        # Get Twilio settings from database
         settings = await _get_settings(user_id)
-        # TODO: Implement with Twilio WhatsApp using existing settings
-        # For now, return simulation
+        account_sid = settings.get("twilio_account_sid")
+        auth_token = settings.get("twilio_auth_token")
+        whatsapp_number = settings.get("twilio_whatsapp_number")
+        
+        if not all([account_sid, auth_token, whatsapp_number]):
+            _log(lead["id"], "[WHATSAPP] Twilio WhatsApp credentials not configured in settings")
+            return f"error_no_twilio_whatsapp_config"
+        
+        # Get recipient phone
+        to_phone = lead.get("phone")
+        if not to_phone:
+            _log(lead["id"], "[WHATSAPP] No phone number found for lead")
+            return f"error_no_phone"
+        
+        # For now, return simulation until Twilio package is installed
+        # TODO: Install twilio package and implement actual WhatsApp sending
         wa_id = f"wa_{_sha(message)}"
-        _log(lead["id"], f"[WHATSAPP] Sent to {lead.get('phone', 'unknown')} -> {wa_id}")
+        _log(lead["id"], f"[WHATSAPP] Would send to {to_phone} via Twilio -> {wa_id}")
+        _log(lead["id"], f"[WHATSAPP] Message: {message[:50]}...")
         return wa_id
+        
     except Exception as e:
         _log(lead["id"], f"[ERROR] WhatsApp send failed: {e}")
         return f"error_{_sha(str(e))}"
