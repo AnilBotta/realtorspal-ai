@@ -622,6 +622,18 @@ const AIAgents = ({ user }) => {
                       Run Lead Gen
                     </button>
                   )}
+                  {agent.id === 'lead-nurturing' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowNurtureModal(true);
+                      }}
+                      className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      <MessageSquare size={14} />
+                      Start Nurture
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
