@@ -560,15 +560,22 @@ def calculate_next_followup(lead: Dict[str, Any], stage: str) -> Optional[dateti
         return now + timedelta(days=7)  # Default weekly
 
 async def schedule_next_action(lead: Dict[str, Any], stage: str) -> None:
-    """Schedule the next nurturing action"""
+    """Schedule the next nurturing action following CrewAI rules"""
     next_time = calculate_next_followup(lead, stage)
     
-    await db.leads.update_one(
-        {"id": lead["id"]},
-        {"$set": {"next_nurture_action": next_time.isoformat()}}
-    )
-    
-    _log(lead["id"], f"[SCHEDULE] Next action at {next_time.strftime('%Y-%m-%d %H:%M')}")
+    if next_time is None:
+        # No more actions needed (final stages)
+        await db.leads.update_one(
+            {"id": lead["id"]},
+            {"$unset": {"next_nurture_action": ""}}
+        )
+        _log(lead["id"], f"[SCHEDULE] No more actions needed for stage: {stage}")
+    else:
+        await db.leads.update_one(
+            {"id": lead["id"]},
+            {"$set": {"next_nurture_action": next_time.isoformat()}}
+        )
+        _log(lead["id"], f"[SCHEDULE] Next action at {next_time.strftime('%Y-%m-%d %H:%M')} for stage: {stage}")
 
 
 # -------------------------
