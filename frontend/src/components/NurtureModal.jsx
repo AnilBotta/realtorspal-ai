@@ -92,7 +92,7 @@ const NurtureModal = ({ isOpen, onClose, user }) => {
 
       // Connect to SSE stream for real-time logs
       const eventSource = new EventSource(
-        `${import.meta.env.REACT_APP_BACKEND_URL}/api/agents/nurture/stream/${selectedLead.id}`
+        `${backendUrl}/api/agents/nurture/stream/${selectedLead.id}`
       );
       eventSourceRef.current = eventSource;
 
