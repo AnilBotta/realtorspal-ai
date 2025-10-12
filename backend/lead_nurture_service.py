@@ -209,9 +209,14 @@ def create_agents(llm):
 # -------------------------
 async def craft_message(lead: Dict[str, Any], purpose: str, channel: str, user_id: str) -> str:
     """Craft personalized message using CrewAI"""
+    lead_id = lead.get("id", "unknown")
+    
     try:
+        # Try to get LLM and use CrewAI
         llm = await _get_llm(user_id)
         _, content_crafter, _ = create_agents(llm)
+        
+        _log(lead_id, f"[CREWAI] Using Content Crafter for {purpose} message")
         
         # Extract lead information for personalization
         tokens = {
@@ -249,6 +254,7 @@ async def craft_message(lead: Dict[str, Any], purpose: str, channel: str, user_i
         - For real estate context (buying/selling property)
         """
         
+        from crewai import Task
         task = Task(
             description=task_description,
             agent=content_crafter,
@@ -256,18 +262,56 @@ async def craft_message(lead: Dict[str, Any], purpose: str, channel: str, user_i
         )
         
         result = Crew(agents=[content_crafter], tasks=[task]).kickoff()
-        return str(result.raw) if hasattr(result, 'raw') else str(result)
+        message = str(result.raw) if hasattr(result, 'raw') else str(result)
+        
+        _log(lead_id, f"[CREWAI] Content Crafter generated {len(message)} character message")
+        return message
         
     except Exception as e:
-        _log(lead["id"], f"[ERROR] Message crafting failed: {e}")
-        # Fallback to simple template
+        _log(lead_id, f"[FALLBACK] CrewAI failed ({str(e)[:50]}...), using templates")
+        
+        # Fallback to personalized templates
         name = lead.get("first_name", "there")
+        city = lead.get("city", "")
+        property_type = lead.get("property_type", "")
+        
         if purpose == "welcome":
-            return f"Hi {name}! Thanks for your interest in real estate. I'm here to help you find the perfect property. Any questions?"
+            message = f"Hi {name}! Thanks for your interest in real estate"
+            if city:
+                message += f" in {city}"
+            message += ". I'm here to help you find the perfect"
+            if property_type:
+                message += f" {property_type.lower()}"
+            else:
+                message += " property"
+            message += ". Any questions?"
+            
         elif purpose == "followup":
-            return f"Hi {name}, just checking in! Any updates on your property search? I'm here to help."
+            message = f"Hi {name}, just checking in on your"
+            if city and property_type:
+                message += f" {property_type.lower()} search in {city}"
+            elif city:
+                message += f" property search in {city}"
+            elif property_type:
+                message += f" {property_type.lower()} search"
+            else:
+                message += " property search"
+            message += ". Any updates? I'm here to help."
+            
+        elif purpose == "reengage":
+            message = f"Hi {name}, I wanted to reconnect about your real estate needs"
+            if city:
+                message += f" in {city}"
+            message += ". The market has some great opportunities right now. Would you like an update?"
+            
         else:
-            return f"Hi {name}, thanks for reaching out! I'll be in touch soon with more information."
+            message = f"Hi {name}, thanks for reaching out! I'd be happy to help with your real estate questions"
+            if city:
+                message += f" about {city}"
+            message += ". I'll get back to you with detailed information soon."
+        
+        _log(lead_id, f"[TEMPLATE] Generated {len(message)} character message")
+        return message
 
 
 # -------------------------
