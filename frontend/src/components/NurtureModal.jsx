@@ -69,7 +69,8 @@ const NurtureModal = ({ isOpen, onClose, user }) => {
       setStatus('running');
 
       // Start nurturing
-      const response = await fetch(`${import.meta.env.REACT_APP_BACKEND_URL}/api/agents/nurture/run`, {
+      const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL;
+      const response = await fetch(`${backendUrl}/api/agents/nurture/run`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
