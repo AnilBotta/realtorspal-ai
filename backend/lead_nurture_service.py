@@ -394,12 +394,29 @@ async def send_email(lead: Dict[str, Any], message: str, user_id: str) -> str:
 async def send_sms(lead: Dict[str, Any], message: str, user_id: str) -> str:
     """Send SMS via Twilio"""
     try:
+        # Get Twilio settings from database
         settings = await _get_settings(user_id)
-        # TODO: Implement with Twilio SMS using existing settings
-        # For now, return simulation
+        account_sid = settings.get("twilio_account_sid")
+        auth_token = settings.get("twilio_auth_token") 
+        from_number = settings.get("twilio_phone_number")
+        
+        if not all([account_sid, auth_token, from_number]):
+            _log(lead["id"], "[SMS] Twilio credentials not configured in settings")
+            return f"error_no_twilio_config"
+        
+        # Get recipient phone
+        to_phone = lead.get("phone")
+        if not to_phone:
+            _log(lead["id"], "[SMS] No phone number found for lead")
+            return f"error_no_phone"
+        
+        # For now, return simulation until Twilio package is installed
+        # TODO: Install twilio package and implement actual SMS sending
         sms_id = f"sms_{_sha(message)}"
-        _log(lead["id"], f"[SMS] Sent to {lead.get('phone', 'unknown')} -> {sms_id}")
+        _log(lead["id"], f"[SMS] Would send to {to_phone} via Twilio -> {sms_id}")
+        _log(lead["id"], f"[SMS] Message: {message[:50]}...")
         return sms_id
+        
     except Exception as e:
         _log(lead["id"], f"[ERROR] SMS send failed: {e}")
         return f"error_{_sha(str(e))}"
