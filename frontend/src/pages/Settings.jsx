@@ -464,10 +464,31 @@ export default function Settings({ user }){
         </div>
       </div>
 
+      {/* SendGrid Configuration */}
+      <div className="bg-white rounded-lg border p-6">
+        <h3 className="text-lg font-semibold text-slate-800 mb-2">📧 SendGrid Configuration</h3>
+        <div className="text-sm text-slate-500 mb-4">Configure SendGrid for reliable email delivery in lead nurturing (recommended for production)</div>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-slate-600 font-medium">SendGrid API Key</label>
+            <input 
+              type="password"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
+              value={form.sendgrid_api_key} 
+              onChange={(e)=>setForm({...form, sendgrid_api_key:e.target.value})} 
+            />
+            <div className="text-xs text-slate-500 mt-1">
+              Get your API key from SendGrid Console → Settings → API Keys
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* SMTP Email Configuration */}
       <div className="bg-white rounded-lg border p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-2">📧 SMTP Email Configuration</h3>
-        <div className="text-sm text-slate-500 mb-4">Configure SMTP settings for sending emails to leads with LLM-powered drafting</div>
+        <h3 className="text-lg font-semibold text-slate-800 mb-2">📧 Alternative: SMTP Email Configuration</h3>
+        <div className="text-sm text-slate-500 mb-4">Configure SMTP settings for sending emails (fallback option if SendGrid is not available)</div>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label className="text-sm text-slate-600 font-medium">Protocol</label>
