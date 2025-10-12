@@ -152,12 +152,26 @@ async def _get_settings(user_id: str) -> Dict[str, Any]:
 # CrewAI Agents Setup
 # -------------------------
 async def _get_llm(user_id: str):
-    """Get LLM instance with user's API key"""
+    """Get LLM instance with user's API key or Emergent LLM key"""
     settings = await _get_settings(user_id)
     openai_key = settings.get("openai_api_key") or os.getenv("OPENAI_API_KEY")
     
+    # If no OpenAI key, try to use Emergent LLM key
     if not openai_key:
-        raise ValueError("OpenAI API key not found in settings or environment")
+        try:
+            # Try to get Emergent LLM key
+            from emergentintegrations import get_universal_key
+            emergent_key = get_universal_key()
+            if emergent_key:
+                openai_key = emergent_key
+                _log(f"user_{user_id}", "[LLM] Using Emergent LLM key for CrewAI")
+            else:
+                _log(f"user_{user_id}", "[LLM] No Emergent LLM key available")
+        except Exception as e:
+            _log(f"user_{user_id}", f"[LLM] Failed to get Emergent key: {e}")
+    
+    if not openai_key:
+        raise ValueError("No OpenAI API key found in settings, environment, or Emergent LLM")
     
     return ChatOpenAI(model="gpt-4o-mini", api_key=openai_key, temperature=0.7)
 
