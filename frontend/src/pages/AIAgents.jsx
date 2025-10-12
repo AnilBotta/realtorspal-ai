@@ -924,6 +924,14 @@ const AIAgents = ({ user }) => {
           user={user}
         />
       )}
+
+      {showNurtureModal && (
+        <NurtureModal 
+          isOpen={showNurtureModal}
+          onClose={() => setShowNurtureModal(false)}
+          user={user}
+        />
+      )}
     </div>
   );
 };
