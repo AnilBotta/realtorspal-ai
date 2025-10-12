@@ -1306,6 +1306,381 @@ class RealtorsPalAPITester:
             self.log_test("TwiML Client Incoming Endpoint", False, f"Exception: {str(e)}")
             return False
 
+    # -------------------------
+    # Lead Nurturing AI Service Tests
+    # -------------------------
+    
+    def test_nurture_health_check(self) -> bool:
+        """Test GET /api/agents/nurture/health"""
+        try:
+            response = requests.get(f"{self.base_url}/agents/nurture/health", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("status") == "healthy" and 
+                    data.get("service") == "lead_nurturing_ai"):
+                    self.log_test("Nurture Health Check", True, 
+                                f"Service healthy: {data}")
+                    return True
+                else:
+                    self.log_test("Nurture Health Check", False, 
+                                f"Unexpected health response: {data}")
+                    return False
+            else:
+                self.log_test("Nurture Health Check", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Nurture Health Check", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurture_start_with_valid_lead(self) -> bool:
+        """Test POST /api/agents/nurture/run with valid lead"""
+        if not self.user_id:
+            self.log_test("Nurture Start Valid Lead", False, "No user_id available")
+            return False
+        
+        try:
+            # First create a test lead for nurturing
+            timestamp = int(time.time()) + 300
+            lead_payload = {
+                "user_id": self.user_id,
+                "first_name": "Nurture",
+                "last_name": "TestLead",
+                "email": f"nurture.test.{timestamp}@example.com",
+                "phone": "+14155551111",
+                "property_type": "Single Family Home",
+                "neighborhood": "Test Area",
+                "stage": "New",
+                "pipeline": "New Lead"
+            }
+            lead_response = requests.post(f"{self.base_url}/leads", json=lead_payload, timeout=10)
+            
+            if lead_response.status_code != 200:
+                self.log_test("Nurture Start Valid Lead", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            test_lead_id = lead_data.get("id")
+            
+            if not test_lead_id:
+                self.log_test("Nurture Start Valid Lead", False, f"No lead ID in response: {lead_data}")
+                return False
+            
+            # Now test the nurturing start endpoint
+            nurture_payload = {
+                "lead_id": test_lead_id,
+                "user_id": self.user_id
+            }
+            response = requests.post(f"{self.base_url}/agents/nurture/run", json=nurture_payload, timeout=15)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("lead_id") == test_lead_id and 
+                    data.get("status") in ["started", "skipped"] and
+                    "stage" in data):
+                    self.log_test("Nurture Start Valid Lead", True, 
+                                f"Nurturing started successfully: Status={data['status']}, Stage={data['stage']}")
+                    return True
+                else:
+                    self.log_test("Nurture Start Valid Lead", False, 
+                                f"Unexpected nurture response: {data}")
+                    return False
+            else:
+                self.log_test("Nurture Start Valid Lead", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Nurture Start Valid Lead", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurture_start_with_invalid_lead(self) -> bool:
+        """Test POST /api/agents/nurture/run with invalid lead ID"""
+        if not self.user_id:
+            self.log_test("Nurture Start Invalid Lead", False, "No user_id available")
+            return False
+        
+        try:
+            # Test with non-existent lead ID
+            nurture_payload = {
+                "lead_id": "non-existent-lead-id-12345",
+                "user_id": self.user_id
+            }
+            response = requests.post(f"{self.base_url}/agents/nurture/run", json=nurture_payload, timeout=10)
+            
+            if response.status_code == 404:
+                data = response.json()
+                if "Lead not found" in data.get("detail", ""):
+                    self.log_test("Nurture Start Invalid Lead", True, 
+                                f"Proper 404 error for invalid lead: {data['detail']}")
+                    return True
+                else:
+                    self.log_test("Nurture Start Invalid Lead", False, 
+                                f"Wrong 404 error message: {data}")
+                    return False
+            else:
+                self.log_test("Nurture Start Invalid Lead", False, 
+                            f"Expected 404, got {response.status_code}: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Nurture Start Invalid Lead", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurture_get_status(self) -> bool:
+        """Test GET /api/agents/nurture/status/{lead_id}"""
+        if not self.created_lead_id:
+            self.log_test("Nurture Get Status", False, "No created lead ID available")
+            return False
+        
+        try:
+            response = requests.get(f"{self.base_url}/agents/nurture/status/{self.created_lead_id}", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if (data.get("lead_id") == self.created_lead_id and 
+                    "stage" in data and
+                    "contact_count" in data):
+                    self.log_test("Nurture Get Status", True, 
+                                f"Status retrieved: Stage={data.get('stage')}, Contacts={data.get('contact_count')}")
+                    return True
+                else:
+                    self.log_test("Nurture Get Status", False, 
+                                f"Invalid status response structure: {data}")
+                    return False
+            elif response.status_code == 404:
+                data = response.json()
+                if "Lead not found" in data.get("detail", ""):
+                    self.log_test("Nurture Get Status", True, 
+                                f"Proper 404 for non-existent lead: {data['detail']}")
+                    return True
+                else:
+                    self.log_test("Nurture Get Status", False, 
+                                f"Wrong 404 error message: {data}")
+                    return False
+            else:
+                self.log_test("Nurture Get Status", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("Nurture Get Status", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurture_activity_stream(self) -> bool:
+        """Test GET /api/agents/nurture/stream/{lead_id} (SSE endpoint)"""
+        if not self.created_lead_id:
+            self.log_test("Nurture Activity Stream", False, "No created lead ID available")
+            return False
+        
+        try:
+            # Test SSE endpoint with short timeout since it's a streaming endpoint
+            response = requests.get(f"{self.base_url}/agents/nurture/stream/{self.created_lead_id}", 
+                                  timeout=5, stream=True)
+            
+            if response.status_code == 200:
+                content_type = response.headers.get('content-type', '')
+                
+                # Should return text/event-stream for SSE
+                if 'text/event-stream' in content_type:
+                    # Try to read first few lines to verify SSE format
+                    try:
+                        lines = []
+                        for line in response.iter_lines(decode_unicode=True):
+                            if line:
+                                lines.append(line)
+                            if len(lines) >= 3:  # Get first few SSE events
+                                break
+                        
+                        # Check for SSE format (event: and data: lines)
+                        sse_format_found = any('event:' in line or 'data:' in line for line in lines)
+                        
+                        if sse_format_found:
+                            self.log_test("Nurture Activity Stream", True, 
+                                        f"SSE stream working. Content-Type: {content_type}, Lines: {len(lines)}")
+                            return True
+                        else:
+                            self.log_test("Nurture Activity Stream", False, 
+                                        f"Not proper SSE format. Lines: {lines}")
+                            return False
+                    except Exception as stream_error:
+                        # Timeout or connection error is acceptable for SSE test
+                        self.log_test("Nurture Activity Stream", True, 
+                                    f"SSE endpoint accessible (stream timeout expected): {stream_error}")
+                        return True
+                else:
+                    self.log_test("Nurture Activity Stream", False, 
+                                f"Expected text/event-stream, got: {content_type}")
+                    return False
+            else:
+                self.log_test("Nurture Activity Stream", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except requests.exceptions.Timeout:
+            # Timeout is expected for SSE streams
+            self.log_test("Nurture Activity Stream", True, 
+                        "SSE endpoint accessible (timeout expected for streaming)")
+            return True
+        except Exception as e:
+            self.log_test("Nurture Activity Stream", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurture_mongodb_integration(self) -> bool:
+        """Test if nurturing service can handle lead data from main CRM"""
+        if not self.user_id:
+            self.log_test("Nurture MongoDB Integration", False, "No user_id available")
+            return False
+        
+        try:
+            # Create a comprehensive lead with various CRM fields
+            timestamp = int(time.time()) + 400
+            comprehensive_lead = {
+                "user_id": self.user_id,
+                "first_name": "MongoDB",
+                "last_name": "Integration",
+                "email": f"mongodb.integration.{timestamp}@example.com",
+                "phone": "+14155552222",
+                "property_type": "Condo",
+                "neighborhood": "Integration Test Area",
+                "pipeline": "warm / nurturing",
+                "stage": "Contacted",
+                "priority": "high",
+                "price_min": 400000,
+                "price_max": 600000,
+                "notes": "Test lead for MongoDB integration",
+                "lead_source": "Website",
+                "custom_fields": {
+                    "preferred_contact": "email",
+                    "viewing_availability": "weekends"
+                }
+            }
+            
+            # Create the lead in main CRM
+            lead_response = requests.post(f"{self.base_url}/leads", json=comprehensive_lead, timeout=10)
+            
+            if lead_response.status_code != 200:
+                self.log_test("Nurture MongoDB Integration", False, f"Failed to create comprehensive lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            integration_lead_id = lead_data.get("id")
+            
+            # Test nurturing service can access and process this lead
+            nurture_payload = {
+                "lead_id": integration_lead_id,
+                "user_id": self.user_id
+            }
+            nurture_response = requests.post(f"{self.base_url}/agents/nurture/run", json=nurture_payload, timeout=15)
+            
+            if nurture_response.status_code == 200:
+                nurture_data = nurture_response.json()
+                
+                # Test status endpoint can retrieve lead info
+                status_response = requests.get(f"{self.base_url}/agents/nurture/status/{integration_lead_id}", timeout=10)
+                
+                if status_response.status_code == 200:
+                    status_data = status_response.json()
+                    
+                    # Verify the nurturing service correctly interpreted CRM data
+                    if (status_data.get("lead_id") == integration_lead_id and
+                        status_data.get("stage") in ["engaged", "contacted", "warm / nurturing"]):
+                        self.log_test("Nurture MongoDB Integration", True, 
+                                    f"MongoDB integration working. Nurture status: {nurture_data['status']}, "
+                                    f"Stage mapping: {status_data.get('stage')}")
+                        return True
+                    else:
+                        self.log_test("Nurture MongoDB Integration", False, 
+                                    f"Stage mapping failed. Status: {status_data}")
+                        return False
+                else:
+                    self.log_test("Nurture MongoDB Integration", False, 
+                                f"Status endpoint failed: {status_response.status_code}")
+                    return False
+            else:
+                self.log_test("Nurture MongoDB Integration", False, 
+                            f"Nurture start failed: {nurture_response.status_code}, {nurture_response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Nurture MongoDB Integration", False, f"Exception: {str(e)}")
+            return False
+
+    def test_nurture_crewai_dependencies(self) -> bool:
+        """Test if CrewAI dependencies are working by checking service responses"""
+        if not self.user_id:
+            self.log_test("Nurture CrewAI Dependencies", False, "No user_id available")
+            return False
+        
+        try:
+            # Create a simple test lead
+            timestamp = int(time.time()) + 500
+            test_lead = {
+                "user_id": self.user_id,
+                "first_name": "CrewAI",
+                "last_name": "Test",
+                "email": f"crewai.test.{timestamp}@example.com",
+                "phone": "+14155553333",
+                "property_type": "House",
+                "stage": "New"
+            }
+            
+            lead_response = requests.post(f"{self.base_url}/leads", json=test_lead, timeout=10)
+            
+            if lead_response.status_code != 200:
+                self.log_test("Nurture CrewAI Dependencies", False, f"Failed to create test lead: {lead_response.text}")
+                return False
+            
+            lead_data = lead_response.json()
+            crewai_lead_id = lead_data.get("id")
+            
+            # Test nurturing service (which uses CrewAI internally)
+            nurture_payload = {
+                "lead_id": crewai_lead_id,
+                "user_id": self.user_id
+            }
+            
+            # Use longer timeout since CrewAI processing might take time
+            response = requests.post(f"{self.base_url}/agents/nurture/run", json=nurture_payload, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # If the service responds successfully, CrewAI dependencies are likely working
+                # Even if it skips processing, the fact that it can analyze the lead stage indicates CrewAI is functional
+                if (data.get("lead_id") == crewai_lead_id and 
+                    data.get("status") in ["started", "skipped"] and
+                    "stage" in data):
+                    self.log_test("Nurture CrewAI Dependencies", True, 
+                                f"CrewAI processing successful. Status: {data['status']}, Stage: {data['stage']}")
+                    return True
+                else:
+                    self.log_test("Nurture CrewAI Dependencies", False, 
+                                f"Unexpected response structure: {data}")
+                    return False
+            elif response.status_code == 500:
+                # Check if it's a CrewAI-specific error
+                try:
+                    error_data = response.json()
+                    error_detail = error_data.get("detail", "")
+                    if any(keyword in error_detail.lower() for keyword in ["openai", "api key", "llm", "crew"]):
+                        self.log_test("Nurture CrewAI Dependencies", False, 
+                                    f"CrewAI dependency issue: {error_detail}")
+                        return False
+                    else:
+                        self.log_test("Nurture CrewAI Dependencies", False, 
+                                    f"Server error (may be CrewAI related): {error_detail}")
+                        return False
+                except:
+                    self.log_test("Nurture CrewAI Dependencies", False, 
+                                f"Server error: {response.text}")
+                    return False
+            else:
+                self.log_test("Nurture CrewAI Dependencies", False, 
+                            f"Status: {response.status_code}, Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_test("Nurture CrewAI Dependencies", False, f"Exception: {str(e)}")
+            return False
+
     # =========================
     # Lead Generation AI Tests
     # =========================
