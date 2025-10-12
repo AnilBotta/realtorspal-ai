@@ -17,6 +17,7 @@ export default function Settings({ user }){
     twilio_whatsapp_number: "",
     twilio_api_key: "",
     twilio_api_secret: "",
+    sendgrid_api_key: "",
     smtp_protocol: "smtp",
     smtp_hostname: "",
     smtp_port: "587",
