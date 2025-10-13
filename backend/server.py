@@ -5027,8 +5027,12 @@ async def convert_partial_lead(lead_id: str, convert_data: ConvertPartialLeadReq
 # Mount Lead Generation Service
 from leadgen_service import app as leadgen_app
 
-# Mount the leadgen service routes
+# Mount Lead Nurturing Service
+from lead_nurture_service import app as nurture_app
+
+# Mount the service routes
 app.mount("/api/agents/leadgen", leadgen_app)
+app.mount("/api/agents/nurture", nurture_app)
 
 # =========================
 # Local run helper

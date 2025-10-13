@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Settings, Activity, Clock, CheckCircle, AlertCircle, Brain, Users, MessageSquare, Phone, BarChart3, Zap, Eye, ThumbsUp, ThumbsDown, Edit3, X, Search } from 'lucide-react';
 import { getAIAgents, updateAIAgent, getAgentActivities, getApprovalQueue, handleApprovalDecision, createAgentActivity, orchestrateAgents, getLiveActivityStream, getAgentRuns, executeAgent } from '../api';
 import LeadGenModal from '../components/LeadGenModal';
+import NurtureModal from '../components/NurtureModal';
 
 const AIAgents = ({ user }) => {
   const [agents, setAgents] = useState([]);
@@ -14,6 +15,7 @@ const AIAgents = ({ user }) => {
   const [loading, setLoading] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showLeadGenModal, setShowLeadGenModal] = useState(false);
+  const [showNurtureModal, setShowNurtureModal] = useState(false);
   const [configAgent, setConfigAgent] = useState(null);
   const streamRef = useRef(null);
 
@@ -621,6 +623,18 @@ const AIAgents = ({ user }) => {
                       Run Lead Gen
                     </button>
                   )}
+                  {agent.id === 'lead-nurturing' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowNurtureModal(true);
+                      }}
+                      className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      <MessageSquare size={14} />
+                      Start Nurture
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -911,9 +925,19 @@ const AIAgents = ({ user }) => {
           user={user}
         />
       )}
+
+      {showNurtureModal && (
+        <NurtureModal 
+          isOpen={showNurtureModal}
+          onClose={() => setShowNurtureModal(false)}
+          user={user}
+        />
+      )}
     </div>
   );
 };
+
+// NurtureModal component moved to separate file: /app/frontend/src/components/NurtureModal.jsx
 
 // Agent Configuration Modal Component
 const AgentConfigModal = ({ agent, agents, onSave, onClose }) => {

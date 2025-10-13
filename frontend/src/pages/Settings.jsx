@@ -17,6 +17,7 @@ export default function Settings({ user }){
     twilio_whatsapp_number: "",
     twilio_api_key: "",
     twilio_api_secret: "",
+    sendgrid_api_key: "",
     smtp_protocol: "smtp",
     smtp_hostname: "",
     smtp_port: "587",
@@ -64,6 +65,7 @@ export default function Settings({ user }){
         twilio_whatsapp_number: data.twilio_whatsapp_number || "",
         twilio_api_key: data.twilio_api_key || "",
         twilio_api_secret: data.twilio_api_secret || "",
+        sendgrid_api_key: data.sendgrid_api_key || "",
         smtp_protocol: data.smtp_protocol || "smtp",
         smtp_hostname: data.smtp_hostname || "",
         smtp_port: data.smtp_port || "587",
@@ -462,10 +464,59 @@ export default function Settings({ user }){
         </div>
       </div>
 
+      {/* SendGrid Configuration */}
+      <div className="bg-white rounded-lg border p-6">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-semibold text-slate-800">📧 SendGrid Configuration</h3>
+          <div className="flex items-center gap-2">
+            {form.sendgrid_api_key ? (
+              <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                Configured
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                Not Configured
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="text-sm text-slate-500 mb-4">Configure SendGrid for reliable email delivery in lead nurturing (recommended for production)</div>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-slate-600 font-medium">SendGrid API Key</label>
+            <input 
+              type="password"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
+              value={form.sendgrid_api_key} 
+              onChange={(e)=>setForm({...form, sendgrid_api_key:e.target.value})} 
+            />
+            <div className="text-xs text-slate-500 mt-1">
+              Get your API key from SendGrid Console → Settings → API Keys
+            </div>
+          </div>
+          
+          {/* SendGrid Save Button */}
+          <div className="flex items-center justify-end pt-4 border-t">
+            <button 
+              onClick={save} 
+              className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-medium transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Save SendGrid Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* SMTP Email Configuration */}
       <div className="bg-white rounded-lg border p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-2">📧 SMTP Email Configuration</h3>
-        <div className="text-sm text-slate-500 mb-4">Configure SMTP settings for sending emails to leads with LLM-powered drafting</div>
+        <h3 className="text-lg font-semibold text-slate-800 mb-2">📧 Alternative: SMTP Email Configuration</h3>
+        <div className="text-sm text-slate-500 mb-4">Configure SMTP settings for sending emails (fallback option if SendGrid is not available)</div>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label className="text-sm text-slate-600 font-medium">Protocol</label>

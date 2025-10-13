@@ -49,6 +49,13 @@ export const getPartialLead = (lead_id) => api.get(`/partial-leads/${lead_id}`);
 export const deletePartialLead = (lead_id) => api.delete(`/partial-leads/${lead_id}`);
 export const convertPartialLead = (lead_id, payload) => api.post(`/partial-leads/${lead_id}/convert`, payload);
 
+// Lead Nurturing AI APIs
+export const startNurturing = (payload) => api.post(`/agents/nurture/run`, payload);
+export const handleInboundMessage = (payload) => api.post(`/agents/nurture/inbound`, payload);
+export const processNurtureTick = (payload) => api.post(`/agents/nurture/tick`, payload);
+export const getNurtureStatus = (lead_id) => api.get(`/agents/nurture/status/${lead_id}`);
+// Note: Activity stream is handled via EventSource directly in components
+
 export const getDashboardAnalytics = (user_id) => api.get(`/analytics/dashboard`, { params: { user_id } });
 
 export const chat = (payload) => api.post(`/ai/chat`, payload);
