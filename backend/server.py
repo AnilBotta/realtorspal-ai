@@ -5092,108 +5092,113 @@ async def send_email_draft(request: SendDraftRequest):
         
         sendgrid_api_key = settings["sendgrid_api_key"]
         
-        # Prepare SendGrid payload according to official API docs
-        # Construct recipient name
-        recipient_name = ""
-        if lead.get("first_name") or lead.get("last_name"):
-            recipient_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+        # Use SendGrid Python SDK as per official documentation
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail
         
-        payload = {
-            "personalizations": [{
-                "to": [{"email": draft["to_email"]}],
-                "subject": draft["subject"]
-            }],
-            "from": {
-                "email": request.from_email,
-                "name": "RealtorsPal Agent"
-            },
-            "reply_to": {
-                "email": request.from_email,
-                "name": "RealtorsPal Agent"
-            },
-            "content": [
-                {"type": "text/plain", "value": draft["body"]}
-            ]
-        }
-        
-        # Add recipient name if available
-        if recipient_name:
-            payload["personalizations"][0]["to"][0]["name"] = recipient_name
-        
-        # Add HTML content if available
-        if draft.get("html_body"):
-            payload["content"].append({"type": "text/html", "value": draft["html_body"]})
-        
-        # Send via SendGrid
-        import requests
-        import json
-        
-        headers = {
-            "Authorization": f"Bearer {sendgrid_api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        print(f"Sending email via SendGrid...")
-        print(f"To: {draft['to_email']}")
-        print(f"From: {request.from_email}")
-        print(f"Subject: {draft['subject']}")
-        print(f"Payload: {json.dumps(payload, indent=2)}")
-        
-        response = requests.post(
-            "https://api.sendgrid.com/v3/mail/send",
-            headers=headers,
-            data=json.dumps(payload)
-        )
-        
-        print(f"SendGrid Response Status: {response.status_code}")
-        print(f"SendGrid Response Headers: {dict(response.headers)}")
-        print(f"SendGrid Response Body: {response.text}")
-        
-        if response.status_code in [200, 201, 202]:
-            # Update draft status to sent
-            await db.email_drafts.update_one(
-                {"id": request.draft_id},
-                {"$set": {
-                    "status": "sent",
-                    "sent_at": datetime.now().isoformat(),
-                    "from_email": request.from_email,
-                    "sendgrid_response": response.headers.get('X-Message-Id', '')
-                }}
+        try:
+            # Initialize SendGrid client
+            sg = SendGridAPIClient(sendgrid_api_key)
+            
+            print(f"🔵 Sending email via SendGrid SDK...")
+            print(f"  To: {draft['to_email']}")
+            print(f"  From: {request.from_email}")
+            print(f"  Subject: {draft['subject']}")
+            
+            # Create email message using SendGrid Mail helper
+            message = Mail(
+                from_email=request.from_email,
+                to_emails=draft["to_email"],
+                subject=draft["subject"],
+                plain_text_content=draft["body"]
             )
             
-            # Store the from email in settings for future use
-            await db.settings.update_one(
-                {"user_id": draft["user_id"]},
-                {"$set": {"sender_email": request.from_email}},
-                upsert=True
-            )
+            # Add HTML content if available
+            if draft.get("html_body"):
+                message.add_html_content(draft["html_body"])
             
-            # Add activity to lead notes
-            current_notes = lead.get('notes', '')
-            new_note = f"\n\n[Email Sent] '{draft['subject']}' to {draft['to_email']} from {request.from_email} - {datetime.now().isoformat()}"
-            await db.leads.update_one(
-                {"id": draft["lead_id"]},
-                {"$set": {"notes": current_notes + new_note}}
-            )
+            # Send email using SendGrid SDK
+            response = sg.send(message)
             
-            print(f"✅ Email sent successfully! Message ID: {response.headers.get('X-Message-Id', '')}")
+            print(f"✅ SendGrid Response Status: {response.status_code}")
+            print(f"  Response Body: {response.body}")
+            print(f"  Response Headers: {dict(response.headers)}")
             
-            return {
-                "success": True,
-                "message": f"Email sent successfully to {draft['to_email']}",
-                "message_id": response.headers.get('X-Message-Id', request.draft_id)
-            }
-        else:
-            # Parse error response
-            error_msg = response.text
-            try:
-                error_data = response.json()
-                if "errors" in error_data:
-                    error_msg = "; ".join([err.get("message", str(err)) for err in error_data["errors"]])
-            except:
-                pass
+            # SendGrid returns 202 (Accepted) for successful requests
+            if response.status_code in [200, 201, 202]:
+                # Extract message ID from headers
+                message_id = response.headers.get('X-Message-Id', '')
+                
+                # Update draft status to sent
+                await db.email_drafts.update_one(
+                    {"id": request.draft_id},
+                    {"$set": {
+                        "status": "sent",
+                        "sent_at": datetime.now().isoformat(),
+                        "from_email": request.from_email,
+                        "sendgrid_message_id": message_id
+                    }}
+                )
+                
+                # Store the sender email in settings for future use
+                await db.settings.update_one(
+                    {"user_id": draft["user_id"]},
+                    {"$set": {"sender_email": request.from_email}},
+                    upsert=True
+                )
+                
+                # Add activity to lead notes
+                current_notes = lead.get('notes', '')
+                new_note = f"\n\n[Email Sent] '{draft['subject']}' to {draft['to_email']} from {request.from_email} - {datetime.now().isoformat()}"
+                await db.leads.update_one(
+                    {"id": draft["lead_id"]},
+                    {"$set": {"notes": current_notes + new_note}}
+                )
+                
+                print(f"✅ Email sent successfully! Message ID: {message_id}")
+                
+                return {
+                    "success": True,
+                    "message": f"Email sent successfully to {draft['to_email']}",
+                    "message_id": message_id or request.draft_id
+                }
+            else:
+                # Handle non-success status codes
+                error_msg = f"Unexpected status code: {response.status_code}"
+                if response.body:
+                    error_msg += f" - {response.body}"
+                
+                print(f"❌ SendGrid error: {error_msg}")
+                
+                # Update draft status to failed
+                await db.email_drafts.update_one(
+                    {"id": request.draft_id},
+                    {"$set": {
+                        "status": "failed",
+                        "error_message": error_msg
+                    }}
+                )
+                
+                return {
+                    "success": False,
+                    "error": error_msg
+                }
+                
+        except Exception as sg_error:
+            # Handle SendGrid SDK exceptions
+            error_msg = str(sg_error)
             
-            print(f"❌ SendGrid error: {response.status_code} - {error_msg}")
+            # Try to extract detailed error from SendGrid exception
+            if hasattr(sg_error, 'body'):
+                try:
+                    import json
+                    error_body = json.loads(sg_error.body)
+                    if "errors" in error_body:
+                        error_msg = "; ".join([err.get("message", str(err)) for err in error_body["errors"]])
+                except:
+                    error_msg = sg_error.body
+            
+            print(f"❌ SendGrid SDK Exception: {error_msg}")
             
             # Update draft status to failed
             await db.email_drafts.update_one(
@@ -5206,7 +5211,7 @@ async def send_email_draft(request: SendDraftRequest):
             
             return {
                 "success": False,
-                "error": f"SendGrid error ({response.status_code}): {error_msg}"
+                "error": f"SendGrid error: {error_msg}"
             }
             
     except Exception as e:
