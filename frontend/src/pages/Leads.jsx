@@ -6,6 +6,7 @@ import ImportLeadsModal from '../components/ImportLeadsModal';
 import LeadDrawer from '../components/LeadDrawer';
 import EmailModal from '../components/EmailModal';
 import EmailDraftModal from '../components/EmailDraftModal';
+import EmailDraftModal from '../components/EmailDraftModal';
 import CommunicationModal from '../components/CommunicationModal';
 import FilterTemplates from '../components/FilterTemplates';
 import AIAgentModal from '../components/AIAgentModal';
