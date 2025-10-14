@@ -1176,9 +1176,10 @@ async def initiate_call(call_data: TwilioCallRequest):
                 }
             }
         
-        # Get user's Twilio settings
-        settings = await db.settings.find_one({"user_id": lead["user_id"]})
-        twilio_phone = settings.get("twilio_phone_number")
+        # Auto-migrate and get Twilio secrets
+        await migrate_secrets_from_settings(lead["user_id"])
+        secrets = await get_all_secrets(lead["user_id"])
+        twilio_phone = secrets.get("twilio_phone_number")
         
         if not twilio_phone:
             raise HTTPException(status_code=400, detail="Twilio phone number not configured. Please add your Twilio phone number in Settings.")
