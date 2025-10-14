@@ -1895,6 +1895,7 @@ class SaveSettingsRequest(BaseModel):
     smtp_from_email: Optional[str] = None
     smtp_from_name: Optional[str] = None
     sendgrid_api_key: Optional[str] = None
+    sender_email: Optional[str] = None  # Add sender_email field
 
 @app.post("/api/settings", response_model=Settings)
 async def save_settings(payload: SaveSettingsRequest):
