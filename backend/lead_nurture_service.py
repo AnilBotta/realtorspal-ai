@@ -847,22 +847,28 @@ async def send_nurture_message(lead: Dict[str, Any], purpose: str, user_id: str)
         _log(lead_id, f"[CREWAI] Crafting {purpose} message for {analyzed_stage} stage via {channel}")
         message = await craft_message(lead, purpose, channel, user_id)
         
-        # Step 7: Send message via appropriate channel
-        message_id = await deliver_message(lead, channel, message, user_id)
+        # Step 7: Send message via appropriate channel (save as draft by default)
+        result = await deliver_message(lead, channel, message, user_id)
         
         # Step 8: Update lead tracking
-        await db.leads.update_one(
-            {"id": lead_id},
-            {"$set": {
-                "last_nurture_contact": _now().isoformat(),
-                "last_nurture_channel": channel,
-                "nurture_contact_count": lead.get("nurture_contact_count", 0) + 1,
-                "nurturing_stage": analyzed_stage
-            }}
-        )
-        
-        _log(lead_id, f"[SUCCESS] {purpose} sent via {channel} → {message_id}")
-        return message_id
+        if result.get("success"):
+            await db.leads.update_one(
+                {"id": lead_id},
+                {"$set": {
+                    "last_nurture_contact": _now().isoformat(),
+                    "last_nurture_channel": channel,
+                    "nurture_contact_count": lead.get("nurture_contact_count", 0) + 1,
+                    "nurturing_stage": analyzed_stage
+                }}
+            )
+            
+            message_id = result.get("draft_id") or result.get("message_id")
+            status = result.get("status", "unknown")
+            _log(lead_id, f"[SUCCESS] {purpose} {status} via {channel} → {message_id}")
+            return message_id
+        else:
+            _log(lead_id, f"[ERROR] Failed to deliver {purpose}: {result.get('error', 'Unknown error')}")
+            return None
         
     except Exception as e:
         _log(lead_id, f"[ERROR] Failed to send {purpose}: {e}")
