@@ -73,23 +73,23 @@ async def initiate_outbound_call(call_data: TwilioWebRTCCallRequest):
 ## Testing Results
 
 ### Test Call Details:
-- **From:** +12894012412 (Twilio Number)
-- **To:** +13654578956 (Lead: Fresh Import1)
-- **Account SID:** AC95d99c15758784e8d9a462385bd9645b
-- **Call SID:** CA16af7a59c1a6e105d2ffe1e62ffab3c7
+- **From:** +1XXXXXXXXXX (Twilio Number)
+- **To:** +1XXXXXXXXXX (Lead Phone)
+- **Account SID:** ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+- **Call SID:** CAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 - **Status:** 201 Created (Success)
 - **Call Status:** queued → processing → in-progress
 
 ### Backend Logs:
 ```
 🔵 Initiating outbound call:
-   From: +12894012412 (Twilio)
-   To: +13654578956 (Lead: Fresh Import1)
-   Account SID: AC95d99c15758784e8d9a462385bd9645b
+   From: +1XXXXXXXXXX (Twilio)
+   To: +1XXXXXXXXXX (Lead)
+   Account SID: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
    Making API call to Twilio...
    Response Status: 201
 ✅ Call initiated successfully!
-   Call SID: CA16af7a59c1a6e105d2ffe1e62ffab3c7
+   Call SID: CAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
    Status: queued
 ```
 
