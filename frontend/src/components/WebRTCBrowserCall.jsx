@@ -76,7 +76,7 @@ const WebRTCBrowserCall = ({ user, lead, onCallEnd, onCallStart }) => {
         await twilioDevice.register();
         
         setDevice(twilioDevice);
-        deviceRef.current = twilioDevice);
+        deviceRef.current = twilioDevice;
         
         console.log('✅ Twilio Device initialized successfully');
         console.log('   TwiML App URL:', twilioDevice._twimlAppUrl);
