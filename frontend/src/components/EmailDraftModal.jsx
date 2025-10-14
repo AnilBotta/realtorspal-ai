@@ -172,6 +172,16 @@ export default function EmailDraftModal({ open, lead, onClose, user, onOpenCompo
                       <p className="text-sm text-gray-500">
                         For: {lead.first_name} {lead.last_name} ({lead.email || 'No email address'})
                       </p>
+                      {senderEmail && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          From: {senderEmail}
+                        </p>
+                      )}
+                      {!senderEmail && (
+                        <p className="text-xs text-red-600 mt-1">
+                          ⚠️ No sender email configured in Settings
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
