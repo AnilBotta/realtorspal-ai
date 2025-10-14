@@ -5092,18 +5092,33 @@ async def send_email_draft(request: SendDraftRequest):
         
         sendgrid_api_key = settings["sendgrid_api_key"]
         
-        # Prepare SendGrid payload
+        # Prepare SendGrid payload according to official API docs
+        # Construct recipient name
+        recipient_name = ""
+        if lead.get("first_name") or lead.get("last_name"):
+            recipient_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+        
         payload = {
             "personalizations": [{
-                "to": [{"email": draft["to_email"], "name": lead.get("first_name", "")}],
+                "to": [{"email": draft["to_email"]}],
                 "subject": draft["subject"]
             }],
+            "from": {
+                "email": request.from_email,
+                "name": "RealtorsPal Agent"
+            },
+            "reply_to": {
+                "email": request.from_email,
+                "name": "RealtorsPal Agent"
+            },
             "content": [
                 {"type": "text/plain", "value": draft["body"]}
-            ],
-            "from": {"email": request.from_email, "name": "RealtorsPal Agent"},
-            "reply_to": {"email": request.from_email, "name": "RealtorsPal Agent"}
+            ]
         }
+        
+        # Add recipient name if available
+        if recipient_name:
+            payload["personalizations"][0]["to"][0]["name"] = recipient_name
         
         # Add HTML content if available
         if draft.get("html_body"):
