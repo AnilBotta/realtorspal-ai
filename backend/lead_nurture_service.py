@@ -1104,12 +1104,16 @@ async def handle_inbound(request: InboundMessageRequest):
     if new_stage:
         await _update_lead_stage(request.lead_id, new_stage)
     
-    # Step 5: Send auto-reply if appropriate
+    # Step 5: Send auto-reply if appropriate (send immediately for auto-replies)
     if auto_reply and not escalate:
         try:
             channel = request.channel
-            message_id = await deliver_message(lead, channel, auto_reply, request.user_id)
-            _log(request.lead_id, f"[AUTO-REPLY] Sent via {channel} → {message_id}")
+            result = await deliver_message(lead, channel, auto_reply, request.user_id, save_as_draft=False)
+            if result.get("success"):
+                message_id = result.get("message_id")
+                _log(request.lead_id, f"[AUTO-REPLY] Sent via {channel} → {message_id}")
+            else:
+                _log(request.lead_id, f"[ERROR] Auto-reply failed: {result.get('error', 'Unknown error')}")
         except Exception as e:
             _log(request.lead_id, f"[ERROR] Auto-reply failed: {e}")
     
