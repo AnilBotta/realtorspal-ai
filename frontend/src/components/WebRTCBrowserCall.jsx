@@ -49,7 +49,12 @@ const WebRTCBrowserCall = ({ user, lead, onCallEnd, onCallStart }) => {
         const twilioDevice = new Device(result.token, {
           logLevel: 1,
           codecPreferences: ['opus', 'pcmu'],
+          // Set TwiML app URL for outgoing calls
+          edge: 'ashburn',
         });
+
+        // Store TwiML URL for making calls
+        twilioDevice._twimlAppUrl = result.twiml_app_url || `${baseUrl}/api/twiml/webrtc-outbound`;
 
         // Setup event listeners
         twilioDevice.on('registered', () => {
@@ -71,9 +76,10 @@ const WebRTCBrowserCall = ({ user, lead, onCallEnd, onCallStart }) => {
         await twilioDevice.register();
         
         setDevice(twilioDevice);
-        deviceRef.current = twilioDevice;
+        deviceRef.current = twilioDevice);
         
         console.log('✅ Twilio Device initialized successfully');
+        console.log('   TwiML App URL:', twilioDevice._twimlAppUrl);
       } else {
         throw new Error(result.message || 'Failed to get access token');
       }
