@@ -890,8 +890,6 @@ def calculate_next_followup(lead: Dict[str, Any], stage: str) -> Optional[dateti
         # Fallback to now if parsing fails
         created_date = now
     
-    lead_age_days = (now - created_date).days
-    
     # Stop nurturing for final stages
     if stage in ["onboarding", "not_interested"]:
         return None
