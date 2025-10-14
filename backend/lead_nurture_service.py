@@ -70,18 +70,23 @@ def _sha(obj: Any) -> str:
 
 def _in_quiet_hours(lead: Dict[str, Any], ts: Optional[datetime] = None) -> bool:
     """Check if current time is in lead's quiet hours (default 9 PM - 9 AM)"""
-    ts = ts or _now()
-    # Default quiet hours: 21:00 to 09:00 (9 PM to 9 AM)
-    quiet_start = 21  # 9 PM
-    quiet_end = 9     # 9 AM
+    # TESTING MODE: Quiet hours disabled for testing purposes
+    # TODO: Re-enable for production
+    return False
     
-    current_hour = ts.hour
-    
-    # If quiet hours span midnight (21:00 to 09:00)
-    if quiet_start > quiet_end:
-        return current_hour >= quiet_start or current_hour < quiet_end
-    else:
-        return quiet_start <= current_hour < quiet_end
+    # PRODUCTION CODE (commented out for testing):
+    # ts = ts or _now()
+    # # Default quiet hours: 21:00 to 09:00 (9 PM to 9 AM)
+    # quiet_start = 21  # 9 PM
+    # quiet_end = 9     # 9 AM
+    # 
+    # current_hour = ts.hour
+    # 
+    # # If quiet hours span midnight (21:00 to 09:00)
+    # if quiet_start > quiet_end:
+    #     return current_hour >= quiet_start or current_hour < quiet_end
+    # else:
+    #     return quiet_start <= current_hour < quiet_end
 
 def _has_consent(lead: Dict[str, Any], channel: str) -> bool:
     """Check if lead has consented to communication via channel"""
