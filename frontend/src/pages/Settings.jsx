@@ -67,6 +67,7 @@ export default function Settings({ user }){
         twilio_api_key: data.twilio_api_key || "",
         twilio_api_secret: data.twilio_api_secret || "",
         sendgrid_api_key: data.sendgrid_api_key || "",
+        sender_email: data.sender_email || "support@syncai.tech",
         smtp_protocol: data.smtp_protocol || "smtp",
         smtp_hostname: data.smtp_hostname || "",
         smtp_port: data.smtp_port || "587",
