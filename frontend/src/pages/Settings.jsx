@@ -68,6 +68,8 @@ export default function Settings({ user }){
         twilio_whatsapp_number: data.twilio_whatsapp_number || "",
         twilio_api_key: data.twilio_api_key || "",
         twilio_api_secret: data.twilio_api_secret || "",
+        twilio_twiml_app_sid: data.twilio_twiml_app_sid || "",
+        agent_phone_number: data.agent_phone_number || "",
         sendgrid_api_key: data.sendgrid_api_key || "",
         sender_email: data.sender_email || "support@syncai.tech",
         smtp_protocol: data.smtp_protocol || "smtp",
