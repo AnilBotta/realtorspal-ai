@@ -22,6 +22,16 @@ import json
 import asyncio
 from typing import AsyncGenerator
 
+# Import secrets manager for secure credential handling
+from secrets_manager import (
+    get_secret,
+    get_all_secrets,
+    set_multiple_secrets,
+    has_required_twilio_secrets,
+    has_required_sendgrid_secrets,
+    migrate_secrets_from_settings
+)
+
 # Load environment from backend/.env if present
 load_dotenv()
 
