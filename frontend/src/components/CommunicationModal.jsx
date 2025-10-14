@@ -264,7 +264,7 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
                         }`}
                       >
                         <Zap size={16} className="inline mr-1" />
-                        WebRTC (Simple)
+                        Outbound (Simple)
                       </button>
                       <button
                         onClick={() => setCallMode('webrtc')}
