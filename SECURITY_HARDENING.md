@@ -45,20 +45,20 @@ All secrets now stored in MongoDB `settings` collection:
 
 ```javascript
 {
-  user_id: "03f82986-51af-460c-a549-1c5077e67fb0",
+  user_id: "user-uuid-here",
   
   // Twilio Credentials
-  twilio_account_sid: "AC...",
-  twilio_auth_token: "***",
-  twilio_phone_number: "+12894012412",
-  twilio_api_key: "SK...",
-  twilio_api_secret: "***",
-  twilio_twiml_app_sid: "AP...",
-  agent_phone_number: "+13657777336",
+  twilio_account_sid: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  twilio_auth_token: "********************************",
+  twilio_phone_number: "+1XXXXXXXXXX",
+  twilio_api_key: "SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  twilio_api_secret: "********************************",
+  twilio_twiml_app_sid: "APxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  agent_phone_number: "+1XXXXXXXXXX",
   
   // SendGrid Credentials
-  sendgrid_api_key: "SG...",
-  sender_email: "support@syncai.tech"
+  sendgrid_api_key: "SG.***************************",
+  sender_email: "your-email@domain.com"
 }
 ```
 
@@ -67,8 +67,8 @@ All secrets now stored in MongoDB `settings` collection:
 ### Backend `.env`
 ```
 MONGO_URL=mongodb://127.0.0.1:27017
-REACT_APP_BACKEND_URL=https://crm-partial-leads.preview.emergentagent.com
-TWILIO_TWIML_APP_SID=APd78d15551dcb7532cb90471ea4118aa0
+REACT_APP_BACKEND_URL=https://your-domain.com
+TWILIO_TWIML_APP_SID=APxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 **Note:** `.env` files are in `.gitignore` and won't be pushed to GitHub
