@@ -99,11 +99,34 @@ export default function Leads({ user }) {
       // Handle different response structures
       const data = response.data || response || [];
       setLeads(Array.isArray(data) ? data : []);
+      
+      // Load email draft counts for each lead
+      await loadEmailDraftCounts(data || []);
     } catch (error) {
       console.error('Failed to load leads:', error);
       setLeads([]);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const loadEmailDraftCounts = async (leadsData) => {
+    try {
+      const counts = {};
+      await Promise.all(
+        leadsData.map(async (lead) => {
+          try {
+            const response = await getEmailDraftCount(lead.id);
+            counts[lead.id] = response.data.draft_count || 0;
+          } catch (error) {
+            console.error(`Failed to get draft count for lead ${lead.id}:`, error);
+            counts[lead.id] = 0;
+          }
+        })
+      );
+      setEmailDraftCounts(counts);
+    } catch (error) {
+      console.error('Failed to load email draft counts:', error);
     }
   };
 
