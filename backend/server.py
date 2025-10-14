@@ -997,14 +997,15 @@ async def initiate_outbound_call(call_data: TwilioWebRTCCallRequest):
         if not lead:
             raise HTTPException(status_code=404, detail="Lead not found")
         
-        # Get user's Twilio settings
-        settings = await db.settings.find_one({"user_id": lead["user_id"]})
-        if not settings:
-            return {"status": "error", "message": "User settings not found"}
+        # Auto-migrate secrets if needed
+        await migrate_secrets_from_secrets(lead["user_id"])
         
-        account_sid = settings.get("twilio_account_sid")
-        auth_token = settings.get("twilio_auth_token")
-        twilio_phone = settings.get("twilio_phone_number")
+        # Get Twilio secrets from secure storage
+        secrets = await get_all_secrets(lead["user_id"])
+        
+        account_sid = secrets.get("twilio_account_sid")
+        auth_token = secrets.get("twilio_auth_token")
+        twilio_phone = secrets.get("twilio_phone_number")
         
         # Check required credentials (only basic ones for direct calling)
         if not all([account_sid, auth_token, twilio_phone]):
@@ -1042,8 +1043,8 @@ async def initiate_outbound_call(call_data: TwilioWebRTCCallRequest):
         
         url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Calls.json"
         
-        # Get agent phone number from settings for call bridging
-        agent_phone = settings.get("agent_phone_number")
+        # Get agent phone number from secrets for call bridging
+        agent_phone = secrets.get("agent_phone_number")
         
         if not agent_phone:
             return {
