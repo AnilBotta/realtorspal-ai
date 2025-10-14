@@ -960,9 +960,9 @@ async def initiate_outbound_call(call_data: TwilioWebRTCCallRequest):
         
         url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Calls.json"
         
-        # Simple TwiML that says a message and then hangs up
-        # User can customize this message or add dial functionality
-        twiml = '<Response><Say voice="alice">Hello, this is a call from your real estate agent. They will be with you shortly.</Say><Pause length="2"/><Say>Please hold.</Say></Response>'
+        # TwiML that plays greeting and bridges call to agent phone
+        # After lead answers, they hear message and get connected to agent
+        twiml = f'<Response><Say voice="alice">Hello, please hold while we connect you to your real estate agent.</Say><Dial callerId="{from_phone}" timeout="30" timeLimit="3600">{from_phone}</Dial><Say voice="alice">Sorry, the agent is currently unavailable. Please try again later.</Say></Response>'
         
         payload = {
             'To': to_phone,
