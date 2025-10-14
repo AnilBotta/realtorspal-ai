@@ -17,6 +17,8 @@ export default function Settings({ user }){
     twilio_whatsapp_number: "",
     twilio_api_key: "",
     twilio_api_secret: "",
+    twilio_twiml_app_sid: "",
+    agent_phone_number: "",
     sendgrid_api_key: "",
     sender_email: "support@syncai.tech",
     smtp_protocol: "smtp",
