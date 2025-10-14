@@ -539,6 +539,138 @@ async def deliver_message(lead: Dict[str, Any], channel: str, message: str, user
     else:
         return {"success": False, "error": f"Unsupported channel: {channel}"}
 
+async def _save_email_draft(lead: Dict[str, Any], message: str, user_id: str) -> str:
+    """Save email as draft for later sending"""
+    try:
+        # Generate email subject
+        lead_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+        if not lead_name:
+            lead_name = "there"
+        email_subject = f"Following up on your real estate inquiry - {lead_name}"
+        
+        # Determine email type and urgency based on lead stage and last contact
+        email_type = _determine_email_type(lead)
+        urgency = _calculate_urgency(lead)
+        
+        draft_id = str(uuid.uuid4())
+        
+        email_draft = {
+            "id": draft_id,
+            "lead_id": lead["id"],
+            "user_id": user_id,
+            "subject": email_subject,
+            "body": message,
+            "html_body": message.replace('\n', '<br>'),
+            "to_email": lead.get("email"),
+            "from_email": None,  # Will be set when sending
+            "status": "draft",
+            "email_type": email_type,
+            "urgency": urgency,
+            "created_at": _now().isoformat(),
+            "due_date": (_now() + timedelta(hours=24)).isoformat(),  # Default 24h due date
+            "ai_generated": True,
+            "channel": "email"
+        }
+        
+        await db.email_drafts.insert_one(email_draft)
+        _log(lead["id"], f"[EMAIL] Draft saved -> {draft_id} (Type: {email_type}, Urgency: {urgency})")
+        
+        return draft_id
+        
+    except Exception as e:
+        _log(lead["id"], f"[ERROR] Failed to save email draft: {str(e)}")
+        return f"error_draft_{_sha(str(e))}"
+
+async def _save_sms_draft(lead: Dict[str, Any], message: str, user_id: str) -> str:
+    """Save SMS as draft for later sending"""
+    try:
+        # Determine SMS type and urgency
+        sms_type = _determine_sms_type(lead)
+        urgency = _calculate_urgency(lead)
+        
+        draft_id = str(uuid.uuid4())
+        
+        sms_draft = {
+            "id": draft_id,
+            "lead_id": lead["id"], 
+            "user_id": user_id,
+            "message": message,
+            "to_phone": lead.get("phone"),
+            "status": "draft",
+            "sms_type": sms_type,
+            "urgency": urgency,
+            "created_at": _now().isoformat(),
+            "due_date": (_now() + timedelta(hours=24)).isoformat(),
+            "ai_generated": True,
+            "channel": "sms"
+        }
+        
+        await db.sms_drafts.insert_one(sms_draft)
+        _log(lead["id"], f"[SMS] Draft saved -> {draft_id} (Type: {sms_type}, Urgency: {urgency})")
+        
+        return draft_id
+        
+    except Exception as e:
+        _log(lead["id"], f"[ERROR] Failed to save SMS draft: {str(e)}")
+        return f"error_sms_draft_{_sha(str(e))}"
+
+def _determine_email_type(lead: Dict[str, Any]) -> str:
+    """Determine email type based on lead stage and history"""
+    stage = lead.get("nurturing_stage", "new")
+    contact_count = lead.get("contact_count", 0)
+    
+    if contact_count == 0:
+        return "first_time_email"
+    elif contact_count == 1:
+        return "1st_followup"
+    elif contact_count == 2:
+        return "2nd_followup"
+    elif stage == "new":
+        return "new_lead_nurture"
+    elif stage == "contacted":
+        return "followup_sequence"
+    else:
+        return f"{stage}_email"
+
+def _determine_sms_type(lead: Dict[str, Any]) -> str:
+    """Determine SMS type based on lead stage and history"""
+    stage = lead.get("nurturing_stage", "new")
+    contact_count = lead.get("contact_count", 0)
+    
+    if contact_count == 0:
+        return "first_time_sms"
+    elif contact_count == 1:
+        return "1st_followup_sms"
+    else:
+        return f"{stage}_sms"
+
+def _calculate_urgency(lead: Dict[str, Any]) -> str:
+    """Calculate urgency based on lead data and timing"""
+    # Check if lead has been waiting for response
+    created_at = lead.get("created_at")
+    if created_at:
+        try:
+            created_date = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+            days_old = (_now() - created_date).days
+            
+            if days_old >= 7:
+                return "high"
+            elif days_old >= 3:
+                return "medium"
+            else:
+                return "normal"
+        except:
+            pass
+    
+    # Check lead priority
+    priority = lead.get("priority", "medium")
+    if priority == "high":
+        return "high"
+    elif priority == "low":
+        return "low"
+    else:
+        return "normal"
+
 
 # -------------------------
 # Intent Classification (CrewAI)
