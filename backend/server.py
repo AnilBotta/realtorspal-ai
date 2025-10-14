@@ -874,14 +874,15 @@ async def get_twilio_client(user_id: str) -> Optional[TwilioClient]:
 async def generate_access_token(token_request: AccessTokenRequest):
     """Generate Twilio access token for WebRTC calling using API Keys"""
     try:
-        # Get user settings
-        settings = await db.settings.find_one({"user_id": token_request.user_id})
-        if not settings:
-            raise HTTPException(status_code=400, detail="User settings not found")
+        # Auto-migrate secrets from settings if needed
+        await migrate_secrets_from_settings(token_request.user_id)
         
-        account_sid = settings.get("twilio_account_sid")
-        api_key = settings.get("twilio_api_key")
-        api_secret = settings.get("twilio_api_secret")
+        # Get Twilio secrets from secure storage
+        secrets = await get_all_secrets(token_request.user_id)
+        
+        account_sid = secrets.get("twilio_account_sid")
+        api_key = secrets.get("twilio_api_key")
+        api_secret = secrets.get("twilio_api_secret")
         
         # Check if all required credentials are present
         if not account_sid or not api_key or not api_secret:
@@ -906,12 +907,12 @@ async def generate_access_token(token_request: AccessTokenRequest):
         from twilio.jwt.access_token.grants import VoiceGrant
         
         try:
-            # Get TwiML App SID from environment (set during deployment)
+            # Get TwiML App SID from environment or secrets
             twiml_app_sid = os.environ.get('TWILIO_TWIML_APP_SID')
             
             if not twiml_app_sid:
-                # Try to get from settings if not in environment
-                twiml_app_sid = settings.get('twilio_twiml_app_sid')
+                # Try to get from secrets collection
+                twiml_app_sid = secrets.get('twilio_twiml_app_sid')
             
             if not twiml_app_sid:
                 return {
