@@ -1192,7 +1192,7 @@ async def send_whatsapp(whatsapp_data: TwilioWhatsAppRequest):
 
 @app.post("/api/email/send")
 async def send_email(email_request: SendEmailRequest):
-    """Send email to lead using SMTP configuration"""
+    """Send email to lead using SendGrid"""
     try:
         # Get lead details
         lead = await db.leads.find_one({"id": email_request.lead_id})
@@ -1202,43 +1202,28 @@ async def send_email(email_request: SendEmailRequest):
         if not lead.get("email"):
             return {"status": "error", "message": "Lead has no email address"}
         
-        # Get SMTP settings
+        # Get SendGrid settings
         settings = await db.settings.find_one({"user_id": lead["user_id"]})
         if not settings:
             return {"status": "error", "message": "User settings not found"}
         
-        # Check SMTP configuration
-        required_fields = ["smtp_hostname", "smtp_port", "smtp_username", "smtp_password", "smtp_from_email"]
-        missing_fields = [field for field in required_fields if not settings.get(field)]
+        # Check SendGrid configuration
+        sendgrid_api_key = settings.get("sendgrid_api_key")
+        sender_email = settings.get("sender_email", "support@syncai.tech")
         
-        if missing_fields:
+        if not sendgrid_api_key:
             return {
                 "status": "error", 
-                "message": f"SMTP configuration incomplete. Missing: {', '.join(missing_fields)}",
+                "message": "SendGrid API key not configured. Please configure in Settings.",
                 "setup_required": True
             }
         
-        # Import required libraries for email
-        import smtplib
-        import ssl
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        
-        # Create email message
-        message = MIMEMultipart("alternative")
-        message["Subject"] = email_request.subject
-        message["From"] = f"{settings.get('smtp_from_name', 'RealtorsPal Agent')} <{settings['smtp_from_email']}>"
-        message["To"] = lead["email"]
-        
-        # Create HTML and plain text versions
-        html_body = email_request.body.replace('\n', '<br>')
-        text_body = email_request.body
-        
-        text_part = MIMEText(text_body, "plain")
-        html_part = MIMEText(html_body, "html")
-        
-        message.attach(text_part)
-        message.attach(html_part)
+        if not sender_email:
+            return {
+                "status": "error",
+                "message": "Sender email not configured. Please configure in Settings.",
+                "setup_required": True
+            }
         
         # Create email history record
         email_id = str(uuid.uuid4())
@@ -1249,8 +1234,8 @@ async def send_email(email_request: SendEmailRequest):
             "subject": email_request.subject,
             "body": email_request.body,
             "to_email": lead["email"],
-            "from_email": settings["smtp_from_email"],
-            "from_name": settings.get("smtp_from_name", "RealtorsPal Agent"),
+            "from_email": sender_email,
+            "from_name": "RealtorsPal Agent",
             "status": "draft",
             "llm_provider": email_request.llm_provider,
             "email_template": email_request.email_template,
@@ -1258,40 +1243,81 @@ async def send_email(email_request: SendEmailRequest):
         }
         
         try:
-            # Connect to SMTP server
-            context = ssl.create_default_context()
+            # Use SendGrid Python SDK
+            from sendgrid import SendGridAPIClient
+            from sendgrid.helpers.mail import Mail
             
-            if settings.get("smtp_ssl_tls", True):
-                # Use TLS
-                server = smtplib.SMTP(settings["smtp_hostname"], int(settings["smtp_port"]))
-                server.starttls(context=context)
-            else:
-                # Use plain connection
-                server = smtplib.SMTP(settings["smtp_hostname"], int(settings["smtp_port"]))
+            # Initialize SendGrid client
+            sg = SendGridAPIClient(sendgrid_api_key)
             
-            # Login and send email
-            server.login(settings["smtp_username"], settings["smtp_password"])
-            server.sendmail(settings["smtp_from_email"], lead["email"], message.as_string())
-            server.quit()
+            print(f"🔵 Sending manual email via SendGrid SDK...")
+            print(f"  To: {lead['email']}")
+            print(f"  From: {sender_email}")
+            print(f"  Subject: {email_request.subject}")
             
-            # Update email history with success
-            email_history["status"] = "sent"
-            email_history["sent_at"] = datetime.now().isoformat()
+            # Create HTML version
+            html_body = email_request.body.replace('\n', '<br>')
             
-            # Log email activity in lead notes
-            current_notes = lead.get('notes', '')
-            new_note = f"\n\n[Email] Sent: '{email_request.subject}' to {lead['email']} - {datetime.now().isoformat()}"
-            await db.leads.update_one(
-                {"id": email_request.lead_id},
-                {"$set": {"notes": current_notes + new_note}}
+            # Create email message
+            message = Mail(
+                from_email=sender_email,
+                to_emails=lead["email"],
+                subject=email_request.subject,
+                plain_text_content=email_request.body,
+                html_content=html_body
             )
             
-            print(f"Email sent successfully to {lead['email']}")
+            # Send email
+            response = sg.send(message)
             
-        except Exception as smtp_error:
-            print(f"SMTP error: {smtp_error}")
+            print(f"✅ SendGrid Response Status: {response.status_code}")
+            print(f"  Response Headers: {dict(response.headers)}")
+            
+            # Check if successful (202 = Accepted)
+            if response.status_code in [200, 201, 202]:
+                message_id = response.headers.get('X-Message-Id', '')
+                
+                # Update email history with success
+                email_history["status"] = "sent"
+                email_history["sent_at"] = datetime.now().isoformat()
+                email_history["sendgrid_message_id"] = message_id
+                
+                # Log email activity in lead notes
+                current_notes = lead.get('notes', '')
+                new_note = f"\n\n[Email] Sent: '{email_request.subject}' to {lead['email']} - {datetime.now().isoformat()}"
+                await db.leads.update_one(
+                    {"id": email_request.lead_id},
+                    {"$set": {"notes": current_notes + new_note}}
+                )
+                
+                print(f"✅ Manual email sent successfully! Message ID: {message_id}")
+            else:
+                # Handle non-success status codes
+                error_msg = f"Unexpected status code: {response.status_code}"
+                if response.body:
+                    error_msg += f" - {response.body}"
+                
+                print(f"❌ SendGrid error: {error_msg}")
+                email_history["status"] = "failed"
+                email_history["error_message"] = error_msg
+            
+        except Exception as sendgrid_error:
+            # Handle SendGrid SDK exceptions
+            error_msg = str(sendgrid_error)
+            
+            # Try to extract detailed error from SendGrid exception
+            if hasattr(sendgrid_error, 'body'):
+                try:
+                    import json
+                    error_body = json.loads(sendgrid_error.body)
+                    if "errors" in error_body:
+                        error_msg = "; ".join([err.get("message", str(err)) for err in error_body["errors"]])
+                except:
+                    error_msg = sendgrid_error.body
+            
+            print(f"❌ SendGrid error: {error_msg}")
             email_history["status"] = "failed"
-            email_history["error_message"] = str(smtp_error)
+            email_history["error_message"] = error_msg
         
         # Save email history
         await db.email_history.insert_one(email_history)
@@ -1300,17 +1326,20 @@ async def send_email(email_request: SendEmailRequest):
             return {
                 "status": "success",
                 "message": f"Email sent successfully to {lead['email']}",
-                "email_id": email_id
+                "email_id": email_id,
+                "message_id": email_history.get("sendgrid_message_id", "")
             }
         else:
             return {
                 "status": "error",
-                "message": f"Failed to send email: {email_history['error_message']}",
+                "message": f"Failed to send email: {email_history.get('error_message', 'Unknown error')}",
                 "email_id": email_id
             }
             
     except Exception as e:
-        print(f"Email sending error: {e}")
+        print(f"❌ Email sending error: {e}")
+        import traceback
+        traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
 @app.get("/api/email/history/{lead_id}")
