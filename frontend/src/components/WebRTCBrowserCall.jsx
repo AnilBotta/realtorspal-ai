@@ -227,18 +227,18 @@ const WebRTCBrowserCall = ({ user, lead, onCallEnd, onCallStart }) => {
   const getStatusDisplay = () => {
     switch (callStatus) {
       case 'connecting':
-        return 'Connecting...';
+        return 'Initializing device...';
       case 'ringing':
         return 'Ringing...';
       case 'connected':
-        return 'Connected';
+        return 'Connected - Speaking';
       case 'disconnected':
         return 'Call ended';
       case 'error':
-        return 'Call failed';
+        return 'Initialization failed';
       case 'idle':
       default:
-        return 'Ready to call';
+        return device ? 'Ready to call' : 'Setting up...';
     }
   };
 
