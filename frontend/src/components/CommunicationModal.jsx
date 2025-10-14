@@ -40,7 +40,7 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
     switch (type) {
       case 'call':
         return callMode === 'webrtc' ? 'WebRTC Call (Full)' : 
-               callMode === 'simple' ? 'WebRTC Call (Simple)' : 'Voice Bridge Call';
+               callMode === 'simple' ? 'Outbound Call (Simple)' : 'Voice Bridge Call';
       case 'sms':
         return 'Send SMS';
       case 'whatsapp':
