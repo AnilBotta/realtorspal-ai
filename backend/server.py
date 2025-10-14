@@ -906,9 +906,9 @@ async def generate_access_token(token_request: AccessTokenRequest):
             "message": f"Access token error: {str(e)}"
         }
 
-@app.post("/api/twilio/webrtc-call")
-async def initiate_webrtc_call(call_data: TwilioWebRTCCallRequest):
-    """Initiate a WebRTC call using Twilio REST API - Direct connection between agent browser and lead phone"""
+@app.post("/api/twilio/outbound-call")
+async def initiate_outbound_call(call_data: TwilioWebRTCCallRequest):
+    """Initiate a direct outbound call using Twilio - Simple phone-to-phone call"""
     try:
         # Get lead details
         lead = await db.leads.find_one({"id": call_data.lead_id})
@@ -923,70 +923,102 @@ async def initiate_webrtc_call(call_data: TwilioWebRTCCallRequest):
         account_sid = settings.get("twilio_account_sid")
         auth_token = settings.get("twilio_auth_token")
         twilio_phone = settings.get("twilio_phone_number")
-        api_key = settings.get("twilio_api_key")
-        api_secret = settings.get("twilio_api_secret")
         
-        # Check required credentials
-        if not all([account_sid, auth_token, twilio_phone, api_key, api_secret]):
+        # Check required credentials (only basic ones for direct calling)
+        if not all([account_sid, auth_token, twilio_phone]):
             missing = []
             if not account_sid: missing.append("Account SID")
             if not auth_token: missing.append("Auth Token")
             if not twilio_phone: missing.append("Phone Number")
-            if not api_key: missing.append("API Key SID")
-            if not api_secret: missing.append("API Key Secret")
             
             return {
                 "status": "error",
-                "message": f"Missing Twilio credentials: {', '.join(missing)}",
+                "message": f"Missing Twilio credentials: {', '.join(missing)}. Please configure in Settings.",
                 "setup_required": True
             }
         
         if not lead.get("phone"):
             return {"status": "error", "message": "Lead has no phone number"}
         
-        # Get Twilio client for REST API calls
-        client = await get_twilio_client(lead["user_id"])
-        if not client:
-            return {"status": "error", "message": "Failed to initialize Twilio client"}
+        # Validate and format phone numbers
+        to_phone = lead["phone"]
+        if not to_phone.startswith('+'):
+            to_phone = '+' + to_phone.lstrip('+')
         
-        # Create TwiML URL with parameters for WebRTC connection
-        base_url = os.environ.get('REACT_APP_BACKEND_URL')
-        agent_identity = f"agent_{lead['user_id']}"
+        from_phone = twilio_phone
+        if not from_phone.startswith('+'):
+            from_phone = '+' + from_phone.lstrip('+')
         
-        # URL encode parameters for TwiML endpoint
-        from urllib.parse import quote
-        twiml_url = f"{base_url}/api/twiml/outbound-call?agent_identity={quote(agent_identity)}&lead_phone={quote(lead['phone'])}"
+        print(f"🔵 Initiating outbound call:")
+        print(f"   From: {from_phone} (Twilio)")
+        print(f"   To: {to_phone} (Lead: {lead.get('first_name')} {lead.get('last_name')})")
+        print(f"   Account SID: {account_sid}")
         
-        print(f"Initiating WebRTC call: {twilio_phone} → {lead['phone']} → WebRTC client {agent_identity}")
-        print(f"TwiML URL: {twiml_url}")
+        # Use Twilio REST API to create outbound call with direct HTTP request
+        import requests
+        from requests.auth import HTTPBasicAuth
         
-        # Use Twilio REST API to create outbound call
-        call = client.calls.create(
-            from_=twilio_phone,           # Your Twilio phone number
-            to=lead["phone"],             # Lead's phone number  
-            url=twiml_url,                # Our TwiML endpoint that connects to WebRTC client
-            method='GET'
-        )
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Calls.json"
         
-        # Log the WebRTC call activity
-        current_notes = lead.get('notes', '')
-        new_note = f"\n\n[WebRTC Call] Browser call initiated - Twilio: {twilio_phone} → Lead: {lead['phone']} → Agent Browser - {datetime.now().isoformat()}"
-        await db.leads.update_one(
-            {"id": call_data.lead_id},
-            {"$set": {"notes": current_notes + new_note}}
-        )
+        # Simple TwiML that says a message and then hangs up
+        # User can customize this message or add dial functionality
+        twiml = '<Response><Say voice="alice">Hello, this is a call from your real estate agent. They will be with you shortly.</Say><Pause length="2"/><Say>Please hold.</Say></Response>'
         
-        return {
-            "status": "success",
-            "call_sid": call.sid,
-            "message": "WebRTC call initiated successfully. The lead will receive a call and be connected to your browser.",
-            "call_flow": f"Twilio calls {lead['phone']} → Lead answers → Connected to your browser microphone/speakers",
-            "agent_identity": agent_identity,
-            "lead_phone": lead["phone"]
+        payload = {
+            'To': to_phone,
+            'From': from_phone,
+            'Twiml': twiml
         }
         
+        print(f"   Making API call to Twilio...")
+        
+        response = requests.post(
+            url,
+            data=payload,
+            auth=HTTPBasicAuth(account_sid, auth_token)
+        )
+        
+        print(f"   Response Status: {response.status_code}")
+        print(f"   Response Body: {response.text[:300]}")
+        
+        if response.status_code in [200, 201]:
+            response_data = response.json()
+            call_sid = response_data.get('sid')
+            status = response_data.get('status')
+            
+            print(f"✅ Call initiated successfully!")
+            print(f"   Call SID: {call_sid}")
+            print(f"   Status: {status}")
+            
+            # Log the call activity
+            current_notes = lead.get('notes', '')
+            new_note = f"\n\n[Outbound Call] Initiated from {from_phone} to {to_phone} - Call SID: {call_sid} - {datetime.now().isoformat()}"
+            await db.leads.update_one(
+                {"id": call_data.lead_id},
+                {"$set": {"notes": current_notes + new_note}}
+            )
+            
+            return {
+                "status": "success",
+                "call_sid": call_sid,
+                "message": f"Call initiated successfully! Calling {to_phone} from {from_phone}",
+                "call_status": status,
+                "from_number": from_phone,
+                "to_number": to_phone
+            }
+        else:
+            error_msg = response.text
+            print(f"❌ Twilio API error: {error_msg}")
+            
+            return {
+                "status": "error",
+                "message": f"Failed to initiate call: {error_msg}"
+            }
+        
     except Exception as e:
-        print(f"WebRTC call initiation error: {e}")
+        print(f"❌ Outbound call error: {e}")
+        import traceback
+        traceback.print_exc()
         return {"status": "error", "message": f"Call failed: {str(e)}"}
 
 @app.get("/api/twilio/voice")
