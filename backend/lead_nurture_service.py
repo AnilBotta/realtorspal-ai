@@ -1078,7 +1078,7 @@ async def handle_inbound(request: InboundMessageRequest):
         # Use CrewAI to craft contextual response
         try:
             auto_reply = await craft_message(lead, "answer_question", request.channel, request.user_id)
-        except:
+        except Exception:
             # Fallback template
             if "budget" in intent:
                 auto_reply = "I understand budget is important. We work with clients at all price points and can help you find options that fit your needs. Would you like to discuss what you're comfortable with?"
