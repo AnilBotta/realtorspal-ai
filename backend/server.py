@@ -1399,14 +1399,13 @@ async def send_email(email_request: SendEmailRequest):
         if not lead.get("email"):
             return {"status": "error", "message": "Lead has no email address"}
         
-        # Get SendGrid settings
-        settings = await db.settings.find_one({"user_id": lead["user_id"]})
-        if not settings:
-            return {"status": "error", "message": "User settings not found"}
+        # Auto-migrate and get SendGrid secrets
+        await migrate_secrets_from_settings(lead["user_id"])
+        secrets = await get_all_secrets(lead["user_id"])
         
         # Check SendGrid configuration
-        sendgrid_api_key = settings.get("sendgrid_api_key")
-        sender_email = settings.get("sender_email", "support@syncai.tech")
+        sendgrid_api_key = secrets.get("sendgrid_api_key")
+        sender_email = secrets.get("sender_email", "support@syncai.tech")
         
         if not sendgrid_api_key:
             return {
