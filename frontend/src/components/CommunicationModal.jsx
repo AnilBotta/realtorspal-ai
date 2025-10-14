@@ -315,7 +315,7 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
                   <div className="mb-4">
                     <WebRTCBrowserCall 
                       user={user} 
-                      lead={communicationLead || lead}
+                      lead={lead}
                       onCallStart={() => {
                         setCallResult({
                           status: 'success',
