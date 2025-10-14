@@ -1109,7 +1109,7 @@ async def initiate_call(call_data: TwilioCallRequest):
 
 @app.post("/api/twilio/sms")
 async def send_sms(sms_data: TwilioSMSRequest):
-    """Send SMS via Twilio"""
+    """Send SMS via Twilio using direct API call"""
     try:
         # Get lead details
         lead = await db.leads.find_one({"id": sms_data.lead_id})
@@ -1119,29 +1119,32 @@ async def send_sms(sms_data: TwilioSMSRequest):
         print(f"🔵 Sending SMS to lead: {lead.get('first_name')} {lead.get('last_name')}")
         print(f"   Lead phone: {lead.get('phone')}")
         
-        # Get Twilio client
-        client = await get_twilio_client(lead["user_id"])
-        if not client:
-            print("❌ Twilio client not initialized - credentials missing")
-            raise HTTPException(status_code=400, detail="Twilio not configured")
-        
-        # Get user's Twilio settings
-        settings = await db.settings.find_one({"user_id": lead["user_id"]})
-        twilio_phone = settings.get("twilio_phone_number")
-        
-        print(f"   From phone: {twilio_phone}")
-        print(f"   Account SID: {settings.get('twilio_account_sid')}")
-        
-        if not twilio_phone:
-            raise HTTPException(status_code=400, detail="Twilio phone number not configured")
-        
         if not lead.get("phone"):
             raise HTTPException(status_code=400, detail="Lead has no phone number")
         
-        # Validate phone number format
+        # Get Twilio settings from database
+        settings = await db.settings.find_one({"user_id": lead["user_id"]})
+        if not settings:
+            raise HTTPException(status_code=400, detail="User settings not found")
+        
+        account_sid = settings.get("twilio_account_sid")
+        auth_token = settings.get("twilio_auth_token")
+        twilio_phone = settings.get("twilio_phone_number")
+        
+        print(f"   Account SID: {account_sid}")
+        print(f"   Auth Token: ***{auth_token[-4:] if auth_token else 'NOT SET'}")
+        print(f"   From phone: {twilio_phone}")
+        
+        if not account_sid or not auth_token or not twilio_phone:
+            missing = []
+            if not account_sid: missing.append("Account SID")
+            if not auth_token: missing.append("Auth Token")
+            if not twilio_phone: missing.append("Phone Number")
+            raise HTTPException(status_code=400, detail=f"Twilio configuration incomplete. Missing: {', '.join(missing)}")
+        
+        # Validate and format phone numbers
         to_phone = lead["phone"]
         if not to_phone.startswith('+'):
-            print(f"   ⚠️  Adding + prefix to phone number")
             to_phone = '+' + to_phone
         
         print(f"   Sending SMS...")
@@ -1149,28 +1152,61 @@ async def send_sms(sms_data: TwilioSMSRequest):
         print(f"   To: {to_phone}")
         print(f"   Message: {sms_data.message[:50]}...")
         
-        # Send SMS using synchronous client
-        message = client.messages.create(
-            body=sms_data.message,
-            from_=twilio_phone,
-            to=to_phone
-        )
+        # Send SMS using direct HTTP request (same as successful curl command)
+        import requests
+        from requests.auth import HTTPBasicAuth
         
-        print(f"✅ SMS sent successfully!")
-        print(f"   Message SID: {message.sid}")
-        print(f"   Status: {message.status}")
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
         
-        # Log the SMS activity
-        await db.leads.update_one(
-            {"id": sms_data.lead_id},
-            {"$set": {"notes": f"{lead.get('notes', '')}\n\n[SMS] Sent: '{sms_data.message}' - {datetime.now().isoformat()}"}}
-        )
-        
-        return {
-            "status": "success",
-            "message_sid": message.sid,
-            "message": f"SMS sent to {to_phone}"
+        payload = {
+            'To': to_phone,
+            'From': twilio_phone,
+            'Body': sms_data.message
         }
+        
+        print(f"   URL: {url}")
+        print(f"   Payload: {payload}")
+        
+        response = requests.post(
+            url,
+            data=payload,
+            auth=HTTPBasicAuth(account_sid, auth_token)
+        )
+        
+        print(f"   Response Status: {response.status_code}")
+        print(f"   Response Body: {response.text[:200]}")
+        
+        if response.status_code in [200, 201]:
+            response_data = response.json()
+            message_sid = response_data.get('sid')
+            status = response_data.get('status')
+            
+            print(f"✅ SMS sent successfully!")
+            print(f"   Message SID: {message_sid}")
+            print(f"   Status: {status}")
+            
+            # Log the SMS activity in lead notes
+            current_notes = lead.get('notes', '')
+            new_note = f"\n\n[SMS] Sent: '{sms_data.message}' to {to_phone} - {datetime.now().isoformat()}"
+            await db.leads.update_one(
+                {"id": sms_data.lead_id},
+                {"$set": {"notes": current_notes + new_note}}
+            )
+            
+            return {
+                "status": "success",
+                "message_sid": message_sid,
+                "message": f"SMS sent to {to_phone}",
+                "twilio_status": status
+            }
+        else:
+            error_msg = response.text
+            print(f"❌ Twilio API error: {error_msg}")
+            
+            return {
+                "status": "error",
+                "message": f"Failed to send SMS: {error_msg}"
+            }
         
     except Exception as e:
         print(f"❌ SMS sending error: {e}")
