@@ -1103,14 +1103,21 @@ async def send_sms(sms_data: TwilioSMSRequest):
         if not lead:
             raise HTTPException(status_code=404, detail="Lead not found")
         
+        print(f"🔵 Sending SMS to lead: {lead.get('first_name')} {lead.get('last_name')}")
+        print(f"   Lead phone: {lead.get('phone')}")
+        
         # Get Twilio client
         client = await get_twilio_client(lead["user_id"])
         if not client:
+            print("❌ Twilio client not initialized - credentials missing")
             raise HTTPException(status_code=400, detail="Twilio not configured")
         
         # Get user's Twilio settings
         settings = await db.settings.find_one({"user_id": lead["user_id"]})
         twilio_phone = settings.get("twilio_phone_number")
+        
+        print(f"   From phone: {twilio_phone}")
+        print(f"   Account SID: {settings.get('twilio_account_sid')}")
         
         if not twilio_phone:
             raise HTTPException(status_code=400, detail="Twilio phone number not configured")
@@ -1118,12 +1125,27 @@ async def send_sms(sms_data: TwilioSMSRequest):
         if not lead.get("phone"):
             raise HTTPException(status_code=400, detail="Lead has no phone number")
         
+        # Validate phone number format
+        to_phone = lead["phone"]
+        if not to_phone.startswith('+'):
+            print(f"   ⚠️  Adding + prefix to phone number")
+            to_phone = '+' + to_phone
+        
+        print(f"   Sending SMS...")
+        print(f"   From: {twilio_phone}")
+        print(f"   To: {to_phone}")
+        print(f"   Message: {sms_data.message[:50]}...")
+        
         # Send SMS using synchronous client
         message = client.messages.create(
             body=sms_data.message,
             from_=twilio_phone,
-            to=lead["phone"]
+            to=to_phone
         )
+        
+        print(f"✅ SMS sent successfully!")
+        print(f"   Message SID: {message.sid}")
+        print(f"   Status: {message.status}")
         
         # Log the SMS activity
         await db.leads.update_one(
@@ -1134,11 +1156,13 @@ async def send_sms(sms_data: TwilioSMSRequest):
         return {
             "status": "success",
             "message_sid": message.sid,
-            "message": f"SMS sent to {lead['phone']}"
+            "message": f"SMS sent to {to_phone}"
         }
         
     except Exception as e:
-        print(f"SMS sending error: {e}")
+        print(f"❌ SMS sending error: {e}")
+        import traceback
+        traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
 @app.post("/api/twilio/whatsapp")
