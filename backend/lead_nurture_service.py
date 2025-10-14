@@ -659,7 +659,7 @@ def _calculate_urgency(lead: Dict[str, Any]) -> str:
                 return "medium"
             else:
                 return "normal"
-        except:
+        except (ValueError, TypeError):
             pass
     
     # Check lead priority
