@@ -699,6 +699,51 @@ async def get_lead_external(lead_id: str, api_key: str = Header(..., alias="X-AP
 
 # --- TwiML Endpoints for WebRTC Calling ---
 
+@app.get("/api/twiml/webrtc-outbound")
+@app.post("/api/twiml/webrtc-outbound")
+async def webrtc_outbound_twiml(request: Request):
+    """TwiML endpoint for WebRTC outbound calls - Handles calls from browser to phone"""
+    try:
+        # Get parameters from the request
+        params = dict(request.query_params)
+        form_data = await request.form() if request.method == "POST" else {}
+        
+        # Merge params
+        all_params = {**params, **dict(form_data)}
+        
+        # Get lead phone number from parameters
+        to_number = all_params.get('To', '')
+        lead_id = all_params.get('lead_id', '')
+        
+        print(f"📞 WebRTC Outbound TwiML Request:")
+        print(f"   To: {to_number}")
+        print(f"   Lead ID: {lead_id}")
+        print(f"   All params: {all_params}")
+        
+        # Create TwiML to dial the lead's phone number
+        twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Connecting your call</Say>
+    <Dial callerId="+12894012412" timeout="30" timeLimit="3600">
+        {to_number}
+    </Dial>
+    <Say voice="alice">The call could not be completed. Please try again.</Say>
+</Response>"""
+        
+        print(f"   TwiML Response generated")
+        return Response(content=twiml_response, media_type="application/xml")
+        
+    except Exception as e:
+        print(f"❌ WebRTC Outbound TwiML error: {e}")
+        import traceback
+        traceback.print_exc()
+        # Fallback TwiML
+        fallback_twiml = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="alice">Sorry, there was an error connecting your call. Please try again later.</Say>
+</Response>"""
+        return Response(content=fallback_twiml, media_type="application/xml")
+
 @app.get("/api/twiml/outbound-call")
 @app.post("/api/twiml/outbound-call")
 async def outbound_call_twiml(request: Request):
