@@ -5345,12 +5345,13 @@ async def send_email_draft(request: SendDraftRequest):
         if not lead:
             raise HTTPException(status_code=404, detail="Lead not found")
         
-        # Get SendGrid API key from settings
-        settings = await db.settings.find_one({"user_id": draft["user_id"]})
-        if not settings or not settings.get("sendgrid_api_key"):
-            raise HTTPException(status_code=400, detail="SendGrid API key not configured")
+        # Auto-migrate and get SendGrid secrets
+        await migrate_secrets_from_settings(draft["user_id"])
+        secrets = await get_all_secrets(draft["user_id"])
+        sendgrid_api_key = secrets.get("sendgrid_api_key")
         
-        sendgrid_api_key = settings["sendgrid_api_key"]
+        if not sendgrid_api_key:
+            raise HTTPException(status_code=400, detail="SendGrid API key not configured")
         
         # Use SendGrid Python SDK as per official documentation
         from sendgrid import SendGridAPIClient
