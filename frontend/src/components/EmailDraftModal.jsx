@@ -7,12 +7,12 @@ export default function EmailDraftModal({ open, lead, onClose, user, onOpenCompo
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState({});
-  const [preferredFromEmail, setPreferredFromEmail] = useState('');
+  const [senderEmail, setSenderEmail] = useState('');
 
   useEffect(() => {
     if (open && lead) {
       loadDrafts();
-      loadPreferredFromEmail();
+      loadSenderEmail();
     }
   }, [open, lead]);
 
@@ -31,26 +31,24 @@ export default function EmailDraftModal({ open, lead, onClose, user, onOpenCompo
     }
   };
 
-  const loadPreferredFromEmail = async () => {
+  const loadSenderEmail = async () => {
     if (!user) return;
     
     try {
-      const response = await getPreferredFromEmail(user.id);
-      setPreferredFromEmail(response.data?.email || user.email || '');
+      const response = await getSettings(user.id);
+      setSenderEmail(response.data?.sender_email || '');
     } catch (error) {
-      console.error('Failed to load preferred from email:', error);
-      setPreferredFromEmail(user.email || '');
+      console.error('Failed to load sender email:', error);
+      setSenderEmail('');
     }
   };
 
   const handleSendDraft = async (draft) => {
-    // Prompt for from email if not set
-    let fromEmail = preferredFromEmail;
+    // Check if sender email is configured
+    let fromEmail = senderEmail;
     if (!fromEmail) {
-      fromEmail = prompt('Enter your verified SendGrid sender email (must be verified in your SendGrid account):');
-      if (!fromEmail) {
-        return;
-      }
+      alert('SENDGRID ERROR: No verified sender email configured.\n\nPlease:\n1. Go to Settings\n2. Configure your verified SendGrid sender email\n3. Make sure the email is verified in your SendGrid account\n4. Try sending again');
+      return;
     }
 
     try {
@@ -61,11 +59,10 @@ export default function EmailDraftModal({ open, lead, onClose, user, onOpenCompo
       if (response.data?.success) {
         alert('Email sent successfully!');
         loadDrafts(); // Refresh the drafts list
-        if (onDraftSent) onDraftSent(lead.id); // Callback to refresh counts
       } else {
         const errorMsg = response.data?.error || 'Unknown error';
         if (errorMsg.includes('Sender Identity')) {
-          alert('SENDGRID ERROR: The from email address must be verified in your SendGrid account.\n\nPlease:\n1. Log into SendGrid\n2. Go to Settings > Sender Authentication\n3. Verify this email address\n4. Try again');
+          alert('SENDGRID ERROR: The from email address must be verified in your SendGrid account.\n\nPlease:\n1. Log into SendGrid\n2. Go to Settings > Sender Authentication\n3. Verify this email address: ' + fromEmail + '\n4. Try again');
         } else {
           alert('Failed to send email: ' + errorMsg);
         }
@@ -74,7 +71,7 @@ export default function EmailDraftModal({ open, lead, onClose, user, onOpenCompo
       console.error('Failed to send draft:', error);
       const errorMsg = error.response?.data?.error || error.message;
       if (errorMsg && errorMsg.includes('Sender Identity')) {
-        alert('SENDGRID ERROR: The from email address must be verified in your SendGrid account.\n\nPlease:\n1. Log into SendGrid\n2. Go to Settings > Sender Authentication\n3. Verify this email address\n4. Try sending again');
+        alert('SENDGRID ERROR: The from email address must be verified in your SendGrid account.\n\nPlease:\n1. Log into SendGrid\n2. Go to Settings > Sender Authentication\n3. Verify this email address: ' + fromEmail + '\n4. Try sending again');
       } else {
         alert('Failed to send email. Please try again.');
       }
