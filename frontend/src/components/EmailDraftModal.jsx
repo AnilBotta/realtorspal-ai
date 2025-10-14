@@ -44,25 +44,40 @@ export default function EmailDraftModal({ open, lead, onClose, user, onOpenCompo
   };
 
   const handleSendDraft = async (draft) => {
-    if (!preferredFromEmail) {
-      alert('Please set up your preferred from email in settings first.');
-      return;
+    // Prompt for from email if not set
+    let fromEmail = preferredFromEmail;
+    if (!fromEmail) {
+      fromEmail = prompt('Enter your verified SendGrid sender email (must be verified in your SendGrid account):');
+      if (!fromEmail) {
+        return;
+      }
     }
 
     try {
       setSending(prev => ({ ...prev, [draft.id]: true }));
       
-      const response = await sendEmailDraft(draft.id, preferredFromEmail);
+      const response = await sendEmailDraft(draft.id, fromEmail);
       
       if (response.data?.success) {
         alert('Email sent successfully!');
         loadDrafts(); // Refresh the drafts list
+        if (onDraftSent) onDraftSent(lead.id); // Callback to refresh counts
       } else {
-        alert('Failed to send email: ' + (response.data?.error || 'Unknown error'));
+        const errorMsg = response.data?.error || 'Unknown error';
+        if (errorMsg.includes('Sender Identity')) {
+          alert('SENDGRID ERROR: The from email address must be verified in your SendGrid account.\n\nPlease:\n1. Log into SendGrid\n2. Go to Settings > Sender Authentication\n3. Verify this email address\n4. Try again');
+        } else {
+          alert('Failed to send email: ' + errorMsg);
+        }
       }
     } catch (error) {
       console.error('Failed to send draft:', error);
-      alert('Failed to send email. Please try again.');
+      const errorMsg = error.response?.data?.error || error.message;
+      if (errorMsg && errorMsg.includes('Sender Identity')) {
+        alert('SENDGRID ERROR: The from email address must be verified in your SendGrid account.\n\nPlease:\n1. Log into SendGrid\n2. Go to Settings > Sender Authentication\n3. Verify this email address\n4. Try sending again');
+      } else {
+        alert('Failed to send email. Please try again.');
+      }
     } finally {
       setSending(prev => ({ ...prev, [draft.id]: false }));
     }
