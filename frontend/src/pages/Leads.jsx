@@ -48,6 +48,9 @@ export default function Leads({ user }) {
 
   // Communication modal states
   const [showCommunicationModal, setShowCommunicationModal] = useState(false);
+  
+  // Email draft counts for each lead
+  const [emailDraftCounts, setEmailDraftCounts] = useState({});
   const [communicationType, setCommunicationType] = useState('call');
   const [communicationLead, setCommunicationLead] = useState(null);
 
