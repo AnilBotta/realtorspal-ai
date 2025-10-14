@@ -316,8 +316,8 @@ async def craft_message(lead: Dict[str, Any], purpose: str, channel: str, user_i
 # -------------------------
 # Channel Senders (integrate with existing Twilio/Email settings)
 # -------------------------
-async def send_email(lead: Dict[str, Any], message: str, user_id: str) -> str:
-    """Send email via SendGrid"""
+async def send_email(lead: Dict[str, Any], message: str, user_id: str, from_email: str = None) -> str:
+    """Send email via SendGrid using proper API format"""
     try:
         # Get SendGrid API key from database settings
         settings = await _get_settings(user_id)
@@ -327,22 +327,14 @@ async def send_email(lead: Dict[str, Any], message: str, user_id: str) -> str:
             _log(lead["id"], "[EMAIL] SendGrid API key not configured in settings")
             return f"error_no_api_key"
         
-        # Get recipient email
         to_email = lead.get("email")
         if not to_email:
-            _log(lead["id"], "[EMAIL] No email address found for lead")
+            _log(lead["id"], "[EMAIL] Lead has no email address")
             return f"error_no_email"
         
-        # Get sender email from settings (fallback to default)
-        from_email = settings.get("smtp_from_email", "noreply@realtorspal.com")
-        from_name = settings.get("smtp_from_name", "RealtorsPal AI")
-        
-        # Import SendGrid components
-        import sendgrid
-        from sendgrid.helpers.mail import Mail, From, To, Subject, PlainTextContent, HtmlContent
-        
-        # Initialize SendGrid client
-        sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
+        # Use provided from_email or default
+        sender_email = from_email or settings.get("smtp_from_email", "noreply@realtorspal.com")
+        sender_name = settings.get("smtp_from_name", "RealtorsPal AI Agent")
         
         # Create email subject based on lead info
         lead_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
@@ -353,7 +345,7 @@ async def send_email(lead: Dict[str, Any], message: str, user_id: str) -> str:
         
         # Create HTML version of the message
         html_message = message.replace('\n', '<br>')
-        html_content = f"""
+        html_body = f"""
         <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
             <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -369,30 +361,79 @@ async def send_email(lead: Dict[str, Any], message: str, user_id: str) -> str:
         </html>
         """
         
-        # Create the mail object
-        mail = Mail(
-            from_email=From(from_email, from_name),
-            to_emails=To(to_email),
-            subject=Subject(email_subject),
-            plain_text_content=PlainTextContent(message),
-            html_content=HtmlContent(html_content)
+        # Generate unique email tracking ID
+        email_id = str(uuid.uuid4())
+        
+        # Prepare SendGrid API payload using your curl format
+        payload = {
+            "personalizations": [{
+                "to": [{"email": to_email, "name": lead.get("first_name", "")}],
+                "subject": email_subject
+            }],
+            "content": [
+                {"type": "text/plain", "value": message}
+            ],
+            "from": {"email": sender_email, "name": sender_name},
+            "reply_to": {"email": sender_email, "name": sender_name}
+        }
+        
+        # Add HTML content if provided
+        if html_body:
+            payload["content"].append({"type": "text/html", "value": html_body})
+        
+        # Add tracking headers
+        payload["custom_args"] = {
+            "lead_id": lead["id"],
+            "email_id": email_id,
+            "campaign": "ai_nurturing"
+        }
+        
+        _log(lead["id"], f"[EMAIL] Sending to {to_email} via SendGrid API...")
+        
+        # Send email using requests (matching your curl format)
+        import requests
+        import json
+        
+        headers = {
+            "Authorization": f"Bearer {sendgrid_api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        response = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers=headers,
+            data=json.dumps(payload)
         )
         
-        # Send email
-        _log(lead["id"], f"[EMAIL] Sending to {to_email} via SendGrid...")
-        response = sg.send(mail)
-        
-        # Check response
-        if response.status_code >= 200 and response.status_code < 300:
-            email_id = f"sg_{response.headers.get('X-Message-Id', _sha(message))}"
+        if response.status_code in [200, 201, 202]:
             _log(lead["id"], f"[EMAIL] Successfully sent via SendGrid -> {email_id}")
+            
+            # Store email in drafts collection as "sent"
+            email_draft = {
+                "id": email_id,
+                "lead_id": lead["id"],
+                "user_id": lead["user_id"],
+                "subject": email_subject,
+                "body": message,
+                "html_body": html_body,
+                "to_email": to_email,
+                "from_email": sender_email,
+                "status": "sent",
+                "email_type": "ai_nurturing",
+                "urgency": "normal",
+                "created_at": _now().isoformat(),
+                "sent_at": _now().isoformat(),
+                "sendgrid_response": response.headers.get('X-Message-Id', email_id)
+            }
+            await db.email_drafts.insert_one(email_draft)
+            
             return email_id
         else:
-            _log(lead["id"], f"[EMAIL] SendGrid error: {response.status_code} - {response.body}")
+            _log(lead["id"], f"[EMAIL] SendGrid error: {response.status_code} - {response.text}")
             return f"error_sg_{response.status_code}"
-            
+        
     except Exception as e:
-        error_msg = str(e)[:100]  # Truncate long error messages
+        error_msg = str(e)
         _log(lead["id"], f"[ERROR] SendGrid email failed: {error_msg}")
         return f"error_{_sha(str(e))}"
 
