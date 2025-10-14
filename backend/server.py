@@ -398,6 +398,7 @@ class Settings(BaseModel):
     smtp_from_email: Optional[str] = None
     smtp_from_name: Optional[str] = None
     sendgrid_api_key: Optional[str] = None
+    sender_email: Optional[str] = None  # Verified sender email for SendGrid
 
 class AnalyticsDashboard(BaseModel):
     total_leads: int
