@@ -61,9 +61,9 @@ const WebRTCBrowserCall = ({ user, lead, onCallEnd, onCallStart }) => {
           console.log('✅ Twilio Device registered');
         });
 
-        twilioDevice.on('error', (error) => {
-          console.error('❌ Twilio Device error:', error);
-          setError(error.message);
+        twilioDevice.on('error', (twilioError) => {
+          console.error('❌ Twilio Device error:', twilioError);
+          setError(twilioError?.message || 'Device error occurred');
           setCallStatus('error');
         });
 
@@ -81,11 +81,11 @@ const WebRTCBrowserCall = ({ user, lead, onCallEnd, onCallStart }) => {
         console.log('✅ Twilio Device initialized successfully');
         console.log('   TwiML App URL:', twilioDevice._twimlAppUrl);
       } else {
-        throw new Error(result.message || 'Failed to get access token');
+        throw new Error(result?.message || 'Failed to get access token');
       }
     } catch (err) {
       console.error('Failed to initialize Twilio Device:', err);
-      setError(err.message);
+      setError(err?.message || 'Failed to initialize');
       setCallStatus('error');
     }
   };
