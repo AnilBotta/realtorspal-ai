@@ -141,9 +141,9 @@ const WebRTCBrowserCall = ({ user, lead, onCallEnd, onCallStart }) => {
         setCall(null);
       });
 
-      outgoingCall.on('error', (error) => {
-        console.error('❌ Call error:', error);
-        setError(error.message);
+      outgoingCall.on('error', (callError) => {
+        console.error('❌ Call error:', callError);
+        setError(callError?.message || 'Call error occurred');
         setCallStatus('error');
         setCall(null);
       });
@@ -167,7 +167,7 @@ const WebRTCBrowserCall = ({ user, lead, onCallEnd, onCallStart }) => {
 
     } catch (err) {
       console.error('❌ Failed to make call:', err);
-      setError(err.message);
+      setError(err?.message || 'Failed to make call');
       setCallStatus('error');
       
       // Reset after 3 seconds
