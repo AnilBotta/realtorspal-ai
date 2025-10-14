@@ -219,6 +219,11 @@ export default function Leads({ user }) {
 
   const handleEmailLead = (lead) => {
     setSelectedLead(lead);
+    setShowEmailDraftModal(true);
+  };
+
+  const handleOpenEmailComposer = () => {
+    setShowEmailDraftModal(false);
     setShowEmailModal(true);
   };
 
