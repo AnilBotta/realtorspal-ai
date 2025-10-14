@@ -325,12 +325,12 @@ async def send_email(lead: Dict[str, Any], message: str, user_id: str, from_emai
         
         if not sendgrid_api_key:
             _log(lead["id"], "[EMAIL] SendGrid API key not configured in settings")
-            return f"error_no_api_key"
+            return "error_no_api_key"
         
         to_email = lead.get("email")
         if not to_email:
             _log(lead["id"], "[EMAIL] Lead has no email address")
-            return f"error_no_email"
+            return "error_no_email"
         
         # Use provided from_email or default
         sender_email = from_email or settings.get("smtp_from_email", "noreply@realtorspal.com")
@@ -448,13 +448,13 @@ async def send_sms(lead: Dict[str, Any], message: str, user_id: str) -> str:
         
         if not all([account_sid, auth_token, from_number]):
             _log(lead["id"], "[SMS] Twilio credentials not configured in settings")
-            return f"error_no_twilio_config"
+            return "error_no_twilio_config"
         
         # Get recipient phone
         to_phone = lead.get("phone")
         if not to_phone:
             _log(lead["id"], "[SMS] No phone number found for lead")
-            return f"error_no_phone"
+            return "error_no_phone"
         
         # For now, return simulation until Twilio package is installed
         # TODO: Install twilio package and implement actual SMS sending
@@ -478,13 +478,13 @@ async def send_whatsapp(lead: Dict[str, Any], message: str, user_id: str) -> str
         
         if not all([account_sid, auth_token, whatsapp_number]):
             _log(lead["id"], "[WHATSAPP] Twilio WhatsApp credentials not configured in settings")
-            return f"error_no_twilio_whatsapp_config"
+            return "error_no_twilio_whatsapp_config"
         
         # Get recipient phone
         to_phone = lead.get("phone")
         if not to_phone:
             _log(lead["id"], "[WHATSAPP] No phone number found for lead")
-            return f"error_no_phone"
+            return "error_no_phone"
         
         # For now, return simulation until Twilio package is installed
         # TODO: Install twilio package and implement actual WhatsApp sending
@@ -1067,7 +1067,7 @@ async def handle_inbound(request: InboundMessageRequest):
             (_now() + timedelta(days=3, hours=16)).strftime("%a %b %d at %I:%M %p")
         ]
         
-        auto_reply = f"Great! I'd be happy to schedule a meeting. Here are some available times:\n\n"
+        auto_reply = "Great! I'd be happy to schedule a meeting. Here are some available times:\n\n"
         auto_reply += f"• {times[0]}\n• {times[1]}\n• {times[2]}\n\n"
         auto_reply += "Please reply with your preferred time, or let me know what works better for you."
         
@@ -1190,7 +1190,7 @@ async def get_activity_stream(lead_id: str):
         last_index = 0
         
         # Send initial status
-        yield f"event: status\ndata: connected\n\n"
+        yield "event: status\ndata: connected\n\n"
         
         # Send existing logs
         logs = ACTIVITY_LOGS.get(lead_id, [])
