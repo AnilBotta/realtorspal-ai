@@ -397,6 +397,7 @@ class Settings(BaseModel):
     smtp_password: Optional[str] = None
     smtp_from_email: Optional[str] = None
     smtp_from_name: Optional[str] = None
+    sendgrid_api_key: Optional[str] = None
 
 class AnalyticsDashboard(BaseModel):
     total_leads: int
