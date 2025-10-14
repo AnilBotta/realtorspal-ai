@@ -398,6 +398,7 @@ class Settings(BaseModel):
     smtp_from_email: Optional[str] = None
     smtp_from_name: Optional[str] = None
     sendgrid_api_key: Optional[str] = None
+    sender_email: Optional[str] = None  # Verified sender email for SendGrid
 
 class AnalyticsDashboard(BaseModel):
     total_leads: int
@@ -787,17 +788,30 @@ class AccessTokenRequest(BaseModel):
 
 async def get_twilio_client(user_id: str) -> Optional[TwilioClient]:
     """Get configured Twilio client for user"""
+    print(f"🔵 get_twilio_client called for user_id: {user_id}")
     settings_doc = await db.settings.find_one({"user_id": user_id})
     if not settings_doc:
+        print(f"❌ No settings found for user_id: {user_id}")
         return None
         
     account_sid = settings_doc.get("twilio_account_sid")
     auth_token = settings_doc.get("twilio_auth_token")
     
+    print(f"   Account SID: {account_sid}")
+    print(f"   Auth Token: {'***' + auth_token[-4:] if auth_token else 'NOT SET'}")
+    
     if not account_sid or not auth_token:
+        print(f"❌ Missing credentials - Account SID: {bool(account_sid)}, Auth Token: {bool(auth_token)}")
         return None
-        
-    return TwilioClient(account_sid, auth_token)
+    
+    print(f"✅ Creating Twilio client with credentials")
+    try:
+        client = TwilioClient(account_sid, auth_token)
+        print(f"✅ Twilio client created successfully")
+        return client
+    except Exception as e:
+        print(f"❌ Error creating Twilio client: {e}")
+        return None
 
 @app.post("/api/twilio/access-token")
 async def generate_access_token(token_request: AccessTokenRequest):
@@ -1095,49 +1109,109 @@ async def initiate_call(call_data: TwilioCallRequest):
 
 @app.post("/api/twilio/sms")
 async def send_sms(sms_data: TwilioSMSRequest):
-    """Send SMS via Twilio"""
+    """Send SMS via Twilio using direct API call"""
     try:
         # Get lead details
         lead = await db.leads.find_one({"id": sms_data.lead_id})
         if not lead:
             raise HTTPException(status_code=404, detail="Lead not found")
         
-        # Get Twilio client
-        client = await get_twilio_client(lead["user_id"])
-        if not client:
-            raise HTTPException(status_code=400, detail="Twilio not configured")
-        
-        # Get user's Twilio settings
-        settings = await db.settings.find_one({"user_id": lead["user_id"]})
-        twilio_phone = settings.get("twilio_phone_number")
-        
-        if not twilio_phone:
-            raise HTTPException(status_code=400, detail="Twilio phone number not configured")
+        print(f"🔵 Sending SMS to lead: {lead.get('first_name')} {lead.get('last_name')}")
+        print(f"   Lead phone: {lead.get('phone')}")
         
         if not lead.get("phone"):
             raise HTTPException(status_code=400, detail="Lead has no phone number")
         
-        # Send SMS using synchronous client
-        message = client.messages.create(
-            body=sms_data.message,
-            from_=twilio_phone,
-            to=lead["phone"]
-        )
+        # Get Twilio settings from database
+        settings = await db.settings.find_one({"user_id": lead["user_id"]})
+        if not settings:
+            raise HTTPException(status_code=400, detail="User settings not found")
         
-        # Log the SMS activity
-        await db.leads.update_one(
-            {"id": sms_data.lead_id},
-            {"$set": {"notes": f"{lead.get('notes', '')}\n\n[SMS] Sent: '{sms_data.message}' - {datetime.now().isoformat()}"}}
-        )
+        account_sid = settings.get("twilio_account_sid")
+        auth_token = settings.get("twilio_auth_token")
+        twilio_phone = settings.get("twilio_phone_number")
         
-        return {
-            "status": "success",
-            "message_sid": message.sid,
-            "message": f"SMS sent to {lead['phone']}"
+        print(f"   Account SID: {account_sid}")
+        print(f"   Auth Token: ***{auth_token[-4:] if auth_token else 'NOT SET'}")
+        print(f"   From phone: {twilio_phone}")
+        
+        if not account_sid or not auth_token or not twilio_phone:
+            missing = []
+            if not account_sid: missing.append("Account SID")
+            if not auth_token: missing.append("Auth Token")
+            if not twilio_phone: missing.append("Phone Number")
+            raise HTTPException(status_code=400, detail=f"Twilio configuration incomplete. Missing: {', '.join(missing)}")
+        
+        # Validate and format phone numbers
+        to_phone = lead["phone"]
+        if not to_phone.startswith('+'):
+            to_phone = '+' + to_phone
+        
+        print(f"   Sending SMS...")
+        print(f"   From: {twilio_phone}")
+        print(f"   To: {to_phone}")
+        print(f"   Message: {sms_data.message[:50]}...")
+        
+        # Send SMS using direct HTTP request (same as successful curl command)
+        import requests
+        from requests.auth import HTTPBasicAuth
+        
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
+        
+        payload = {
+            'To': to_phone,
+            'From': twilio_phone,
+            'Body': sms_data.message
         }
         
+        print(f"   URL: {url}")
+        print(f"   Payload: {payload}")
+        
+        response = requests.post(
+            url,
+            data=payload,
+            auth=HTTPBasicAuth(account_sid, auth_token)
+        )
+        
+        print(f"   Response Status: {response.status_code}")
+        print(f"   Response Body: {response.text[:200]}")
+        
+        if response.status_code in [200, 201]:
+            response_data = response.json()
+            message_sid = response_data.get('sid')
+            status = response_data.get('status')
+            
+            print(f"✅ SMS sent successfully!")
+            print(f"   Message SID: {message_sid}")
+            print(f"   Status: {status}")
+            
+            # Log the SMS activity in lead notes
+            current_notes = lead.get('notes', '')
+            new_note = f"\n\n[SMS] Sent: '{sms_data.message}' to {to_phone} - {datetime.now().isoformat()}"
+            await db.leads.update_one(
+                {"id": sms_data.lead_id},
+                {"$set": {"notes": current_notes + new_note}}
+            )
+            
+            return {
+                "status": "success",
+                "message_sid": message_sid,
+                "message": f"SMS sent to {to_phone}",
+                "twilio_status": status
+            }
+        else:
+            error_msg = response.text
+            print(f"❌ Twilio API error: {error_msg}")
+            
+            return {
+                "status": "error",
+                "message": f"Failed to send SMS: {error_msg}"
+            }
+        
     except Exception as e:
-        print(f"SMS sending error: {e}")
+        print(f"❌ SMS sending error: {e}")
+        import traceback
+        traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
 @app.post("/api/twilio/whatsapp")
@@ -1191,7 +1265,7 @@ async def send_whatsapp(whatsapp_data: TwilioWhatsAppRequest):
 
 @app.post("/api/email/send")
 async def send_email(email_request: SendEmailRequest):
-    """Send email to lead using SMTP configuration"""
+    """Send email to lead using SendGrid"""
     try:
         # Get lead details
         lead = await db.leads.find_one({"id": email_request.lead_id})
@@ -1201,43 +1275,28 @@ async def send_email(email_request: SendEmailRequest):
         if not lead.get("email"):
             return {"status": "error", "message": "Lead has no email address"}
         
-        # Get SMTP settings
+        # Get SendGrid settings
         settings = await db.settings.find_one({"user_id": lead["user_id"]})
         if not settings:
             return {"status": "error", "message": "User settings not found"}
         
-        # Check SMTP configuration
-        required_fields = ["smtp_hostname", "smtp_port", "smtp_username", "smtp_password", "smtp_from_email"]
-        missing_fields = [field for field in required_fields if not settings.get(field)]
+        # Check SendGrid configuration
+        sendgrid_api_key = settings.get("sendgrid_api_key")
+        sender_email = settings.get("sender_email", "support@syncai.tech")
         
-        if missing_fields:
+        if not sendgrid_api_key:
             return {
                 "status": "error", 
-                "message": f"SMTP configuration incomplete. Missing: {', '.join(missing_fields)}",
+                "message": "SendGrid API key not configured. Please configure in Settings.",
                 "setup_required": True
             }
         
-        # Import required libraries for email
-        import smtplib
-        import ssl
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        
-        # Create email message
-        message = MIMEMultipart("alternative")
-        message["Subject"] = email_request.subject
-        message["From"] = f"{settings.get('smtp_from_name', 'RealtorsPal Agent')} <{settings['smtp_from_email']}>"
-        message["To"] = lead["email"]
-        
-        # Create HTML and plain text versions
-        html_body = email_request.body.replace('\n', '<br>')
-        text_body = email_request.body
-        
-        text_part = MIMEText(text_body, "plain")
-        html_part = MIMEText(html_body, "html")
-        
-        message.attach(text_part)
-        message.attach(html_part)
+        if not sender_email:
+            return {
+                "status": "error",
+                "message": "Sender email not configured. Please configure in Settings.",
+                "setup_required": True
+            }
         
         # Create email history record
         email_id = str(uuid.uuid4())
@@ -1248,8 +1307,8 @@ async def send_email(email_request: SendEmailRequest):
             "subject": email_request.subject,
             "body": email_request.body,
             "to_email": lead["email"],
-            "from_email": settings["smtp_from_email"],
-            "from_name": settings.get("smtp_from_name", "RealtorsPal Agent"),
+            "from_email": sender_email,
+            "from_name": "RealtorsPal Agent",
             "status": "draft",
             "llm_provider": email_request.llm_provider,
             "email_template": email_request.email_template,
@@ -1257,40 +1316,81 @@ async def send_email(email_request: SendEmailRequest):
         }
         
         try:
-            # Connect to SMTP server
-            context = ssl.create_default_context()
+            # Use SendGrid Python SDK
+            from sendgrid import SendGridAPIClient
+            from sendgrid.helpers.mail import Mail
             
-            if settings.get("smtp_ssl_tls", True):
-                # Use TLS
-                server = smtplib.SMTP(settings["smtp_hostname"], int(settings["smtp_port"]))
-                server.starttls(context=context)
-            else:
-                # Use plain connection
-                server = smtplib.SMTP(settings["smtp_hostname"], int(settings["smtp_port"]))
+            # Initialize SendGrid client
+            sg = SendGridAPIClient(sendgrid_api_key)
             
-            # Login and send email
-            server.login(settings["smtp_username"], settings["smtp_password"])
-            server.sendmail(settings["smtp_from_email"], lead["email"], message.as_string())
-            server.quit()
+            print(f"🔵 Sending manual email via SendGrid SDK...")
+            print(f"  To: {lead['email']}")
+            print(f"  From: {sender_email}")
+            print(f"  Subject: {email_request.subject}")
             
-            # Update email history with success
-            email_history["status"] = "sent"
-            email_history["sent_at"] = datetime.now().isoformat()
+            # Create HTML version
+            html_body = email_request.body.replace('\n', '<br>')
             
-            # Log email activity in lead notes
-            current_notes = lead.get('notes', '')
-            new_note = f"\n\n[Email] Sent: '{email_request.subject}' to {lead['email']} - {datetime.now().isoformat()}"
-            await db.leads.update_one(
-                {"id": email_request.lead_id},
-                {"$set": {"notes": current_notes + new_note}}
+            # Create email message
+            message = Mail(
+                from_email=sender_email,
+                to_emails=lead["email"],
+                subject=email_request.subject,
+                plain_text_content=email_request.body,
+                html_content=html_body
             )
             
-            print(f"Email sent successfully to {lead['email']}")
+            # Send email
+            response = sg.send(message)
             
-        except Exception as smtp_error:
-            print(f"SMTP error: {smtp_error}")
+            print(f"✅ SendGrid Response Status: {response.status_code}")
+            print(f"  Response Headers: {dict(response.headers)}")
+            
+            # Check if successful (202 = Accepted)
+            if response.status_code in [200, 201, 202]:
+                message_id = response.headers.get('X-Message-Id', '')
+                
+                # Update email history with success
+                email_history["status"] = "sent"
+                email_history["sent_at"] = datetime.now().isoformat()
+                email_history["sendgrid_message_id"] = message_id
+                
+                # Log email activity in lead notes
+                current_notes = lead.get('notes', '')
+                new_note = f"\n\n[Email] Sent: '{email_request.subject}' to {lead['email']} - {datetime.now().isoformat()}"
+                await db.leads.update_one(
+                    {"id": email_request.lead_id},
+                    {"$set": {"notes": current_notes + new_note}}
+                )
+                
+                print(f"✅ Manual email sent successfully! Message ID: {message_id}")
+            else:
+                # Handle non-success status codes
+                error_msg = f"Unexpected status code: {response.status_code}"
+                if response.body:
+                    error_msg += f" - {response.body}"
+                
+                print(f"❌ SendGrid error: {error_msg}")
+                email_history["status"] = "failed"
+                email_history["error_message"] = error_msg
+            
+        except Exception as sendgrid_error:
+            # Handle SendGrid SDK exceptions
+            error_msg = str(sendgrid_error)
+            
+            # Try to extract detailed error from SendGrid exception
+            if hasattr(sendgrid_error, 'body'):
+                try:
+                    import json
+                    error_body = json.loads(sendgrid_error.body)
+                    if "errors" in error_body:
+                        error_msg = "; ".join([err.get("message", str(err)) for err in error_body["errors"]])
+                except:
+                    error_msg = sendgrid_error.body
+            
+            print(f"❌ SendGrid error: {error_msg}")
             email_history["status"] = "failed"
-            email_history["error_message"] = str(smtp_error)
+            email_history["error_message"] = error_msg
         
         # Save email history
         await db.email_history.insert_one(email_history)
@@ -1299,17 +1399,20 @@ async def send_email(email_request: SendEmailRequest):
             return {
                 "status": "success",
                 "message": f"Email sent successfully to {lead['email']}",
-                "email_id": email_id
+                "email_id": email_id,
+                "message_id": email_history.get("sendgrid_message_id", "")
             }
         else:
             return {
                 "status": "error",
-                "message": f"Failed to send email: {email_history['error_message']}",
+                "message": f"Failed to send email: {email_history.get('error_message', 'Unknown error')}",
                 "email_id": email_id
             }
             
     except Exception as e:
-        print(f"Email sending error: {e}")
+        print(f"❌ Email sending error: {e}")
+        import traceback
+        traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
 @app.get("/api/email/history/{lead_id}")
@@ -1863,12 +1966,26 @@ async def analytics_dashboard(user_id: str):
 
 @app.get("/api/settings", response_model=Settings)
 async def get_settings(user_id: str):
+    print(f"🔵 get_settings called with user_id: {user_id}")
     doc = await db.settings.find_one({"user_id": user_id})
+    
     if not doc:
+        print(f"   No settings found, creating new...")
         settings = Settings(user_id=user_id)
         await db.settings.insert_one(settings.model_dump())
         return settings
-    return Settings(**{k: v for k, v in doc.items() if k != "_id"})
+    
+    print(f"   Found settings in database:")
+    print(f"   Twilio SID from DB: {doc.get('twilio_account_sid')}")
+    print(f"   Twilio Phone from DB: {doc.get('twilio_phone_number')}")
+    
+    result = Settings(**{k: v for k, v in doc.items() if k != "_id"})
+    
+    print(f"   Returning Settings object:")
+    print(f"   Twilio SID to return: {result.twilio_account_sid}")
+    print(f"   Twilio Phone to return: {result.twilio_phone_number}")
+    
+    return result
 
 class SaveSettingsRequest(BaseModel):
     user_id: str
@@ -1894,6 +2011,7 @@ class SaveSettingsRequest(BaseModel):
     smtp_from_email: Optional[str] = None
     smtp_from_name: Optional[str] = None
     sendgrid_api_key: Optional[str] = None
+    sender_email: Optional[str] = None  # Add sender_email field
 
 @app.post("/api/settings", response_model=Settings)
 async def save_settings(payload: SaveSettingsRequest):
@@ -5091,86 +5209,138 @@ async def send_email_draft(request: SendDraftRequest):
         
         sendgrid_api_key = settings["sendgrid_api_key"]
         
-        # Prepare SendGrid payload
-        payload = {
-            "personalizations": [{
-                "to": [{"email": draft["to_email"], "name": lead.get("first_name", "")}],
-                "subject": draft["subject"]
-            }],
-            "content": [
-                {"type": "text/plain", "value": draft["body"]}
-            ],
-            "from": {"email": request.from_email, "name": "RealtorsPal Agent"},
-            "reply_to": {"email": request.from_email, "name": "RealtorsPal Agent"}
-        }
+        # Use SendGrid Python SDK as per official documentation
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail
         
-        # Add HTML content if available
-        if draft.get("html_body"):
-            payload["content"].append({"type": "text/html", "value": draft["html_body"]})
-        
-        # Send via SendGrid
-        import requests
-        import json
-        
-        headers = {
-            "Authorization": f"Bearer {sendgrid_api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        response = requests.post(
-            "https://api.sendgrid.com/v3/mail/send",
-            headers=headers,
-            data=json.dumps(payload)
-        )
-        
-        if response.status_code in [200, 201, 202]:
-            # Update draft status to sent
-            await db.email_drafts.update_one(
-                {"id": request.draft_id},
-                {"$set": {
-                    "status": "sent",
-                    "sent_at": datetime.now().isoformat(),
-                    "from_email": request.from_email,
-                    "sendgrid_response": response.headers.get('X-Message-Id', '')
-                }}
-            )
+        try:
+            # Initialize SendGrid client
+            sg = SendGridAPIClient(sendgrid_api_key)
             
-            # Store the from email for future use
-            await db.settings.update_one(
-                {"user_id": draft["user_id"]},
-                {"$set": {"preferred_from_email": request.from_email}},
-                upsert=True
-            )
+            print(f"🔵 Sending email via SendGrid SDK...")
+            print(f"  To: {draft['to_email']}")
+            print(f"  From: {request.from_email}")
+            print(f"  Subject: {draft['subject']}")
             
-            # Add activity to lead notes
-            current_notes = lead.get('notes', '')
-            new_note = f"\n\n[Email Sent] '{draft['subject']}' to {draft['to_email']} from {request.from_email} - {datetime.now().isoformat()}"
-            await db.leads.update_one(
-                {"id": draft["lead_id"]},
-                {"$set": {"notes": current_notes + new_note}}
-            )
+            # Create email message using SendGrid Mail helper
+            # If HTML body exists, use it as primary content, otherwise use plain text
+            if draft.get("html_body"):
+                message = Mail(
+                    from_email=request.from_email,
+                    to_emails=draft["to_email"],
+                    subject=draft["subject"],
+                    plain_text_content=draft["body"],
+                    html_content=draft["html_body"]
+                )
+            else:
+                message = Mail(
+                    from_email=request.from_email,
+                    to_emails=draft["to_email"],
+                    subject=draft["subject"],
+                    plain_text_content=draft["body"]
+                )
             
-            return {
-                "success": True,
-                "message": f"Email sent successfully to {draft['to_email']}",
-                "message_id": response.headers.get('X-Message-Id', request.draft_id)
-            }
-        else:
+            # Send email using SendGrid SDK
+            response = sg.send(message)
+            
+            print(f"✅ SendGrid Response Status: {response.status_code}")
+            print(f"  Response Body: {response.body}")
+            print(f"  Response Headers: {dict(response.headers)}")
+            
+            # SendGrid returns 202 (Accepted) for successful requests
+            if response.status_code in [200, 201, 202]:
+                # Extract message ID from headers
+                message_id = response.headers.get('X-Message-Id', '')
+                
+                # Update draft status to sent
+                await db.email_drafts.update_one(
+                    {"id": request.draft_id},
+                    {"$set": {
+                        "status": "sent",
+                        "sent_at": datetime.now().isoformat(),
+                        "from_email": request.from_email,
+                        "sendgrid_message_id": message_id
+                    }}
+                )
+                
+                # Store the sender email in settings for future use
+                await db.settings.update_one(
+                    {"user_id": draft["user_id"]},
+                    {"$set": {"sender_email": request.from_email}},
+                    upsert=True
+                )
+                
+                # Add activity to lead notes
+                current_notes = lead.get('notes', '')
+                new_note = f"\n\n[Email Sent] '{draft['subject']}' to {draft['to_email']} from {request.from_email} - {datetime.now().isoformat()}"
+                await db.leads.update_one(
+                    {"id": draft["lead_id"]},
+                    {"$set": {"notes": current_notes + new_note}}
+                )
+                
+                print(f"✅ Email sent successfully! Message ID: {message_id}")
+                
+                return {
+                    "success": True,
+                    "message": f"Email sent successfully to {draft['to_email']}",
+                    "message_id": message_id or request.draft_id
+                }
+            else:
+                # Handle non-success status codes
+                error_msg = f"Unexpected status code: {response.status_code}"
+                if response.body:
+                    error_msg += f" - {response.body}"
+                
+                print(f"❌ SendGrid error: {error_msg}")
+                
+                # Update draft status to failed
+                await db.email_drafts.update_one(
+                    {"id": request.draft_id},
+                    {"$set": {
+                        "status": "failed",
+                        "error_message": error_msg
+                    }}
+                )
+                
+                return {
+                    "success": False,
+                    "error": error_msg
+                }
+                
+        except Exception as sg_error:
+            # Handle SendGrid SDK exceptions
+            error_msg = str(sg_error)
+            
+            # Try to extract detailed error from SendGrid exception
+            if hasattr(sg_error, 'body'):
+                try:
+                    import json
+                    error_body = json.loads(sg_error.body)
+                    if "errors" in error_body:
+                        error_msg = "; ".join([err.get("message", str(err)) for err in error_body["errors"]])
+                except:
+                    error_msg = sg_error.body
+            
+            print(f"❌ SendGrid SDK Exception: {error_msg}")
+            
             # Update draft status to failed
             await db.email_drafts.update_one(
                 {"id": request.draft_id},
                 {"$set": {
                     "status": "failed",
-                    "error": response.text
+                    "error_message": error_msg
                 }}
             )
             
             return {
                 "success": False,
-                "error": f"SendGrid error: {response.status_code} - {response.text}"
+                "error": f"SendGrid error: {error_msg}"
             }
             
     except Exception as e:
+        print(f"❌ Exception in send_email_draft: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {"success": False, "error": str(e)}
 
 @app.delete("/api/email-drafts/{draft_id}")

@@ -18,6 +18,7 @@ export default function Settings({ user }){
     twilio_api_key: "",
     twilio_api_secret: "",
     sendgrid_api_key: "",
+    sender_email: "support@syncai.tech",
     smtp_protocol: "smtp",
     smtp_hostname: "",
     smtp_port: "587",
@@ -66,6 +67,7 @@ export default function Settings({ user }){
         twilio_api_key: data.twilio_api_key || "",
         twilio_api_secret: data.twilio_api_secret || "",
         sendgrid_api_key: data.sendgrid_api_key || "",
+        sender_email: data.sender_email || "support@syncai.tech",
         smtp_protocol: data.smtp_protocol || "smtp",
         smtp_hostname: data.smtp_hostname || "",
         smtp_port: data.smtp_port || "587",
@@ -495,6 +497,28 @@ export default function Settings({ user }){
             />
             <div className="text-xs text-slate-500 mt-1">
               Get your API key from SendGrid Console → Settings → API Keys
+            </div>
+          </div>
+          
+          <div>
+            <label className="text-sm text-slate-600 font-medium">Verified Sender Email</label>
+            <input 
+              type="email"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="support@syncai.tech" 
+              value={form.sender_email} 
+              onChange={(e)=>setForm({...form, sender_email:e.target.value})} 
+            />
+            <div className="text-xs text-slate-500 mt-1">
+              This email must be verified in SendGrid Console → Settings → Sender Authentication
+            </div>
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="text-xs text-yellow-800">
+                ⚠️ <strong>Important:</strong> Before sending emails, verify this email address in your SendGrid account:
+                <br />1. Log into SendGrid
+                <br />2. Go to Settings → Sender Authentication
+                <br />3. Verify this email address
+              </div>
             </div>
           </div>
           
