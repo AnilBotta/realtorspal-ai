@@ -497,16 +497,47 @@ async def send_whatsapp(lead: Dict[str, Any], message: str, user_id: str) -> str
         _log(lead["id"], f"[ERROR] WhatsApp send failed: {e}")
         return f"error_{_sha(str(e))}"
 
-async def deliver_message(lead: Dict[str, Any], channel: str, message: str, user_id: str) -> str:
-    """Deliver message via specified channel"""
+async def deliver_message(lead: Dict[str, Any], channel: str, message: str, user_id: str, save_as_draft: bool = True) -> Dict[str, Any]:
+    """Deliver message through specified channel or save as draft"""
+    
     if channel == "email":
-        return await send_email(lead, message, user_id)
+        if save_as_draft:
+            # Save as draft instead of sending immediately
+            draft_id = await _save_email_draft(lead, message, user_id)
+            return {"success": True, "draft_id": draft_id, "status": "draft"}
+        else:
+            # Send immediately 
+            result = await send_email(lead, message, user_id)
+            if result.startswith("error"):
+                return {"success": False, "error": result}
+            return {"success": True, "message_id": result, "status": "sent"}
+        
     elif channel == "sms":
-        return await send_sms(lead, message, user_id)
+        if save_as_draft:
+            # Save SMS as draft
+            draft_id = await _save_sms_draft(lead, message, user_id)
+            return {"success": True, "draft_id": draft_id, "status": "draft"}
+        else:
+            # Send SMS immediately
+            result = await send_sms(lead, message, user_id)
+            if result.startswith("error"):
+                return {"success": False, "error": result}
+            return {"success": True, "message_id": result, "status": "sent"}
+    
     elif channel == "whatsapp":
-        return await send_whatsapp(lead, message, user_id)
+        if save_as_draft:
+            # Save WhatsApp as draft (similar to SMS)
+            draft_id = await _save_sms_draft(lead, message, user_id)  # Reuse SMS draft logic
+            return {"success": True, "draft_id": draft_id, "status": "draft"}
+        else:
+            # Send WhatsApp immediately
+            result = await send_whatsapp(lead, message, user_id)
+            if result.startswith("error"):
+                return {"success": False, "error": result}
+            return {"success": True, "message_id": result, "status": "sent"}
+    
     else:
-        raise ValueError(f"Unknown channel: {channel}")
+        return {"success": False, "error": f"Unsupported channel: {channel}"}
 
 
 # -------------------------
