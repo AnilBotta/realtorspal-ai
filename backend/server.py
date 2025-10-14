@@ -5026,6 +5026,174 @@ async def convert_partial_lead(lead_id: str, convert_data: ConvertPartialLeadReq
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# =========================
+# Email Draft System API Endpoints
+# =========================
+
+class EmailDraft(BaseModel):
+    id: str
+    lead_id: str
+    user_id: str
+    subject: str
+    body: str
+    html_body: Optional[str] = None
+    to_email: str
+    from_email: Optional[str] = None
+    status: str  # draft, sent, failed
+    email_type: str
+    urgency: str
+    created_at: str
+    due_date: Optional[str] = None
+    sent_at: Optional[str] = None
+    ai_generated: Optional[bool] = False
+    channel: str
+
+class SendDraftRequest(BaseModel):
+    draft_id: str
+    from_email: str
+
+@app.get("/api/email-drafts/{lead_id}", response_model=List[EmailDraft])
+async def get_email_drafts(lead_id: str):
+    """Get all email drafts for a specific lead"""
+    try:
+        drafts = await db.email_drafts.find({"lead_id": lead_id}).to_list(length=None)
+        return [EmailDraft(**{k: v for k, v in draft.items() if k != "_id"}) for draft in drafts]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/email-drafts/count/{lead_id}")
+async def get_email_draft_count(lead_id: str):
+    """Get count of pending drafts for a lead"""
+    try:
+        count = await db.email_drafts.count_documents({"lead_id": lead_id, "status": "draft"})
+        return {"lead_id": lead_id, "draft_count": count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/email-drafts/send")
+async def send_email_draft(request: SendDraftRequest):
+    """Send an email draft using SendGrid"""
+    try:
+        # Get the draft
+        draft = await db.email_drafts.find_one({"id": request.draft_id})
+        if not draft:
+            raise HTTPException(status_code=404, detail="Draft not found")
+        
+        # Get the lead
+        lead = await db.leads.find_one({"id": draft["lead_id"]})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Get SendGrid API key from settings
+        settings = await db.settings.find_one({"user_id": draft["user_id"]})
+        if not settings or not settings.get("sendgrid_api_key"):
+            raise HTTPException(status_code=400, detail="SendGrid API key not configured")
+        
+        sendgrid_api_key = settings["sendgrid_api_key"]
+        
+        # Prepare SendGrid payload
+        payload = {
+            "personalizations": [{
+                "to": [{"email": draft["to_email"], "name": lead.get("first_name", "")}],
+                "subject": draft["subject"]
+            }],
+            "content": [
+                {"type": "text/plain", "value": draft["body"]}
+            ],
+            "from": {"email": request.from_email, "name": "RealtorsPal Agent"},
+            "reply_to": {"email": request.from_email, "name": "RealtorsPal Agent"}
+        }
+        
+        # Add HTML content if available
+        if draft.get("html_body"):
+            payload["content"].append({"type": "text/html", "value": draft["html_body"]})
+        
+        # Send via SendGrid
+        import requests
+        import json
+        
+        headers = {
+            "Authorization": f"Bearer {sendgrid_api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        response = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers=headers,
+            data=json.dumps(payload)
+        )
+        
+        if response.status_code in [200, 201, 202]:
+            # Update draft status to sent
+            await db.email_drafts.update_one(
+                {"id": request.draft_id},
+                {"$set": {
+                    "status": "sent",
+                    "sent_at": datetime.now().isoformat(),
+                    "from_email": request.from_email,
+                    "sendgrid_response": response.headers.get('X-Message-Id', '')
+                }}
+            )
+            
+            # Store the from email for future use
+            await db.settings.update_one(
+                {"user_id": draft["user_id"]},
+                {"$set": {"preferred_from_email": request.from_email}},
+                upsert=True
+            )
+            
+            # Add activity to lead notes
+            current_notes = lead.get('notes', '')
+            new_note = f"\n\n[Email Sent] '{draft['subject']}' to {draft['to_email']} from {request.from_email} - {datetime.now().isoformat()}"
+            await db.leads.update_one(
+                {"id": draft["lead_id"]},
+                {"$set": {"notes": current_notes + new_note}}
+            )
+            
+            return {
+                "success": True,
+                "message": f"Email sent successfully to {draft['to_email']}",
+                "message_id": response.headers.get('X-Message-Id', request.draft_id)
+            }
+        else:
+            # Update draft status to failed
+            await db.email_drafts.update_one(
+                {"id": request.draft_id},
+                {"$set": {
+                    "status": "failed",
+                    "error": response.text
+                }}
+            )
+            
+            return {
+                "success": False,
+                "error": f"SendGrid error: {response.status_code} - {response.text}"
+            }
+            
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.delete("/api/email-drafts/{draft_id}")
+async def delete_email_draft(draft_id: str):
+    """Delete an email draft"""
+    try:
+        result = await db.email_drafts.delete_one({"id": draft_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Draft not found")
+        return {"message": "Draft deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/settings/preferred-from-email/{user_id}")
+async def get_preferred_from_email(user_id: str):
+    """Get user's preferred from email"""
+    try:
+        settings = await db.settings.find_one({"user_id": user_id})
+        preferred_email = settings.get("preferred_from_email") if settings else None
+        return {"preferred_from_email": preferred_email}
+    except Exception as e:
+        return {"preferred_from_email": None}
+
 # Mount Lead Generation Service
 from leadgen_service import app as leadgen_app
 
