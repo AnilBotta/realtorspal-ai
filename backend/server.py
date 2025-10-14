@@ -5133,11 +5133,21 @@ async def send_email_draft(request: SendDraftRequest):
             "Content-Type": "application/json"
         }
         
+        print(f"Sending email via SendGrid...")
+        print(f"To: {draft['to_email']}")
+        print(f"From: {request.from_email}")
+        print(f"Subject: {draft['subject']}")
+        print(f"Payload: {json.dumps(payload, indent=2)}")
+        
         response = requests.post(
             "https://api.sendgrid.com/v3/mail/send",
             headers=headers,
             data=json.dumps(payload)
         )
+        
+        print(f"SendGrid Response Status: {response.status_code}")
+        print(f"SendGrid Response Headers: {dict(response.headers)}")
+        print(f"SendGrid Response Body: {response.text}")
         
         if response.status_code in [200, 201, 202]:
             # Update draft status to sent
@@ -5151,10 +5161,10 @@ async def send_email_draft(request: SendDraftRequest):
                 }}
             )
             
-            # Store the from email for future use
+            # Store the from email in settings for future use
             await db.settings.update_one(
                 {"user_id": draft["user_id"]},
-                {"$set": {"preferred_from_email": request.from_email}},
+                {"$set": {"sender_email": request.from_email}},
                 upsert=True
             )
             
@@ -5166,27 +5176,43 @@ async def send_email_draft(request: SendDraftRequest):
                 {"$set": {"notes": current_notes + new_note}}
             )
             
+            print(f"✅ Email sent successfully! Message ID: {response.headers.get('X-Message-Id', '')}")
+            
             return {
                 "success": True,
                 "message": f"Email sent successfully to {draft['to_email']}",
                 "message_id": response.headers.get('X-Message-Id', request.draft_id)
             }
         else:
+            # Parse error response
+            error_msg = response.text
+            try:
+                error_data = response.json()
+                if "errors" in error_data:
+                    error_msg = "; ".join([err.get("message", str(err)) for err in error_data["errors"]])
+            except:
+                pass
+            
+            print(f"❌ SendGrid error: {response.status_code} - {error_msg}")
+            
             # Update draft status to failed
             await db.email_drafts.update_one(
                 {"id": request.draft_id},
                 {"$set": {
                     "status": "failed",
-                    "error": response.text
+                    "error_message": error_msg
                 }}
             )
             
             return {
                 "success": False,
-                "error": f"SendGrid error: {response.status_code} - {response.text}"
+                "error": f"SendGrid error ({response.status_code}): {error_msg}"
             }
             
     except Exception as e:
+        print(f"❌ Exception in send_email_draft: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {"success": False, "error": str(e)}
 
 @app.delete("/api/email-drafts/{draft_id}")
