@@ -2141,6 +2141,26 @@ class SaveSettingsRequest(BaseModel):
 async def save_settings(payload: SaveSettingsRequest):
     existing = await db.settings.find_one({"user_id": payload.user_id})
     data = {k: v for k, v in payload.model_dump().items() if k != "id"}
+    
+    # Extract secrets to save separately in secrets collection
+    secret_fields = [
+        'twilio_account_sid', 'twilio_auth_token', 'twilio_phone_number',
+        'twilio_whatsapp_number', 'twilio_api_key', 'twilio_api_secret',
+        'twilio_twiml_app_sid', 'agent_phone_number',
+        'sendgrid_api_key', 'sender_email'
+    ]
+    
+    secrets_to_save = {}
+    for field in secret_fields:
+        if field in data and data[field]:
+            secrets_to_save[field] = data[field]
+    
+    # Save secrets to secure collection
+    if secrets_to_save:
+        await set_multiple_secrets(payload.user_id, secrets_to_save)
+        print(f"🔒 Saved {len(secrets_to_save)} secrets to secure storage for user {payload.user_id}")
+    
+    # Save non-secret settings to settings collection (for backward compatibility)
     if existing:
         await db.settings.update_one({"user_id": payload.user_id}, {"$set": data})
         doc = await db.settings.find_one({"user_id": payload.user_id})
