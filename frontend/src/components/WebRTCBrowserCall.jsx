@@ -29,6 +29,8 @@ const WebRTCBrowserCall = ({ user, lead, onCallEnd, onCallStart }) => {
   const initializeTwilioDevice = async () => {
     try {
       console.log('🔵 Initializing Twilio Device...');
+      setError(null);
+      setCallStatus('connecting');
       
       // Get access token from backend
       const response = await fetch(`${baseUrl}/api/twilio/access-token`, {
@@ -40,52 +42,62 @@ const WebRTCBrowserCall = ({ user, lead, onCallEnd, onCallStart }) => {
       });
 
       const result = await response.json();
-      console.log('Token response:', result);
+      console.log('📥 Token response:', result);
 
       if (result.status === 'success' && result.token) {
         setToken(result.token);
         
+        console.log('🎫 Access token received');
+        console.log('   TwiML App SID:', result.twiml_app_sid);
+        console.log('   Identity:', result.identity);
+        
         // Create Twilio Device with the token
         const twilioDevice = new Device(result.token, {
           logLevel: 1,
-          codecPreferences: ['opus', 'pcmu'],
-          // Set TwiML app URL for outgoing calls
-          edge: 'ashburn',
+          codecPreferences: ['opus', 'pcmu']
         });
 
-        // Store TwiML URL for making calls
-        twilioDevice._twimlAppUrl = result.twiml_app_url || `${baseUrl}/api/twiml/webrtc-outbound`;
-
-        // Setup event listeners
+        // Setup event listeners BEFORE registering
         twilioDevice.on('registered', () => {
-          console.log('✅ Twilio Device registered');
+          console.log('✅ Twilio Device registered successfully!');
+          setCallStatus('idle');
+          setError(null);
         });
 
         twilioDevice.on('error', (twilioError) => {
           console.error('❌ Twilio Device error:', twilioError);
-          setError(twilioError?.message || 'Device error occurred');
+          setError(twilioError?.message || twilioError?.toString() || 'Device error occurred');
           setCallStatus('error');
         });
 
         twilioDevice.on('incoming', (incomingCall) => {
           console.log('📞 Incoming call received');
-          // Handle incoming calls if needed
+        });
+
+        twilioDevice.on('unregistered', () => {
+          console.log('📴 Device unregistered');
+        });
+
+        twilioDevice.on('registering', () => {
+          console.log('🔄 Device registering...');
         });
 
         // Register the device
+        console.log('🔄 Registering Twilio Device...');
         await twilioDevice.register();
         
         setDevice(twilioDevice);
         deviceRef.current = twilioDevice;
         
-        console.log('✅ Twilio Device initialized successfully');
-        console.log('   TwiML App URL:', twilioDevice._twimlAppUrl);
+        console.log('✅ Twilio Device setup complete');
+      } else if (result.status === 'setup_required') {
+        throw new Error('Twilio credentials not configured. Please check Settings.');
       } else {
         throw new Error(result?.message || 'Failed to get access token');
       }
     } catch (err) {
-      console.error('Failed to initialize Twilio Device:', err);
-      setError(err?.message || 'Failed to initialize');
+      console.error('❌ Failed to initialize Twilio Device:', err);
+      setError(err?.message || err?.toString() || 'Failed to initialize');
       setCallStatus('error');
     }
   };
