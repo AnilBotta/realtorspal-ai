@@ -1966,12 +1966,26 @@ async def analytics_dashboard(user_id: str):
 
 @app.get("/api/settings", response_model=Settings)
 async def get_settings(user_id: str):
+    print(f"🔵 get_settings called with user_id: {user_id}")
     doc = await db.settings.find_one({"user_id": user_id})
+    
     if not doc:
+        print(f"   No settings found, creating new...")
         settings = Settings(user_id=user_id)
         await db.settings.insert_one(settings.model_dump())
         return settings
-    return Settings(**{k: v for k, v in doc.items() if k != "_id"})
+    
+    print(f"   Found settings in database:")
+    print(f"   Twilio SID from DB: {doc.get('twilio_account_sid')}")
+    print(f"   Twilio Phone from DB: {doc.get('twilio_phone_number')}")
+    
+    result = Settings(**{k: v for k, v in doc.items() if k != "_id"})
+    
+    print(f"   Returning Settings object:")
+    print(f"   Twilio SID to return: {result.twilio_account_sid}")
+    print(f"   Twilio Phone to return: {result.twilio_phone_number}")
+    
+    return result
 
 class SaveSettingsRequest(BaseModel):
     user_id: str
