@@ -227,6 +227,18 @@ export default function Leads({ user }) {
     setShowEmailModal(true);
   };
 
+  const refreshEmailDraftCount = async (leadId) => {
+    try {
+      const response = await getEmailDraftCount(leadId);
+      setEmailDraftCounts(prev => ({
+        ...prev,
+        [leadId]: response.data.draft_count || 0
+      }));
+    } catch (error) {
+      console.error(`Failed to refresh draft count for lead ${leadId}:`, error);
+    }
+  };
+
   const handleCallLead = (lead) => {
     setCommunicationLead(lead);
     setCommunicationType('call');
