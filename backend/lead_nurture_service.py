@@ -260,8 +260,26 @@ async def craft_message(lead: Dict[str, Any], purpose: str, channel: str, user_i
             expected_output="A personalized message string ready to send"
         )
         
-        result = Crew(agents=[content_crafter], tasks=[task]).kickoff()
-        message = str(result.raw) if hasattr(result, 'raw') else str(result)
+        crew = Crew(
+            agents=[content_crafter], 
+            tasks=[task],
+            max_execution_time=120,  # 2 minutes max
+            verbose=False
+        )
+        result = crew.kickoff()
+        
+        # Extract message content properly
+        if hasattr(result, 'raw'):
+            message = str(result.raw).strip()
+        elif hasattr(result, 'output'):
+            message = str(result.output).strip() 
+        else:
+            message = str(result).strip()
+        
+        # Clean up any iteration limit messages
+        if "Agent stopped due to iteration limit" in message or "time limit" in message:
+            _log(lead_id, "[FALLBACK] CrewAI hit limits, using template")
+            raise Exception("CrewAI hit iteration/time limits")
         
         _log(lead_id, f"[CREWAI] Content Crafter generated {len(message)} character message")
         return message
