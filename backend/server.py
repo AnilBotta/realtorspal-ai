@@ -894,8 +894,18 @@ async def generate_access_token(token_request: AccessTokenRequest):
         from twilio.jwt.access_token.grants import VoiceGrant
         
         try:
-            # Get TwiML App SID from environment
-            twiml_app_sid = os.environ.get('TWILIO_TWIML_APP_SID', 'APd78d15551dcb7532cb90471ea4118aa0')
+            # Get TwiML App SID from environment (set during deployment)
+            twiml_app_sid = os.environ.get('TWILIO_TWIML_APP_SID')
+            
+            if not twiml_app_sid:
+                # Try to get from settings if not in environment
+                twiml_app_sid = settings.get('twilio_twiml_app_sid')
+            
+            if not twiml_app_sid:
+                return {
+                    "status": "error",
+                    "message": "TwiML Application SID not configured. Please set TWILIO_TWIML_APP_SID environment variable or configure in settings."
+                }
             
             # Create access token using API Keys (proper way for WebRTC)
             identity = f"agent_{token_request.user_id}"
