@@ -686,12 +686,13 @@ def calculate_next_followup(lead: Dict[str, Any], stage: str) -> Optional[dateti
     if stage in ["onboarding", "not_interested"]:
         return None
     
-    # 3-month rule: Move to dormant after 90 days
-    if lead_age_days >= 90:
-        if stage != "dormant":
-            return now + timedelta(days=30)  # Monthly dormant check
-        else:
-            return now + timedelta(days=30)  # Continue monthly for dormant
+    # 3-month rule: Move to dormant after 90 days (DISABLED FOR TESTING)
+    # TODO: Re-enable for production
+    # if lead_age_days >= 90:
+    #     if stage != "dormant":
+    #         return now + timedelta(days=30)  # Monthly dormant check
+    #     else:
+    #         return now + timedelta(days=30)  # Continue monthly for dormant
     
     # Stage-based scheduling following your original cadence
     if stage == "new":
