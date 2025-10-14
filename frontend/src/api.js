@@ -49,6 +49,13 @@ export const getPartialLead = (lead_id) => api.get(`/partial-leads/${lead_id}`);
 export const deletePartialLead = (lead_id) => api.delete(`/partial-leads/${lead_id}`);
 export const convertPartialLead = (lead_id, payload) => api.post(`/partial-leads/${lead_id}/convert`, payload);
 
+// Email Draft APIs
+export const getEmailDrafts = (lead_id) => api.get(`/email-drafts/${lead_id}`);
+export const getEmailDraftCount = (lead_id) => api.get(`/email-drafts/count/${lead_id}`);
+export const sendEmailDraft = (draft_id, from_email) => api.post(`/email-drafts/send`, { draft_id, from_email });
+export const deleteEmailDraft = (draft_id) => api.delete(`/email-drafts/${draft_id}`);
+export const getPreferredFromEmail = (user_id) => api.get(`/settings/preferred-from-email/${user_id}`);
+
 // Lead Nurturing AI APIs
 export const startNurturing = (payload) => api.post(`/agents/nurture/run`, payload);
 export const handleInboundMessage = (payload) => api.post(`/agents/nurture/inbound`, payload);
