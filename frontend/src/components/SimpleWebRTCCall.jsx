@@ -125,15 +125,21 @@ const SimpleWebRTCCall = ({ user, lead, onCallEnd, onCallStart }) => {
       {callResult && callResult.status === 'success' && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
           <div className="text-sm font-medium text-green-800 mb-1">
-            ✅ WebRTC Call Initiated
+            ✅ Call Initiated Successfully
           </div>
           <div className="text-xs text-green-700">
             <div className="mb-1">{callResult.message}</div>
-            <div className="font-mono text-xs bg-green-100 p-1 rounded">
+            <div className="font-mono text-xs bg-green-100 p-1 rounded mb-1">
               Call SID: {callResult.call_sid}
             </div>
             <div className="mt-1 text-xs">
-              📞 {callResult.call_flow}
+              📞 From: {callResult.from_number || 'Twilio'}
+            </div>
+            <div className="text-xs">
+              📱 To: {callResult.to_number || lead?.phone}
+            </div>
+            <div className="mt-1 text-xs text-green-600">
+              The lead will receive the call shortly!
             </div>
           </div>
         </div>
