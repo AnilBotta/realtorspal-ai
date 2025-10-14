@@ -145,7 +145,7 @@ twiml = '<Response><Say voice="alice">YOUR CUSTOM MESSAGE HERE</Say></Response>'
 
 Each successful call adds a note to the lead:
 ```
-[Outbound Call] Initiated from +12894012412 to +13654578956 - Call SID: CA... - 2025-10-14T19:03:04
+[Outbound Call] Initiated from +1XXXXXXXXXX to +1XXXXXXXXXX - Call SID: CAxxxx... - 2025-10-14T19:03:04
 ```
 
 ## API Response Format
