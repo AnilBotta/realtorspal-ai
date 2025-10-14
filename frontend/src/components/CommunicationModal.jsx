@@ -313,9 +313,9 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
                 {/* Full WebRTC Calling Interface */}
                 {type === 'call' && callMode === 'webrtc' && !callResult && (
                   <div className="mb-4">
-                    <WebRTCCalling 
+                    <WebRTCBrowserCall 
                       user={user} 
-                      lead={lead}
+                      lead={communicationLead || lead}
                       onCallStart={() => {
                         setCallResult({
                           status: 'success',
