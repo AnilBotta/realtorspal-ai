@@ -102,9 +102,9 @@ async def initiate_outbound_call(call_data: TwilioWebRTCCallRequest):
 
 ### Current Configuration:
 ```
-Account SID: AC95d99c15758784e8d9a462385bd9645b
-Phone Number: +12894012412
-Verified Caller: +13657777336
+Account SID: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (stored in database)
+Phone Number: +1XXXXXXXXXX (stored in database)
+Agent Phone: +1XXXXXXXXXX (stored in database)
 ```
 
 ## Customization Options
