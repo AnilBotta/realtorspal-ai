@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Filter, Mail, Phone, MapPin, Calendar, User, Edit, Trash2, RefreshCw, LayoutDashboard, X, Bot } from 'lucide-react';
-import { getLeads, createLead, updateLead, deleteLead, orchestrateAgents, createAgentActivity } from '../api';
+import { getLeads, createLead, updateLead, deleteLead, orchestrateAgents, createAgentActivity, getEmailDraftCount } from '../api';
 import AddLeadModal from '../components/AddLeadModal';
 import ImportLeadsModal from '../components/ImportLeadsModal';
 import LeadDrawer from '../components/LeadDrawer';
