@@ -5106,16 +5106,22 @@ async def send_email_draft(request: SendDraftRequest):
             print(f"  Subject: {draft['subject']}")
             
             # Create email message using SendGrid Mail helper
-            message = Mail(
-                from_email=request.from_email,
-                to_emails=draft["to_email"],
-                subject=draft["subject"],
-                plain_text_content=draft["body"]
-            )
-            
-            # Add HTML content if available
+            # If HTML body exists, use it as primary content, otherwise use plain text
             if draft.get("html_body"):
-                message.add_html_content(draft["html_body"])
+                message = Mail(
+                    from_email=request.from_email,
+                    to_emails=draft["to_email"],
+                    subject=draft["subject"],
+                    plain_text_content=draft["body"],
+                    html_content=draft["html_body"]
+                )
+            else:
+                message = Mail(
+                    from_email=request.from_email,
+                    to_emails=draft["to_email"],
+                    subject=draft["subject"],
+                    plain_text_content=draft["body"]
+                )
             
             # Send email using SendGrid SDK
             response = sg.send(message)
