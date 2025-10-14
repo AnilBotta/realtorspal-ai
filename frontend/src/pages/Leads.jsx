@@ -764,10 +764,15 @@ export default function Leads({ user }) {
           {lead.email && (
             <button
               onClick={() => handleEmailLead(lead)}
-              className="px-2 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors"
-              title="Send Email"
+              className="px-2 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors relative"
+              title={emailDraftCounts[lead.id] > 0 ? `Send Email (${emailDraftCounts[lead.id]} drafts pending)` : "Send Email"}
             >
               Email
+              {emailDraftCounts[lead.id] > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  {emailDraftCounts[lead.id] > 9 ? '9+' : emailDraftCounts[lead.id]}
+                </span>
+              )}
             </button>
           )}
           
