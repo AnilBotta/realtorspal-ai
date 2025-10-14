@@ -998,7 +998,7 @@ async def initiate_outbound_call(call_data: TwilioWebRTCCallRequest):
             raise HTTPException(status_code=404, detail="Lead not found")
         
         # Auto-migrate secrets if needed
-        await migrate_secrets_from_secrets(lead["user_id"])
+        await migrate_secrets_from_settings(lead["user_id"])
         
         # Get Twilio secrets from secure storage
         secrets = await get_all_secrets(lead["user_id"])
