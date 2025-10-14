@@ -45,6 +45,7 @@ export default function Leads({ user }) {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showLeadDrawer, setShowLeadDrawer] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showEmailDraftModal, setShowEmailDraftModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
 
   // Communication modal states
