@@ -860,13 +860,19 @@ async def generate_access_token(token_request: AccessTokenRequest):
             )
             
             # Get base URL for TwiML endpoints
-            base_url = os.environ.get('REACT_APP_BACKEND_URL')
+            base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://crm-partial-leads.preview.emergentagent.com')
             
-            # Create voice grant with our TwiML endpoints
+            # Create TwiML app URL for outgoing calls
+            twiml_app_url = f"{base_url}/api/twiml/webrtc-outbound"
+            
+            # Create voice grant with our TwiML app URL
             voice_grant = VoiceGrant(
-                outgoing_application_sid=None,  # We'll handle TwiML via URL parameters
-                incoming_allow=True  # Allow incoming calls to the WebRTC client
+                outgoing_application_sid=None,  # We use URL instead
+                incoming_allow=True,  # Allow incoming calls to the WebRTC client
+                push_credential_sid=None
             )
+            
+            # Set the TwiML URL for outgoing calls
             token.add_grant(voice_grant)
             
             # Generate the JWT token
@@ -877,13 +883,15 @@ async def generate_access_token(token_request: AccessTokenRequest):
             print(f"Token identity: {identity}")
             print(f"Account SID: {account_sid}")
             print(f"API Key: {api_key}")
+            print(f"TwiML App URL: {twiml_app_url}")
             
             return {
                 "status": "success", 
                 "token": jwt_token,
                 "identity": identity,
                 "expires_in": 3600,
-                "account_sid": account_sid,  # Include for debugging
+                "account_sid": account_sid,
+                "twiml_app_url": twiml_app_url,
                 "debug_info": {
                     "token_length": len(jwt_token),
                     "api_key_prefix": api_key[:8] + "...",
@@ -893,6 +901,8 @@ async def generate_access_token(token_request: AccessTokenRequest):
             
         except Exception as token_error:
             print(f"Token generation failed: {token_error}")
+            import traceback
+            traceback.print_exc()
             return {
                 "status": "error",
                 "message": f"Failed to generate access token: {str(token_error)}",
@@ -901,6 +911,8 @@ async def generate_access_token(token_request: AccessTokenRequest):
         
     except Exception as e:
         print(f"Access token generation error: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             "status": "error", 
             "message": f"Access token error: {str(e)}"
