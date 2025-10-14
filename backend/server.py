@@ -894,6 +894,9 @@ async def generate_access_token(token_request: AccessTokenRequest):
         from twilio.jwt.access_token.grants import VoiceGrant
         
         try:
+            # Get TwiML App SID from environment
+            twiml_app_sid = os.environ.get('TWILIO_TWIML_APP_SID', 'APd78d15551dcb7532cb90471ea4118aa0')
+            
             # Create access token using API Keys (proper way for WebRTC)
             identity = f"agent_{token_request.user_id}"
             
@@ -907,28 +910,25 @@ async def generate_access_token(token_request: AccessTokenRequest):
             # Get base URL for TwiML endpoints
             base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://crm-partial-leads.preview.emergentagent.com')
             
-            # Create TwiML app URL for outgoing calls
-            twiml_app_url = f"{base_url}/api/twiml/webrtc-outbound"
-            
-            # Create voice grant with our TwiML app URL
+            # Create voice grant with TwiML Application SID
             voice_grant = VoiceGrant(
-                outgoing_application_sid=None,  # We use URL instead
-                incoming_allow=True,  # Allow incoming calls to the WebRTC client
-                push_credential_sid=None
+                outgoing_application_sid=twiml_app_sid,  # TwiML App SID for outgoing calls
+                incoming_allow=True  # Allow incoming calls to the WebRTC client
             )
             
-            # Set the TwiML URL for outgoing calls
+            # Add the voice grant to token
             token.add_grant(voice_grant)
             
             # Generate the JWT token
             jwt_token = token.to_jwt()
             
             # Log token generation for debugging
-            print(f"Generated WebRTC access token for user {token_request.user_id}")
-            print(f"Token identity: {identity}")
-            print(f"Account SID: {account_sid}")
-            print(f"API Key: {api_key}")
-            print(f"TwiML App URL: {twiml_app_url}")
+            print(f"✅ Generated WebRTC access token for user {token_request.user_id}")
+            print(f"   Identity: {identity}")
+            print(f"   Account SID: {account_sid}")
+            print(f"   API Key: {api_key}")
+            print(f"   TwiML App SID: {twiml_app_sid}")
+            print(f"   TwiML App URL: {base_url}/api/twiml/webrtc-outbound")
             
             return {
                 "status": "success", 
@@ -936,16 +936,18 @@ async def generate_access_token(token_request: AccessTokenRequest):
                 "identity": identity,
                 "expires_in": 3600,
                 "account_sid": account_sid,
-                "twiml_app_url": twiml_app_url,
+                "twiml_app_sid": twiml_app_sid,
+                "twiml_app_url": f"{base_url}/api/twiml/webrtc-outbound",
                 "debug_info": {
                     "token_length": len(jwt_token),
                     "api_key_prefix": api_key[:8] + "...",
-                    "account_sid_prefix": account_sid[:8] + "..."
+                    "account_sid_prefix": account_sid[:8] + "...",
+                    "twiml_app_sid": twiml_app_sid
                 }
             }
             
         except Exception as token_error:
-            print(f"Token generation failed: {token_error}")
+            print(f"❌ Token generation failed: {token_error}")
             import traceback
             traceback.print_exc()
             return {
@@ -955,7 +957,7 @@ async def generate_access_token(token_request: AccessTokenRequest):
             }
         
     except Exception as e:
-        print(f"Access token generation error: {e}")
+        print(f"❌ Access token generation error: {e}")
         import traceback
         traceback.print_exc()
         return {
