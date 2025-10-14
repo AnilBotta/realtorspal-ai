@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Mail, X, Send, Trash2, Plus, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import { getEmailDrafts, sendEmailDraft, deleteEmailDraft, getPreferredFromEmail } from '../api';
+import { getEmailDrafts, sendEmailDraft, deleteEmailDraft, getSettings } from '../api';
 
 export default function EmailDraftModal({ open, lead, onClose, user, onOpenComposer }) {
   const [drafts, setDrafts] = useState([]);
