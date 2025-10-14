@@ -95,16 +95,64 @@ async def initiate_outbound_call(call_data: TwilioWebRTCCallRequest):
 
 ## Configuration
 
-### Required Settings (in Settings Page):
+## Twilio Configuration (Sensitive Info Policy)
+
+> 🚫 **Never commit real credentials.**  
+> ✅ Store secrets via **Admin → Integrations → Twilio**, which writes to MongoDB `secrets` (encrypted).  
+> ✅ For local debugging, use a `.env` file that is git-ignored.
+
+**Placeholders to use in docs/snippets (do NOT paste real keys):**
+- Account SID: `<TWILIO_ACCOUNT_SID>` (e.g., `AC-PLACEHOLDER`)
+- Auth Token: `<TWILIO_AUTH_TOKEN>`
+- API Key: `<TWILIO_API_KEY>` (e.g., `SK-PLACEHOLDER`)
+- API Secret: `<TWILIO_API_SECRET>`
+- From Number: `<TWILIO_FROM_NUMBER>`
+- TwiML App SID: `<TWIML_APP_SID>`
+
+### Server Usage
+
+All Twilio usage must be server-side and load credentials at runtime:
+
+```python
+from backend.setup_twiml_app import get_twilio_client
+
+client = get_twilio_client()
+# Example: place a call or send SMS from the server only
+# client.calls.create(...)
+# client.messages.create(to="<E164_NUMBER>", from_="<E164_NUMBER>", body="Hi!")
+```
+
+### Local Development (env only, not committed)
+
+Create `.env` (git-ignored) with placeholders, then set real values only on your machine:
+
+```bash
+TWILIO_ACCOUNT_SID=<TWILIO_ACCOUNT_SID>
+TWILIO_AUTH_TOKEN=<TWILIO_AUTH_TOKEN>
+TWILIO_API_KEY=<TWILIO_API_KEY>
+TWILIO_API_SECRET=<TWILIO_API_SECRET>
+MONGO_URL=<YOUR_MONGO_URL>
+APP_ENCRYPTION_KEY=<BASE64_32BYTE_KEY>
+```
+
+### Production
+
+- Use the **Admin UI** to save Twilio credentials
+- They are encrypted and stored in MongoDB `secrets` collection
+- The backend reads them dynamically
+- No secrets ship to the client or live in git history
+
+### Required Settings (Admin UI):
 1. **Twilio Account SID** - Your Twilio account identifier
 2. **Twilio Auth Token** - Authentication token for API calls
 3. **Twilio Phone Number** - Your Twilio phone number (format: +1XXXXXXXXXX)
+4. **Agent Phone Number** - Your phone for receiving bridged calls
 
-### Current Configuration:
+### Current Configuration Example:
 ```
-Account SID: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (stored in database)
-Phone Number: +1XXXXXXXXXX (stored in database)
-Agent Phone: +1XXXXXXXXXX (stored in database)
+Account SID: <TWILIO_ACCOUNT_SID> (stored encrypted in database)
+Phone Number: <TWILIO_FROM_NUMBER> (stored encrypted in database)
+Agent Phone: <AGENT_PHONE_NUMBER> (stored encrypted in database)
 ```
 
 ## Customization Options
