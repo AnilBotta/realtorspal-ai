@@ -7,7 +7,7 @@ import requests
 import json
 
 # Use the production URL
-BASE_URL = "https://ai-realty-crm.preview.emergentagent.com/api"
+BASE_URL = "https://crm-partial-leads.preview.emergentagent.com/api"
 
 def test_partial_leads_endpoints():
     print("🔍 Testing Partial Leads API Endpoints...")

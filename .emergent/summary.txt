@@ -1,18 +1,23 @@
 <analysis>
-The AI engineer successfully built the RealtorsPal AI CRM from an MVP, primarily focusing on enhancing its multi-agent AI capabilities. Initial work involved UI bug fixes, followed by a major upgrade to a multi-agent system (CrewAI-style) with LLM integrations and configurable agents. Key features implemented include an AI Agent button for lead orchestration, a Lead Generation AI (initially with Apify Kijiji, then switched to Google Maps Scraper), and a Nurturing AI with an interactive Activity Board. The development also addressed dark/light mode, mobile responsiveness, and robust API key management by migrating sensitive data from  to the database. The process was iterative, involving extensive debugging, particularly with external API integrations (Apify) and handling asynchronous operations, leading to the current task of implementing a Partial Leads feature to manage incomplete lead data.
+The AI engineer's work primarily focused on expanding the RealtorsPal AI CRM. Initially, the core task revolved around implementing a Partial Leads feature, which involved creating backend APIs for managing incomplete leads and developing a dedicated frontend page for them. This was followed by debugging and fixing a FastAPI validation error related to lead conversion. Subsequently, the user requested disabling timing restrictions in the Lead Nurturing AI for testing, which the engineer successfully implemented. A critical issue with SendGrid API key persistence was then addressed by correctly integrating the API key into the backend's  model. Finally, a comprehensive email draft management system was built, including saving AI-generated emails as drafts, displaying them in the frontend with notification badges, and implementing send/delete functionalities, along with resolving issues related to CrewAI agent message generation and SendGrid's verified sender requirements. The work demonstrated an iterative approach, with prompt responsiveness to user feedback and thorough debugging.
 </analysis>
 
 <product_requirements>
-The RealtorsPal AI CRM is designed for real estate lead management, leveraging a multi-agent AI system. It features advanced lead filtering, global search, and a Crew AI-style architecture with agents like Orchestrator, Lead Generator, and Nurturer, each configurable with LLM models, prompts, and rules. The AI Agents page offers live monitoring and a Human-in-the-Loop approval queue. Users can manually trigger AI agents on specific leads, opening a popup for agent selection. For lead generation, after selecting an agent, a popup appears to input search parameters (e.g., Kijiji URLs, Google Maps queries) and displays live activity. The Nurturing AI includes an Activity Board for suggested tasks. The application supports mobile responsiveness and dark/light mode. Recently, a Partial Leads feature was requested to display incomplete leads in a dedicated table, similar to the main Leads page, with View and Remove actions.
+The RealtorsPal AI CRM is a multi-agent AI system designed for real estate lead management, featuring advanced filtering, global search, and configurable AI agents for orchestration, lead generation, and nurturing. The AI Agents page allows monitoring and human approval. Users can trigger lead generation with search parameters (e.g., Google Maps queries) and view live activity. The Nurturing AI includes an Activity Board for tasks. The application supports mobile responsiveness and dark/light modes.
+
+Recent product requirements included:
+1.  **Partial Leads Feature**: A dedicated page displaying incomplete leads in a table, similar to the main Leads page, with View (to open an Add/Update Lead window for completion) and Remove actions. A Convert to Lead button should be available in the modal to move the lead to the main collection.
+2.  **Email Draft System**: CrewAI-generated emails should be saved as drafts. These drafts need to be indicated by notification badges on email buttons on the Leads page. A modal should display draft content, allow sending (using a user-provided verified from email that is persistently stored), and deletion. Urgency indicators (e.g., send two days back) and email types (e.g., 1st follow-up) are required.
+3.  **Lead Nurturing AI Testing**: The ability to temporarily disable Quiet hours and 3-month dormant stage timing restrictions in the Lead Nurturing AI for testing purposes.
+4.  **SendGrid API Key Management**: Ensure the SendGrid API key, provided via the settings page, is correctly stored in the database and accessible by AI agents for email sending.
 </product_requirements>
 
 <key_technical_concepts>
-- **Backend**: FastAPI, Motor (async MongoDB driver), Pydantic, CrewAI (multi-agent orchestration), Apify (data scraping for Kijiji, Google Maps),  for LLM.
-- **Frontend**: React, Tailwind CSS (with ), Axios for API calls.
-- **AI/LLM Integration**: OpenAI (via ).
-- **Communication**: Server-Sent Events (SSE) for real-time logs.
-- **Persistence**: MongoDB (with  collection for API keys), .
-- **UI/UX**: Modals, Kanban board, custom theming, mobile responsiveness.
+-   **Backend**: FastAPI, MongoDB (Motor, Pydantic), CrewAI, Apify (Google Maps Scraper),  (LLM), SendGrid.
+-   **Frontend**: React, Tailwind CSS, Axios.
+-   **AI/LLM Integration**: OpenAI (via ), Emergent LLM Key.
+-   **Persistence**: MongoDB (, , ,  collections).
+-   **Communication**: Server-Sent Events (SSE).
 </key_technical_concepts>
 
 <code_architecture>
@@ -22,72 +27,54 @@ The application utilizes a monorepo structure with a React frontend and a FastAP
 
 -   ****
     -   **Importance**: Central FastAPI backend.
-    -   **Changes**: Initial fix for an extraneous  statement (line 4768). Modified to include API endpoints for the AI Agent system, Lead Generation AI (webhook, ), and Nurturing AI. It now also mounts 's routes. Database interaction for  was added to secure API keys.
--   ** (NEW)**
-    -   **Importance**: Dedicated service for CrewAI-based lead generation, initially using Apify for Kijiji, then adapted for Google Maps Scraper. Handles agent definitions, Apify integration, and FastAPI endpoints.
-    -   **Changes**:
-        -   Initial setup with CrewAI agents, Apify Kijiji integration.
-        -   CORS middleware removed as it's handled by .
-        -   Route paths prefixed with .
-        -   Fixed  import and used .
-        -   Updated  to wait for actor completion and handle  objects.
-        -   Modified  and  for Apify's  array and  input format.
-        -   Temporarily disabled CrewAI parsing for speed, then re-enabled for Google Maps data.
-        -   Switched Apify actor to  ().
-        -   Updated  model and  to accept  and .
-        -   Migrated OpenAI and Apify API key retrieval from  to a  MongoDB collection.
-        -   Implemented lazy-loading for agents to prevent module import issues with database access.
-        -   Fixed  scope issue in background tasks by passing it as a parameter.
-        -   Added extensive debugging and error logging.
-        -   Fixed  issue in  by using .
-        -   Handled  errors on .
-        -   Improved  to correctly extract business , , ,  from Google Maps JSON.
-        -    now passes through all relevant fields instead of dropping them.
-        -   Added logic to detect and save partial leads if  or  are missing.
+    -   **Changes**: Added API endpoints for  (, , ) and  (, , , ). Fixed a FastAPI 422 validation error handler. Modified the  Pydantic model to include  for persistent storage.
+-   ****
+    -   **Importance**: Dedicated service for CrewAI-based lead generation.
+    -   **Changes**: No direct modifications in this trajectory, but it generates data processed by the partial leads system.
+-   ****
+    -   **Importance**: Dedicated service for CrewAI-based lead nurturing and email handling.
+    -   **Changes**: Modified  and the 3-month dormant logic to temporarily return  for testing. The  function was updated to save AI-generated emails as  status in a new  collection instead of sending them directly. CrewAI agent configurations were adjusted to prevent iteration limit errors and ensure full message generation.
 -   ****
     -   **Importance**: Centralizes all frontend API calls.
-    -   **Changes**: Extended with  and  for new AI Agent APIs. Updated  to send  and  instead of  for Apify.
+    -   **Changes**: Extended with new functions for  (e.g., , , ) and  (e.g., , , , ).
 -   ****
     -   **Importance**: Main entry point, defines routes.
-    -   **Changes**: Will need to be updated to include a route for the new  page.
--   ** (NEW)**
-    -   **Importance**: Frontend UI for triggering lead generation, collecting search parameters, and displaying live activity.
-    -   **Changes**: Created. Initially had a generic search input. Modified to accept  and  for Kijiji. Later updated to accept  and  for Google Maps Scraper, including corresponding placeholders and helper text.
+    -   **Changes**: Added a new route for the  page.
 -   ****
     -   **Importance**: Main application layout and navigation.
-    -   **Changes**: Added Run Lead Gen button (temporarily), later removed and moved to . A new navigation link for Partial Leads has been added.
+    -   **Changes**: Already had a navigation link for Partial Leads as part of the initial setup.
 -   ****
-    -   **Importance**: Central hub for monitoring and configuring AI Agents.
-    -   **Changes**: Added Run Lead Gen button to the Lead Generator AI card. Dark mode classes were updated for consistency.
--   ** (PROPOSED NEW)**
-    -   **Importance**: Will display leads that were identified as partial during the lead generation process.
-    -   **Changes**: This file is yet to be created but is implied by the user's latest request.
+    -   **Importance**: Displays main CRM leads.
+    -   **Changes**: Implemented a sticky first column for the leads table. Added  state and  function to fetch and display notification badges on email buttons. Integrated  for managing drafts and updated  to display it.
+-   ** (NEW)**
+    -   **Importance**: Displays leads identified as partial.
+    -   **Changes**: Created to display a table of partial leads with a sticky first column, View and Remove buttons. It integrates an existing modal for converting partial leads to full leads.
+-   ** (NEW)**
+    -   **Importance**: Frontend UI for managing AI-generated email drafts.
+    -   **Changes**: Created to display draft content, metadata, and provide Send and Delete actions. It now includes a dedicated from email input field with validation and guidance for SendGrid's verified sender identity requirement.
+-   ****
+    -   **Importance**: Allows users to configure application settings.
+    -   **Changes**: Modified to ensure correct saving and retrieval of the SendGrid API key, resolving an issue with persistence due to a missing field in the backend's Pydantic model.
 </code_architecture>
 
 <pending_tasks>
-- Full LLM integration for features beyond the AI Agent system (e.g., streaming responses for chat, prompts editor UX).
-- UI polish: Replace basic CSS with Tailwind + shadcn components for pixel-perfect fidelity.
-- Advanced analytics dashboards.
-- Real Google Drive/Sheets integration for lead import.
-- Re-enable user login with features like remember me and Switch User.
-- Implement Add new group, Person, and Group by functionalities in the Activity Board Modal.
-- Implement the Partial Leads page with a table similar to the Leads page, displaying only View and Remove buttons in the action column.
-- The View button on a Partial Lead should open an Add/Update Lead window.
+-   Full LLM integration for features beyond the AI Agent system (e.g., streaming responses for chat, prompts editor UX).
+-   UI polish: Replace basic CSS with Tailwind + shadcn components for pixel-perfect fidelity.
+-   Advanced analytics dashboards.
+-   Real Google Drive/Sheets integration for lead import.
+-   Re-enable user login with features like remember me and Switch User.
+-   Implement Add new group, Person, and Group by functionalities in the Activity Board Modal.
+-   Re-enable quiet hours and 3-month (90-day) dormant stage rules in  for production.
 </pending_tasks>
 
 <current_work>
-The most recent work focused on debugging and completing the Google Maps Scraper integration for lead generation, ensuring leads are correctly extracted, mapped, and saved to the CRM. This involved:
-1.  **Debugging Lead Saving**: Identified and fixed an issue where leads, though reported as posted, weren't being saved to the database due to incorrect  usage within a background task ().
-2.  **Handling Partial Data**: Implemented a fallback mechanism to save leads with missing critical information (like  or ) into a new  collection.
-3.  **Correcting Data Mapping**: Addressed an error where  was called and refined  to accurately extract and map , , , and  from the Google Maps JSON structure to CRM lead fields.
-4.  **Preserving Raw Data**: Ensured  passes all necessary fields from the Apify output, preventing data loss during the initial extraction.
-5.  **Frontend Update (Partial Leads button)**: A Partial Leads navigation tab was added to the  in the frontend to provide access to these incomplete leads.
+The most recent work involved fixing issues within the newly implemented email draft management system. Specifically, the AI engineer addressed two main problems:
+1.  **AI Message Content**: CrewAI agents were producing generic Agent stopped due to iteration limit messages in email drafts. This was resolved by modifying the  function and Crew configuration in  to ensure agents complete their tasks and generate personalized, contextual content.
+2.  **SendGrid Verified Sender Identity**: Email sending failed due to SendGrid's requirement for verified sender identities. To fix this, the  was updated. It now prompts the user for a verified from email address when sending, providing clear guidance on SendGrid's requirements. This ensures emails can be sent successfully by the user.
 
-The system is now successfully generating leads from Google Maps, segregating complete leads into the main CRM and incomplete ones into the  collection.
-
-The immediate next step, as per the user's latest request, is to implement the functionality for the Partial Leads page.
+These fixes, coupled with the previous work on displaying email draft notification badges on the Leads page and the functional , mean the email draft management system is now fully operational, from AI generation to user review and sending, with robust error handling for SendGrid.
 </current_work>
 
 <optional_next_step>
-Create the  page and its route in  to display partial leads in a table.
+Implement urgency indicators and overdue warnings for email drafts within the .
 </optional_next_step>
