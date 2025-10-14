@@ -1181,6 +1181,14 @@ export default function Leads({ user }) {
         user={user}
       />
 
+      <EmailDraftModal
+        open={showEmailDraftModal}
+        lead={selectedLead}
+        onClose={() => setShowEmailDraftModal(false)}
+        onOpenComposer={handleOpenEmailComposer}
+        user={user}
+      />
+
       <CommunicationModal
         open={showCommunicationModal}
         lead={communicationLead}
