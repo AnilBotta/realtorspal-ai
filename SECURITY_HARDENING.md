@@ -158,9 +158,8 @@ All Python and JavaScript files are now safe to push to GitHub without exposing 
 ## Verification
 
 ```bash
-# Scan for hardcoded credentials
-grep -r "AC95d99c\|SK[0-9a-f]\{32\}\|eaf4c5edf" backend/ --include="*.py"
-# Should return only fallback defaults or no results
+# Scan for hardcoded credentials (should return 0 results)
+grep -r "AC[a-z0-9]\{32\}\|SK[a-z0-9]\{32\}\|SG\." backend/ frontend/ --include="*.py" --include="*.js" --include="*.jsx"
 ```
 
 ## Testing
