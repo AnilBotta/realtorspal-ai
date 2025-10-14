@@ -154,11 +154,11 @@ Each successful call adds a note to the lead:
 ```json
 {
   "status": "success",
-  "call_sid": "CA16af7a59c1a6e105d2ffe1e62ffab3c7",
-  "message": "Call initiated successfully! Calling +13654578956 from +12894012412",
+  "call_sid": "CAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "message": "Call initiated successfully! Calling +1XXXXXXXXXX from +1XXXXXXXXXX",
   "call_status": "queued",
-  "from_number": "+12894012412",
-  "to_number": "+13654578956"
+  "from_number": "+1XXXXXXXXXX",
+  "to_number": "+1XXXXXXXXXX"
 }
 ```
 
