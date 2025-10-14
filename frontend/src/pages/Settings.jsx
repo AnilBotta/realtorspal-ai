@@ -459,6 +459,17 @@ export default function Settings({ user }){
             />
             <div className="text-xs text-slate-500 mt-1">For WhatsApp messaging</div>
           </div>
+          <div>
+            <label className="text-sm text-slate-600 font-medium">Agent Phone Number</label>
+            <input 
+              type="text"
+              className="w-full px-3 py-2 rounded-lg border mt-1" 
+              placeholder="+1234567890" 
+              value={form.agent_phone_number} 
+              onChange={(e)=>setForm({...form, agent_phone_number:e.target.value})} 
+            />
+            <div className="text-xs text-slate-500 mt-1">Your phone number for receiving bridged calls from leads</div>
+          </div>
         </div>
         <div className="mt-3 p-3 bg-blue-50 rounded-lg">
           <div className="text-xs text-blue-700">
