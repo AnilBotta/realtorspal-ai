@@ -1247,14 +1247,13 @@ async def send_sms(sms_data: TwilioSMSRequest):
         if not lead.get("phone"):
             raise HTTPException(status_code=400, detail="Lead has no phone number")
         
-        # Get Twilio settings from database
-        settings = await db.settings.find_one({"user_id": lead["user_id"]})
-        if not settings:
-            raise HTTPException(status_code=400, detail="User settings not found")
+        # Auto-migrate and get Twilio secrets
+        await migrate_secrets_from_settings(lead["user_id"])
+        secrets = await get_all_secrets(lead["user_id"])
         
-        account_sid = settings.get("twilio_account_sid")
-        auth_token = settings.get("twilio_auth_token")
-        twilio_phone = settings.get("twilio_phone_number")
+        account_sid = secrets.get("twilio_account_sid")
+        auth_token = secrets.get("twilio_auth_token")
+        twilio_phone = secrets.get("twilio_phone_number")
         
         print(f"   Account SID: {account_sid}")
         print(f"   Auth Token: ***{auth_token[-4:] if auth_token else 'NOT SET'}")
