@@ -625,12 +625,13 @@ async def send_nurture_message(lead: Dict[str, Any], purpose: str, user_id: str)
         )
         return None
     
-    # Step 4: Check 3-month limit rule
-    created_date = datetime.fromisoformat(lead.get("created_at", _now().isoformat()))
-    if (_now() - created_date).days > 90 and analyzed_stage not in ["engaged", "appointment_proposed", "appointment_confirmed"]:
-        _log(lead_id, "[RULE] 3-month limit reached, moving to dormant")
-        await _update_lead_stage(lead_id, "dormant")
-        return None
+    # Step 4: Check 3-month limit rule (DISABLED FOR TESTING)
+    # TODO: Re-enable for production
+    # created_date = datetime.fromisoformat(lead.get("created_at", _now().isoformat()))
+    # if (_now() - created_date).days > 90 and analyzed_stage not in ["engaged", "appointment_proposed", "appointment_confirmed"]:
+    #     _log(lead_id, "[RULE] 3-month limit reached, moving to dormant")
+    #     await _update_lead_stage(lead_id, "dormant")
+    #     return None
     
     # Step 5: Stop nurturing for final stages
     if analyzed_stage in ["onboarding", "not_interested"]:
