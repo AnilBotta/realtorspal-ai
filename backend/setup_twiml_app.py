@@ -1,79 +1,97 @@
 """
-Script to create or verify TwiML Application for WebRTC calling
-This creates the TwiML App needed for browser-to-phone WebRTC calls
+Twilio setup with NO hard-coded secrets.
+
+Order of credential sources:
+1) Environment variables (emergency override, never committed)
+2) MongoDB `secrets` collection (encrypted at rest)
+
+Expected env:
+- MONGO_URL
+- APP_ENCRYPTION_KEY  # base64 32-byte key for AES-256-GCM
+- Optional emergency overrides:
+  TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_API_KEY, TWILIO_API_SECRET
 """
+
 import os
-import sys
+import base64
+import json
+from typing import Optional, Dict
+
+from pymongo import MongoClient
 from twilio.rest import Client
 
-# Get credentials from environment variables
-ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
-AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://crm-partial-leads.preview.emergentagent.com')
+try:
+    # pycryptodome
+    from Crypto.Cipher import AES
+except Exception as e:  # pragma: no cover
+    AES = None  # If Crypto isn't installed, DB decryption path won't be used.
 
-if not ACCOUNT_SID or not AUTH_TOKEN:
-    print("❌ Error: TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set as environment variables")
-    print("   Please set them before running this script:")
-    print("   export TWILIO_ACCOUNT_SID='your_account_sid'")
-    print("   export TWILIO_AUTH_TOKEN='your_auth_token'")
-    sys.exit(1)
 
-# TwiML App details
-TWIML_APP_NAME = "RealtorsPal WebRTC App"
-VOICE_URL = f"{BASE_URL}/api/twiml/webrtc-outbound"
+def _decrypt_obj(b64_payload: str, key_b64: str) -> Dict:
+    """Decrypts base64(AES-GCM(iv[12] + tag[16] + ciphertext)) -> dict"""
+    if AES is None:
+        raise RuntimeError("Crypto library not available; set env vars or install pycryptodome.")
+    raw = base64.b64decode(b64_payload)
+    iv, tag, enc = raw[:12], raw[12:28], raw[28:]
+    key = base64.b64decode(key_b64)
+    cipher = AES.new(key, AES.MODE_GCM, nonce=iv)
+    cipher.update(b"")
+    data = cipher.decrypt_and_verify(enc, tag)
+    return json.loads(data.decode("utf-8"))
 
-def create_or_get_twiml_app():
-    """Create or get existing TwiML Application"""
-    try:
-        client = Client(ACCOUNT_SID, AUTH_TOKEN)
-        
-        # Check if TwiML App already exists
-        print("🔍 Checking for existing TwiML Applications...")
-        apps = client.applications.list(friendly_name=TWIML_APP_NAME)
-        
-        if apps:
-            app = apps[0]
-            print(f"✅ Found existing TwiML App:")
-            print(f"   Name: {app.friendly_name}")
-            print(f"   SID: {app.sid}")
-            print(f"   Voice URL: {app.voice_url}")
-            
-            # Update if voice URL changed
-            if app.voice_url != VOICE_URL:
-                print(f"🔄 Updating Voice URL to: {VOICE_URL}")
-                app.update(voice_url=VOICE_URL, voice_method='POST')
-                print("✅ Voice URL updated")
-            
-            return app.sid
-        
-        # Create new TwiML App
-        print(f"📝 Creating new TwiML Application: {TWIML_APP_NAME}")
-        app = client.applications.create(
-            friendly_name=TWIML_APP_NAME,
-            voice_url=VOICE_URL,
-            voice_method='POST',
-            status_callback=f"{BASE_URL}/api/twiml/status-callback",
-            status_callback_method='POST'
-        )
-        
-        print(f"✅ TwiML Application created successfully!")
-        print(f"   Name: {app.friendly_name}")
-        print(f"   SID: {app.sid}")
-        print(f"   Voice URL: {app.voice_url}")
-        print(f"\n💾 Save this SID to your .env file:")
-        print(f"   TWILIO_TWIML_APP_SID={app.sid}")
-        
-        return app.sid
-        
-    except Exception as e:
-        print(f"❌ Error: {e}")
+
+def _get_twilio_from_db() -> Optional[Dict]:
+    mongo_url = os.environ.get("MONGO_URL")
+    enc_key = os.environ.get("APP_ENCRYPTION_KEY")
+    if not mongo_url or not enc_key:
         return None
 
-if __name__ == "__main__":
-    twiml_app_sid = create_or_get_twiml_app()
-    if twiml_app_sid:
-        print(f"\n🎉 TwiML App SID: {twiml_app_sid}")
-        sys.exit(0)
-    else:
-        print("\n❌ Failed to create/get TwiML App")
-        sys.exit(1)
+    client = MongoClient(mongo_url)
+    db = client.get_default_database()
+    doc = db["secrets"].find_one({"tenantId": "default", "provider": "twilio"})
+    if not doc:
+        return None
+
+    decrypted = _decrypt_obj(doc["data"], enc_key)
+    return {
+        "account_sid": decrypted.get("accountSid"),
+        "auth_token": decrypted.get("authToken"),
+        "api_key": decrypted.get("apiKey"),
+        "api_secret": decrypted.get("apiSecret"),
+    }
+
+
+def get_twilio_client() -> Client:
+    """
+    Returns a configured Twilio client.
+    Prefers API Key/Secret + Account SID, falls back to Account SID + Auth Token.
+    """
+    # 1) Env overrides
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+    api_key = os.environ.get("TWILIO_API_KEY")
+    api_secret = os.environ.get("TWILIO_API_SECRET")
+
+    # 2) If no env, pull from DB
+    if not any([account_sid, auth_token, api_key, api_secret]):
+        creds = _get_twilio_from_db()
+        if not creds:
+            raise RuntimeError("Twilio credentials not configured (env or DB).")
+        account_sid = creds.get("account_sid")
+        auth_token = creds.get("auth_token")
+        api_key = creds.get("api_key")
+        api_secret = creds.get("api_secret")
+
+    # Prefer restricted API key/secret usage with explicit account_sid
+    if api_key and api_secret and account_sid:
+        return Client(api_key, api_secret, account_sid=account_sid)
+
+    if account_sid and auth_token:
+        return Client(account_sid, auth_token)
+
+    raise RuntimeError("Incomplete Twilio credentials: need API key+secret+account_sid or account_sid+auth_token.")
+
+
+# Example (server-side only):
+# client = get_twilio_client()
+# client.messages.create(to="+15555555555", from_="+15555550000", body="Hello from secure setup!")
