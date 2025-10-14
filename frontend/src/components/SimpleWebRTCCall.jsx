@@ -175,8 +175,8 @@ const SimpleWebRTCCall = ({ user, lead, onCallEnd, onCallStart }) => {
         <div className="text-xs text-gray-500">
           {callStatus === 'idle' ? (
             <>
-              <div className="font-medium text-gray-700 mb-1">WebRTC Call via REST API</div>
-              <div>Click to initiate call. Lead will be connected to your browser.</div>
+              <div className="font-medium text-gray-700 mb-1">Direct Outbound Call</div>
+              <div>Click to call the lead directly via Twilio.</div>
             </>
           ) : callStatus === 'connected' ? (
             <div className="text-green-600">
@@ -184,7 +184,7 @@ const SimpleWebRTCCall = ({ user, lead, onCallEnd, onCallStart }) => {
             </div>
           ) : callStatus === 'calling' ? (
             <div className="text-blue-600">
-              📞 Setting up call connection...
+              📞 Initiating call connection...
             </div>
           ) : (
             <div className="text-red-600">
