@@ -788,17 +788,30 @@ class AccessTokenRequest(BaseModel):
 
 async def get_twilio_client(user_id: str) -> Optional[TwilioClient]:
     """Get configured Twilio client for user"""
+    print(f"🔵 get_twilio_client called for user_id: {user_id}")
     settings_doc = await db.settings.find_one({"user_id": user_id})
     if not settings_doc:
+        print(f"❌ No settings found for user_id: {user_id}")
         return None
         
     account_sid = settings_doc.get("twilio_account_sid")
     auth_token = settings_doc.get("twilio_auth_token")
     
+    print(f"   Account SID: {account_sid}")
+    print(f"   Auth Token: {'***' + auth_token[-4:] if auth_token else 'NOT SET'}")
+    
     if not account_sid or not auth_token:
+        print(f"❌ Missing credentials - Account SID: {bool(account_sid)}, Auth Token: {bool(auth_token)}")
         return None
-        
-    return TwilioClient(account_sid, auth_token)
+    
+    print(f"✅ Creating Twilio client with credentials")
+    try:
+        client = TwilioClient(account_sid, auth_token)
+        print(f"✅ Twilio client created successfully")
+        return client
+    except Exception as e:
+        print(f"❌ Error creating Twilio client: {e}")
+        return None
 
 @app.post("/api/twilio/access-token")
 async def generate_access_token(token_request: AccessTokenRequest):
