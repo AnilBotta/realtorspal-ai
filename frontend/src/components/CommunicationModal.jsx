@@ -282,7 +282,7 @@ export default function CommunicationModal({ open, lead, type, onClose, user }) 
                       {callMode === 'bridge' 
                         ? 'Lead receives call, hears message, then connected to your phone'
                         : callMode === 'simple'
-                        ? 'REST API call - Lead receives call and is connected to your browser (simpler setup)'
+                        ? 'Direct outbound call - Lead receives call from your Twilio number'
                         : 'Full WebRTC - Call directly from browser with microphone and speakers (requires API keys)'
                       }
                     </div>
