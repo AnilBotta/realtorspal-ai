@@ -389,6 +389,8 @@ class Settings(BaseModel):
     twilio_whatsapp_number: Optional[str] = None
     twilio_api_key: Optional[str] = None
     twilio_api_secret: Optional[str] = None
+    twilio_twiml_app_sid: Optional[str] = None  # TwiML Application SID for WebRTC
+    agent_phone_number: Optional[str] = None  # Agent's phone for receiving bridged calls
     smtp_protocol: Optional[str] = None
     smtp_hostname: Optional[str] = None
     smtp_port: Optional[str] = None
