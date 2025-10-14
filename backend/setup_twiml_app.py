@@ -6,10 +6,17 @@ import os
 import sys
 from twilio.rest import Client
 
-# Get credentials from environment
-ACCOUNT_SID = "AC95d99c15758784e8d9a462385bd9645b"
-AUTH_TOKEN = "eaf4c5edf1ea3f76a0429b61163f2c55"
-BASE_URL = "https://crm-partial-leads.preview.emergentagent.com"
+# Get credentials from environment variables
+ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
+AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://crm-partial-leads.preview.emergentagent.com')
+
+if not ACCOUNT_SID or not AUTH_TOKEN:
+    print("❌ Error: TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set as environment variables")
+    print("   Please set them before running this script:")
+    print("   export TWILIO_ACCOUNT_SID='your_account_sid'")
+    print("   export TWILIO_AUTH_TOKEN='your_auth_token'")
+    sys.exit(1)
 
 # TwiML App details
 TWIML_APP_NAME = "RealtorsPal WebRTC App"
