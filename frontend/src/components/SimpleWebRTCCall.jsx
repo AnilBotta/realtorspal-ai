@@ -17,10 +17,10 @@ const SimpleWebRTCCall = ({ user, lead, onCallEnd, onCallStart }) => {
     try {
       setCallStatus('calling');
       setError(null);
-      console.log('🚀 Initiating WebRTC call via REST API to:', lead.phone);
+      console.log('🚀 Initiating outbound call via Twilio to:', lead.phone);
       
-      // Use REST API to initiate WebRTC call directly
-      const response = await fetch(`${baseUrl}/api/twilio/webrtc-call`, {
+      // Use REST API to initiate direct outbound call
+      const response = await fetch(`${baseUrl}/api/twilio/outbound-call`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -32,14 +32,16 @@ const SimpleWebRTCCall = ({ user, lead, onCallEnd, onCallStart }) => {
       });
 
       const result = await response.json();
-      console.log('📡 WebRTC call API response:', result);
+      console.log('📡 Outbound call API response:', result);
       
       if (result.status === 'success') {
         setCallResult({
           status: 'success',
-          message: 'Call initiated successfully! The lead will receive a call and be connected to your browser.',
+          message: result.message || 'Call initiated successfully!',
           call_sid: result.call_sid,
-          call_flow: result.call_flow
+          call_flow: `Calling ${result.to_number} from ${result.from_number}`,
+          from_number: result.from_number,
+          to_number: result.to_number
         });
         setCallStatus('connected');
         onCallStart?.();
