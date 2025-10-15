@@ -233,6 +233,7 @@ async def migrate_secrets_from_settings(user_id: str) -> bool:
     Returns:
         True if migration successful or not needed
     """
+    _ensure_connection()
     try:
         # Check if already migrated
         existing_secrets = await secrets_collection.find_one({"user_id": user_id})
