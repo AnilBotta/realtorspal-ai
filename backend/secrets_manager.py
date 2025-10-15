@@ -142,6 +142,7 @@ async def set_multiple_secrets(user_id: str, secrets: Dict[str, str]) -> bool:
     Returns:
         True if successful, False otherwise
     """
+    _ensure_connection()
     try:
         result = await secrets_collection.update_one(
             {"user_id": user_id},
