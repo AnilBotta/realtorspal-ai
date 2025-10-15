@@ -599,7 +599,7 @@ async def create_lead_external(lead_data: CreateLeadExternalRequest, api_key: st
         validated_email = None
         if lead_data.email and lead_data.email.strip():
             try:
-                validation = validate_email(lead_data.email.strip())
+                validation = validate_email(lead_data.email.strip(), check_deliverability=False)
                 validated_email = validation.email
             except EmailNotValidError:
                 validated_email = None
