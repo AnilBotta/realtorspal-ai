@@ -962,13 +962,40 @@ export default function Leads({ user }) {
             <RefreshCw size={16} />
             Refresh
           </button>
-          <button
-            onClick={downloadSampleCSV}
-            className="px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
-          >
-            <Download size={16} />
-            Download Sample CSV
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+              className="px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            >
+              <Download size={16} />
+              Download Sample
+              <ChevronDown size={16} />
+            </button>
+            {showDownloadMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <button
+                  onClick={() => {
+                    downloadSampleFile('csv');
+                    setShowDownloadMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-t-lg flex items-center gap-2"
+                >
+                  <Download size={14} />
+                  CSV Format
+                </button>
+                <button
+                  onClick={() => {
+                    downloadSampleFile('excel');
+                    setShowDownloadMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-b-lg flex items-center gap-2"
+                >
+                  <Download size={14} />
+                  Excel Format
+                </button>
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setShowImportModal(true)}
             className="px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
