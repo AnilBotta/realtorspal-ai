@@ -2062,18 +2062,77 @@ async def import_leads(payload: ImportPayload):
                     # Skip lead with invalid email or set to None
                     validated_email = None
             
-            # Normalize phone number
+            # Normalize phone numbers
             normalized_phone = normalize_phone(item.phone)
+            normalized_work_phone = normalize_phone(item.work_phone)
+            normalized_home_phone = normalize_phone(item.home_phone)
+            normalized_spouse_phone = normalize_phone(item.spouse_mobile_phone)
             print(f"Phone normalized from '{item.phone}' to '{normalized_phone}'")
             
             lead = Lead(
                 user_id=payload.user_id,
+                # Basic fields
                 name=full_name,
                 first_name=item.first_name,
                 last_name=item.last_name,
                 email=validated_email,
                 phone=normalized_phone,
+                lead_description=item.lead_description,
+                
+                # Additional Contact Information
+                work_phone=normalized_work_phone,
+                home_phone=normalized_home_phone,
+                email_2=item.email_2,
+                
+                # Spouse Information
+                spouse_name=item.spouse_name,
+                spouse_first_name=item.spouse_first_name,
+                spouse_last_name=item.spouse_last_name,
+                spouse_email=item.spouse_email,
+                spouse_mobile_phone=normalized_spouse_phone,
+                spouse_birthday=item.spouse_birthday,
+                
+                # Pipeline and Status
+                pipeline=item.pipeline,
+                status=item.status,
+                ref_source=item.ref_source,
+                lead_rating=item.lead_rating,
+                lead_source=item.lead_source,
+                lead_type=item.lead_type,
+                lead_type_2=item.lead_type_2,
+                
+                # Property Information
+                house_to_sell=item.house_to_sell,
+                buying_in=item.buying_in,
+                selling_in=item.selling_in,
+                owns_rents=item.owns_rents,
+                mortgage_type=item.mortgage_type,
+                
+                # Address Information
+                city=item.city,
+                zip_postal_code=item.zip_postal_code,
+                address=item.address,
+                
+                # Property Details
                 property_type=item.property_type,
+                property_condition=item.property_condition,
+                listing_status=item.listing_status,
+                bedrooms=item.bedrooms,
+                bathrooms=item.bathrooms,
+                basement=item.basement,
+                parking_type=item.parking_type,
+                
+                # Dates and Anniversaries
+                date_of_birth=item.date_of_birth,
+                house_anniversary=item.house_anniversary,
+                planning_to_sell_in=item.planning_to_sell_in,
+                
+                # Agent Assignments
+                main_agent=item.main_agent,
+                mort_agent=item.mort_agent,
+                list_agent=item.list_agent,
+                
+                # Compatibility fields
                 neighborhood=item.neighborhood,
                 price_min=item.price_min,
                 price_max=item.price_max,
