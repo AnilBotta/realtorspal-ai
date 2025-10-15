@@ -395,31 +395,34 @@ export default function Leads({ user }) {
     setShowImportModal(false);
   };
 
-  // Smart search function - searches across all fields
+  // Smart search function - searches across primary lead fields only
   const searchAllFields = (lead, query) => {
     if (!query) return true;
     
     const searchTerm = query.toLowerCase();
     const searchableFields = [
-      // Contact Info (100% weight)
+      // Primary Contact Info - Lead's information only
+      lead.first_name || '',
+      lead.last_name || '',
       `${lead.first_name || ''} ${lead.last_name || ''}`,
       lead.email || '',
       lead.phone || '',
       lead.work_phone || '',
       lead.home_phone || '',
+      lead.email_2 || '',
       
-      // Location (80% weight)
+      // Location
       lead.city || '',
       lead.neighborhood || '',
       lead.address || '',
       lead.zip_postal_code || '',
       
-      // Property & Budget (70% weight)
+      // Property & Budget
       lead.property_type || '',
       lead.price_min?.toString() || '',
       lead.price_max?.toString() || '',
       
-      // Lead Details (60% weight)
+      // Lead Details
       lead.lead_type || '',
       lead.lead_source || '',
       lead.ref_source || '',
@@ -427,12 +430,15 @@ export default function Leads({ user }) {
       lead.status || '',
       lead.priority || '',
       lead.lead_rating || '',
-      
-      // Additional Info
       lead.lead_description || '',
+      
+      // Spouse Info (if searching for spouse names)
       lead.spouse_first_name || '',
       lead.spouse_last_name || '',
-      lead.main_agent || ''
+      lead.spouse_email || ''
+      
+      // Note: Removed main_agent, mort_agent, list_agent fields
+      // to focus search on the lead's own information
     ];
     
     return searchableFields.some(field => 
