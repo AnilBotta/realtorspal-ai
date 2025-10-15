@@ -2099,6 +2099,259 @@ async def import_leads(payload: ImportPayload):
             print(f"Error processing lead {idx}: {error_msg}")
             print(f"Lead data: {item}")
 
+
+@app.post("/api/leads/import-csv", response_model=ImportResult)
+async def import_leads_csv(
+    file: UploadFile = File(...),
+    user_id: str = Form(...)
+):
+    """
+    Import leads from CSV file with comprehensive field support
+    
+    Requirements:
+    - Both email AND phone are compulsory
+    - Maximum 1000 leads per import
+    - Duplicates (same email) will be skipped
+    """
+    print(f"CSV import request received for user {user_id}")
+    print(f"File: {file.filename}, Content-Type: {file.content_type}")
+    
+    # Check file type
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+    
+    # Read file content
+    try:
+        contents = await file.read()
+        csv_data = contents.decode('utf-8')
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error reading CSV file: {str(e)}")
+    
+    # Parse CSV
+    csv_reader = csv.DictReader(io.StringIO(csv_data))
+    rows = list(csv_reader)
+    
+    print(f"CSV contains {len(rows)} rows")
+    
+    # Enforce 1000 lead limit
+    if len(rows) > 1000:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"CSV contains {len(rows)} leads. Maximum allowed is 1000 leads per import."
+        )
+    
+    inserted = 0
+    skipped = 0
+    errors: List[Dict[str, Any]] = []
+    inserted_docs: List[Lead] = []
+    
+    for idx, row in enumerate(rows):
+        try:
+            # Clean up empty strings to None
+            cleaned_row = {k: (v.strip() if v and v.strip() else None) for k, v in row.items()}
+            
+            print(f"Processing row {idx + 1}: {cleaned_row.get('first_name')} {cleaned_row.get('last_name')}")
+            
+            # Required fields validation - BOTH email AND phone are compulsory
+            email_value = cleaned_row.get('email') or cleaned_row.get('Email')
+            phone_value = cleaned_row.get('phone') or cleaned_row.get('Phone')
+            
+            if not email_value or not phone_value:
+                missing_fields = []
+                if not email_value:
+                    missing_fields.append('email')
+                if not phone_value:
+                    missing_fields.append('phone')
+                
+                skipped += 1
+                error_msg = f"Missing required fields: {', '.join(missing_fields)}"
+                errors.append({
+                    "row": idx + 1,
+                    "email": email_value,
+                    "phone": phone_value,
+                    "reason": error_msg
+                })
+                print(f"Skipped row {idx + 1}: {error_msg}")
+                continue
+            
+            # Validate and normalize email
+            validated_email = None
+            try:
+                validation = validate_email(email_value.strip())
+                validated_email = validation.email
+                print(f"Email validated: '{email_value}' -> '{validated_email}'")
+            except EmailNotValidError as e:
+                skipped += 1
+                error_msg = f"Invalid email format: {str(e)}"
+                errors.append({
+                    "row": idx + 1,
+                    "email": email_value,
+                    "reason": error_msg
+                })
+                print(f"Skipped row {idx + 1}: {error_msg}")
+                continue
+            
+            # Check for duplicate email
+            existing_lead = await db.leads.find_one({
+                "user_id": user_id,
+                "email": validated_email
+            })
+            
+            if existing_lead:
+                skipped += 1
+                error_msg = "Duplicate email - lead already exists"
+                errors.append({
+                    "row": idx + 1,
+                    "email": validated_email,
+                    "reason": error_msg
+                })
+                print(f"Skipped row {idx + 1}: {error_msg}")
+                continue
+            
+            # Normalize phone numbers
+            normalized_phone = normalize_phone(phone_value)
+            if not normalized_phone:
+                skipped += 1
+                error_msg = f"Invalid phone format: {phone_value}"
+                errors.append({
+                    "row": idx + 1,
+                    "phone": phone_value,
+                    "reason": error_msg
+                })
+                print(f"Skipped row {idx + 1}: {error_msg}")
+                continue
+            
+            normalized_work_phone = normalize_phone(cleaned_row.get('work_phone'))
+            normalized_home_phone = normalize_phone(cleaned_row.get('home_phone'))
+            normalized_spouse_phone = normalize_phone(cleaned_row.get('spouse_mobile_phone'))
+            
+            print(f"Phone normalized: '{phone_value}' -> '{normalized_phone}'")
+            
+            # Build full name
+            first_name = cleaned_row.get('first_name') or cleaned_row.get('First Name')
+            last_name = cleaned_row.get('last_name') or cleaned_row.get('Last Name')
+            full_name = cleaned_row.get('name') or " ".join([v for v in [first_name, last_name] if v]).strip() or "New Lead"
+            
+            # Parse integers safely
+            def safe_int(value):
+                if value and str(value).strip():
+                    try:
+                        return int(str(value).replace(',', '').replace('$', '').strip())
+                    except ValueError:
+                        return None
+                return None
+            
+            price_min = safe_int(cleaned_row.get('price_min'))
+            price_max = safe_int(cleaned_row.get('price_max'))
+            
+            # Create lead with all comprehensive fields
+            lead = Lead(
+                user_id=user_id,
+                # Basic fields
+                name=full_name,
+                first_name=first_name,
+                last_name=last_name,
+                email=validated_email,
+                phone=normalized_phone,
+                lead_description=cleaned_row.get('lead_description'),
+                
+                # Additional Contact Information
+                work_phone=normalized_work_phone,
+                home_phone=normalized_home_phone,
+                email_2=cleaned_row.get('email_2'),
+                
+                # Spouse Information
+                spouse_name=cleaned_row.get('spouse_name'),
+                spouse_first_name=cleaned_row.get('spouse_first_name'),
+                spouse_last_name=cleaned_row.get('spouse_last_name'),
+                spouse_email=cleaned_row.get('spouse_email'),
+                spouse_mobile_phone=normalized_spouse_phone,
+                spouse_birthday=cleaned_row.get('spouse_birthday'),
+                
+                # Pipeline and Status
+                pipeline=cleaned_row.get('pipeline'),
+                status=cleaned_row.get('status') or 'Open',
+                ref_source=cleaned_row.get('ref_source'),
+                lead_rating=cleaned_row.get('lead_rating'),
+                lead_source=cleaned_row.get('lead_source'),
+                lead_type=cleaned_row.get('lead_type'),
+                lead_type_2=cleaned_row.get('lead_type_2'),
+                
+                # Property Information
+                house_to_sell=cleaned_row.get('house_to_sell'),
+                buying_in=cleaned_row.get('buying_in'),
+                selling_in=cleaned_row.get('selling_in'),
+                owns_rents=cleaned_row.get('owns_rents'),
+                mortgage_type=cleaned_row.get('mortgage_type'),
+                
+                # Address Information
+                city=cleaned_row.get('city'),
+                zip_postal_code=cleaned_row.get('zip_postal_code'),
+                address=cleaned_row.get('address'),
+                
+                # Property Details
+                property_type=cleaned_row.get('property_type'),
+                property_condition=cleaned_row.get('property_condition'),
+                listing_status=cleaned_row.get('listing_status'),
+                bedrooms=cleaned_row.get('bedrooms'),
+                bathrooms=cleaned_row.get('bathrooms'),
+                basement=cleaned_row.get('basement'),
+                parking_type=cleaned_row.get('parking_type'),
+                
+                # Dates and Anniversaries
+                date_of_birth=cleaned_row.get('date_of_birth'),
+                house_anniversary=cleaned_row.get('house_anniversary'),
+                planning_to_sell_in=cleaned_row.get('planning_to_sell_in'),
+                
+                # Agent Assignments
+                main_agent=cleaned_row.get('main_agent'),
+                mort_agent=cleaned_row.get('mort_agent'),
+                list_agent=cleaned_row.get('list_agent'),
+                
+                # Compatibility fields
+                neighborhood=cleaned_row.get('neighborhood'),
+                price_min=price_min,
+                price_max=price_max,
+                priority=cleaned_row.get('priority') or 'medium',
+                notes=cleaned_row.get('notes') or cleaned_row.get('lead_description'),
+                stage=cleaned_row.get('stage') or 'New',
+                in_dashboard=True  # Default to showing in dashboard
+            )
+            
+            # Insert lead
+            await db.leads.insert_one(lead.model_dump(exclude_none=True))
+            inserted += 1
+            inserted_docs.append(lead)
+            print(f"Successfully inserted lead {idx + 1}: {full_name}")
+            
+        except DuplicateKeyError:
+            skipped += 1
+            error_msg = "Duplicate email for this user"
+            errors.append({
+                "row": idx + 1,
+                "email": email_value,
+                "reason": error_msg
+            })
+            print(f"Skipped row {idx + 1}: {error_msg}")
+        except Exception as e:
+            skipped += 1
+            error_msg = f"Error processing row: {str(e)}"
+            errors.append({
+                "row": idx + 1,
+                "reason": error_msg
+            })
+            print(f"Error processing row {idx + 1}: {error_msg}")
+            import traceback
+            traceback.print_exc()
+    
+    print(f"CSV import completed: {inserted} inserted, {skipped} skipped")
+    return ImportResult(
+        inserted=inserted,
+        skipped=skipped,
+        errors=errors,
+        inserted_leads=inserted_docs
+    )
+
     print(f"Import completed: {inserted} inserted, {skipped} skipped")
     return ImportResult(inserted=inserted, skipped=skipped, errors=errors, inserted_leads=inserted_docs)
 
