@@ -2,6 +2,7 @@ import React, { Fragment, useMemo, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
+import { importLeads as defaultImportLeads } from "../api";
 
 const TARGET_FIELDS = [
   // Lead Data tab
