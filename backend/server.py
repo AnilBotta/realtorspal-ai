@@ -2054,7 +2054,7 @@ async def import_leads(payload: ImportPayload):
             if item.email and item.email.strip():
                 try:
                     # Use email-validator for more lenient validation
-                    validation = validate_email(item.email.strip())
+                    validation = validate_email(item.email.strip(), check_deliverability=False)
                     validated_email = validation.email
                     print(f"Email validated: '{item.email}' -> '{validated_email}'")
                 except EmailNotValidError as e:
