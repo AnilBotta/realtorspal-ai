@@ -166,6 +166,7 @@ async def delete_secret(user_id: str, secret_key: str) -> bool:
     Returns:
         True if successful, False otherwise
     """
+    _ensure_connection()
     try:
         result = await secrets_collection.update_one(
             {"user_id": user_id},
