@@ -211,6 +211,7 @@ async def has_required_sendgrid_secrets(user_id: str) -> tuple[bool, list]:
     Returns:
         Tuple of (all_present: bool, missing_secrets: list)
     """
+    _ensure_connection()
     required_secrets = [
         'sendgrid_api_key',
         'sender_email'
