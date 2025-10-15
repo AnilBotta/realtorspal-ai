@@ -243,6 +243,7 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
       <FormField label="Email" name="email" type="email" formData={formData} handleInputChange={handleInputChange} />
       <FormField label="Work Phone" name="work_phone" type="tel" formData={formData} handleInputChange={handleInputChange} />
       <FormField label="Home Phone" name="home_phone" type="tel" formData={formData} handleInputChange={handleInputChange} />
+      <FormField label="Date of Birth" name="date_of_birth" type="date" formData={formData} handleInputChange={handleInputChange} />
       <FormField label="Email 2" name="email_2" type="email" formData={formData} handleInputChange={handleInputChange} />
       <div className="md:col-span-2">
         <FormField label="Lead Description" name="lead_description" type="textarea" formData={formData} handleInputChange={handleInputChange} />
