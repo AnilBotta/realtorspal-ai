@@ -1252,6 +1252,8 @@ export default function Leads({ user }) {
         open={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImported={handleImportComplete}
+        onImportApi={importLeads}
+        userId={user?.id}
       />
 
       <LeadDrawer
