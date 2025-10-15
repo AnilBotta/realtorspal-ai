@@ -65,8 +65,12 @@ async def get_api_secret(key_name: str) -> str:
         return _API_KEYS_CACHE[key_name]
     
     try:
-        mongo_url = os.getenv("MONGO_URL", "mongodb://127.0.0.1:27017")
-        db_name = os.getenv("DB_NAME", "realtorspal")
+        mongo_url = os.getenv("MONGO_URL")
+        if not mongo_url:
+            raise ValueError("MONGO_URL environment variable is required")
+        db_name = os.getenv("DB_NAME")
+        if not db_name:
+            raise ValueError("DB_NAME environment variable is required")
         client = AsyncIOMotorClient(mongo_url)
         db = client[db_name]
         
@@ -730,8 +734,12 @@ async def save_partial_lead(lead_data: Dict[str, Any]) -> str:
         import uuid
         from datetime import datetime
         
-        mongo_url = os.getenv("MONGO_URL", "mongodb://127.0.0.1:27017")
-        db_name = os.getenv("DB_NAME", "realtorspal")
+        mongo_url = os.getenv("MONGO_URL")
+        if not mongo_url:
+            raise ValueError("MONGO_URL environment variable is required")
+        db_name = os.getenv("DB_NAME")
+        if not db_name:
+            raise ValueError("DB_NAME environment variable is required")
         client = AsyncIOMotorClient(mongo_url)
         db = client[db_name]
         
