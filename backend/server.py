@@ -179,6 +179,8 @@ class Lead(BaseModel):
     parking_type: Optional[str] = None
     
     # Dates and Anniversaries  
+    date_of_birth: Optional[str] = None
+    home_anniversary: Optional[str] = None
     house_anniversary: Optional[str] = None
     planning_to_sell_in: Optional[str] = None
     
@@ -263,6 +265,8 @@ class CreateLeadRequest(BaseModel):
     parking_type: Optional[str] = None
     
     # Dates and Anniversaries  
+    date_of_birth: Optional[str] = None
+    home_anniversary: Optional[str] = None
     house_anniversary: Optional[str] = None
     planning_to_sell_in: Optional[str] = None
     
@@ -348,6 +352,8 @@ class UpdateLeadRequest(BaseModel):
     parking_type: Optional[str] = None
     
     # Dates and Anniversaries  
+    date_of_birth: Optional[str] = None
+    home_anniversary: Optional[str] = None
     house_anniversary: Optional[str] = None
     planning_to_sell_in: Optional[str] = None
     
@@ -5126,6 +5132,8 @@ class ConvertPartialLeadRequest(BaseModel):
     parking_type: Optional[str] = None
     
     # Dates and Anniversaries  
+    date_of_birth: Optional[str] = None
+    home_anniversary: Optional[str] = None
     house_anniversary: Optional[str] = None
     planning_to_sell_in: Optional[str] = None
     
