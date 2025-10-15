@@ -2236,7 +2236,7 @@ async def import_leads_csv(
             # Validate and normalize email
             validated_email = None
             try:
-                validation = validate_email(email_value.strip())
+                validation = validate_email(email_value.strip(), check_deliverability=False)
                 validated_email = validation.email
                 print(f"Email validated: '{email_value}' -> '{validated_email}'")
             except EmailNotValidError as e:
