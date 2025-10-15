@@ -167,6 +167,18 @@ export default function LeadDrawer({ open, lead, onClose, onSave, onDelete }) {
                         </div>
                       </div>
 
+                      {/* Dates & Anniversaries */}
+                      {(lead.date_of_birth || lead.home_anniversary || lead.house_anniversary) && (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h3 className="font-medium text-gray-900 mb-3">Important Dates</h3>
+                          <div className="space-y-2 text-sm">
+                            {lead.date_of_birth && <div><span className="font-medium">Date of Birth:</span> {lead.date_of_birth}</div>}
+                            {lead.home_anniversary && <div><span className="font-medium">Home Anniversary:</span> {lead.home_anniversary}</div>}
+                            {lead.house_anniversary && <div><span className="font-medium">House Anniversary:</span> {lead.house_anniversary}</div>}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Spouse Information */}
                       {(lead.spouse_first_name || lead.spouse_last_name || lead.spouse_email) && (
                         <div className="bg-gray-50 rounded-lg p-4">
