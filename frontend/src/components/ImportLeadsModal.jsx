@@ -287,10 +287,14 @@ export default function ImportLeadsModal({ open, onClose, onImported, onImportAp
       const res = await importFunction(payload);
       console.log('Import API response:', res);
       
-      setResult(res);
-      if (res?.inserted_leads?.length) {
-        console.log('Calling onImported with', res.inserted_leads.length, 'leads');
-        onImported(res.inserted_leads);
+      // Extract data from axios response wrapper
+      const resultData = res.data || res;
+      console.log('Extracted result data:', resultData);
+      
+      setResult(resultData);
+      if (resultData?.inserted_leads?.length) {
+        console.log('Calling onImported with', resultData.inserted_leads.length, 'leads');
+        onImported(resultData.inserted_leads);
       } else {
         console.log('No inserted_leads in response or empty array');
       }
