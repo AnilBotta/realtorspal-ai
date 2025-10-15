@@ -4,17 +4,62 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 
 const TARGET_FIELDS = [
+  // Lead Data tab
   { key: "first_name", label: "First Name" },
   { key: "last_name", label: "Last Name" },
+  { key: "phone", label: "Phone" },
   { key: "email", label: "Email" },
-  { key: "phone", label: "Phone (E.164)" },
+  { key: "work_phone", label: "Work Phone" },
+  { key: "home_phone", label: "Home Phone" },
+  { key: "date_of_birth", label: "Date of Birth" },
+  { key: "email_2", label: "Email 2" },
+  { key: "lead_description", label: "Lead Description" },
+  { key: "pipeline", label: "Pipeline" },
+  { key: "status", label: "Status" },
   { key: "stage", label: "Stage" },
+  { key: "priority", label: "Priority" },
+  { key: "lead_rating", label: "Lead Rating" },
+  { key: "address", label: "Address" },
+  { key: "city", label: "City" },
+  { key: "zip_postal_code", label: "Zip/Postal Code" },
+  { key: "neighborhood", label: "Neighborhood" },
+  
+  // More Details tab
+  { key: "lead_source", label: "Lead Source" },
+  { key: "lead_type", label: "Lead Type" },
+  { key: "source_tags", label: "Tags" },
+  
+  // Buyer Info tab
   { key: "property_type", label: "Property Type" },
-  { key: "neighborhood", label: "Location" },
+  { key: "buying_in", label: "Buying In" },
+  { key: "budget", label: "Budget" },
   { key: "price_min", label: "Price Min" },
   { key: "price_max", label: "Price Max" },
-  { key: "priority", label: "Priority" },
-  { key: "source_tags", label: "Tags (comma)" },
+  { key: "min_bedrooms", label: "Min Bedrooms" },
+  { key: "min_bathrooms", label: "Min Bathrooms" },
+  { key: "yard", label: "Yard" },
+  { key: "garage", label: "Garage" },
+  { key: "pool", label: "Pool" },
+  { key: "spouse_first_name", label: "Spouse First Name" },
+  { key: "spouse_last_name", label: "Spouse Last Name" },
+  
+  // Seller Info tab
+  { key: "house_to_sell", label: "House to Sell" },
+  { key: "selling_in", label: "Selling In" },
+  { key: "house_type", label: "House Type" },
+  { key: "expected_price", label: "Expected Price" },
+  { key: "bedrooms", label: "Bedrooms" },
+  { key: "bathrooms", label: "Bathrooms" },
+  { key: "basement", label: "Basement" },
+  { key: "parking_type", label: "Parking Type" },
+  { key: "property_condition", label: "Property Condition" },
+  { key: "listing_status", label: "Listing Status" },
+  { key: "house_anniversary", label: "House Anniversary" },
+  { key: "planning_to_sell_in", label: "Planning to Sell In" },
+  { key: "owns_rents", label: "Owns/Rents" },
+  { key: "mortgage_type", label: "Mortgage Type" },
+  
+  // Additional
   { key: "notes", label: "Notes" },
 ];
 
