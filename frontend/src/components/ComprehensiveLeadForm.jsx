@@ -133,7 +133,8 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
     neighborhood: '',
     budget: '',
     price_min: '',
-    price_max: ''
+    price_max: '',
+    source_tags: []
   });
 
   // Populate form if editing existing lead
