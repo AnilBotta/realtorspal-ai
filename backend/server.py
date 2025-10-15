@@ -109,9 +109,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mongo client
+# Mongo client - DB_NAME must be provided by environment
+DB_NAME = os.environ.get('DB_NAME')
+if not DB_NAME:
+    raise ValueError("DB_NAME environment variable is required but not set")
+
 client = AsyncIOMotorClient(MONGO_URL)
-db = client[os.environ.get('DB_NAME', 'realtorspal')]
+db = client[DB_NAME]
 
 E164_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 
