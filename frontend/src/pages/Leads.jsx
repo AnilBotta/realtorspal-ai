@@ -122,11 +122,12 @@ export default function Leads({ user }) {
       'notes', 'ref_source', 'lead_type_2'
     ];
     
-    // Create sample data row with examples
+    // Create sample data row with examples (use unique timestamp in email to avoid duplicates)
+    const timestamp = Date.now();
     const sampleRow = [
       // Lead Data
-      'John', 'Doe', '4165551234', 'john.doe@example.com', '4169876543', '4161112222',
-      '05/15/1990', 'johndoe2@example.com', 'Interested in family home', 'Sales', 'Open', 'New',
+      'John', 'Doe', '4165551234', `john.doe.${timestamp}@example.com`, '4169876543', '4161112222',
+      '05/15/1990', `johndoe2.${timestamp}@example.com`, 'Interested in family home', 'Sales', 'Open', 'New',
       'high', 'Hot', '123 Main Street', 'Toronto', 'M5V 3A8', 'Downtown',
       
       // More Details
@@ -135,7 +136,7 @@ export default function Leads({ user }) {
       // Buyer Info
       'Detached', '3-6 months', '500000', '700000',
       '3', '2',
-      'Jane', 'Doe', 'jane.doe@example.com', '4165559999',
+      'Jane', 'Doe', `jane.doe.${timestamp}@example.com`, '4165559999',
       
       // Seller Info
       'Yes', '3-6 months', '01/15/2020',
