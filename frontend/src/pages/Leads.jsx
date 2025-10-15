@@ -92,6 +92,75 @@ export default function Leads({ user }) {
     };
   }, []);
 
+  const downloadSampleCSV = () => {
+    // Create CSV with all lead fields
+    const headers = [
+      // Lead Data tab
+      'First Name', 'Last Name', 'Phone', 'Email', 'Work Phone', 'Home Phone', 
+      'Date of Birth', 'Email 2', 'Lead Description', 'Pipeline', 'Status', 'Stage', 
+      'Priority', 'Lead Rating', 'Address', 'City', 'Zip/Postal Code', 'Neighborhood',
+      
+      // More Details tab
+      'Lead Source', 'Lead Type', 'Tags',
+      
+      // Buyer Info tab
+      'Property Type', 'Buying In', 'Budget', 'Price Min', 'Price Max',
+      'Min Bedrooms', 'Min Bathrooms', 'Yard', 'Garage', 'Pool',
+      'Spouse First Name', 'Spouse Last Name',
+      
+      // Seller Info tab
+      'House to Sell', 'Selling In', 'House Type', 'Expected Price',
+      'Bedrooms', 'Bathrooms', 'Basement', 'Parking Type',
+      'Property Condition', 'Listing Status', 'House Anniversary',
+      'Planning to Sell In', 'Owns/Rents', 'Mortgage Type',
+      
+      // Additional fields
+      'Notes'
+    ];
+    
+    // Create sample data row with examples
+    const sampleRow = [
+      // Lead Data
+      'John', 'Doe', '555-123-4567', 'john.doe@example.com', '555-987-6543', '555-111-2222',
+      '05/15/1990', 'johndoe2@example.com', 'Interested in family home', 'Sales', 'Open', 'New',
+      'high', '4', '123 Main Street', 'Toronto', 'M5V 3A8', 'Downtown',
+      
+      // More Details
+      'Website', 'Buyer', 'Hot Lead, VIP',
+      
+      // Buyer Info
+      'Detached', '3-6 months', '500000-700000', '500000', '700000',
+      '3', '2', 'Yes', 'Yes', 'No',
+      'Jane', 'Doe',
+      
+      // Seller Info
+      'Yes', '3-6 months', 'Detached', '650000',
+      '4', '3', 'Finished', 'Garage',
+      'Excellent', 'Active', '01/15/2020',
+      '3-6 months', 'Owns', 'Fixed',
+      
+      // Additional
+      'Looking for a family-friendly neighborhood with good schools.'
+    ];
+    
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      sampleRow.map(cell => `"${cell}"`).join(',')
+    ].join('\n');
+    
+    // Create download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'lead_import_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const loadLeads = async () => {
     if (!user) return;
     try {
