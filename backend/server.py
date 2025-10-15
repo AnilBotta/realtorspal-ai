@@ -1948,6 +1948,8 @@ async def create_lead(payload: CreateLeadRequest):
         parking_type=payload.parking_type,
         
         # Dates and Anniversaries
+        date_of_birth=payload.date_of_birth,
+        home_anniversary=payload.home_anniversary,
         house_anniversary=payload.house_anniversary,
         planning_to_sell_in=payload.planning_to_sell_in,
         
