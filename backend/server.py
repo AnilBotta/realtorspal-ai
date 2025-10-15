@@ -5578,7 +5578,7 @@ async def convert_partial_lead(lead_id: str, convert_data: ConvertPartialLeadReq
         validated_email = None
         if convert_data.email and convert_data.email.strip():
             try:
-                validation = validate_email(convert_data.email.strip())
+                validation = validate_email(convert_data.email.strip(), check_deliverability=False)
                 validated_email = validation.email
             except EmailNotValidError:
                 validated_email = None
