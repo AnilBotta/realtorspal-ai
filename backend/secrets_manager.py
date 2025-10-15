@@ -4,12 +4,20 @@ All secrets are stored in MongoDB 'secrets' collection with encryption at rest
 NEVER expose secrets to the client
 """
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import Optional, Dict
 
+# Load environment variables from .env file (for development)
+# In production (Kubernetes), env vars are injected directly
+env_path = Path(__file__).parent / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+
 # MongoDB connection
 # In production (Kubernetes), MONGO_URL and DB_NAME are injected as secrets
-# In development, they must be in .env file
+# In development, they are loaded from .env file
 MONGO_URL = os.environ.get('MONGO_URL')
 DB_NAME = os.environ.get('DB_NAME')
 
