@@ -66,11 +66,17 @@ async def get_api_secret(key_name: str) -> str:
     
     try:
         mongo_url = os.getenv("MONGO_URL")
-        if not mongo_url:
-            raise ValueError("MONGO_URL environment variable is required")
         db_name = os.getenv("DB_NAME")
+        
+        if not mongo_url:
+            import warnings
+            warnings.warn("MONGO_URL not set, using default localhost")
+            mongo_url = "mongodb://127.0.0.1:27017"
+        
         if not db_name:
-            raise ValueError("DB_NAME environment variable is required")
+            import warnings
+            warnings.warn("DB_NAME not set, using default 'realtorspal'")
+            db_name = "realtorspal"
         client = AsyncIOMotorClient(mongo_url)
         db = client[db_name]
         
@@ -735,11 +741,17 @@ async def save_partial_lead(lead_data: Dict[str, Any]) -> str:
         from datetime import datetime
         
         mongo_url = os.getenv("MONGO_URL")
-        if not mongo_url:
-            raise ValueError("MONGO_URL environment variable is required")
         db_name = os.getenv("DB_NAME")
+        
+        if not mongo_url:
+            import warnings
+            warnings.warn("MONGO_URL not set, using default localhost")
+            mongo_url = "mongodb://127.0.0.1:27017"
+        
         if not db_name:
-            raise ValueError("DB_NAME environment variable is required")
+            import warnings
+            warnings.warn("DB_NAME not set, using default 'realtorspal'")
+            db_name = "realtorspal"
         client = AsyncIOMotorClient(mongo_url)
         db = client[db_name]
         
