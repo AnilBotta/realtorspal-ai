@@ -180,7 +180,6 @@ class Lead(BaseModel):
     
     # Dates and Anniversaries  
     date_of_birth: Optional[str] = None
- 
     house_anniversary: Optional[str] = None
     planning_to_sell_in: Optional[str] = None
     
@@ -266,7 +265,6 @@ class CreateLeadRequest(BaseModel):
     
     # Dates and Anniversaries  
     date_of_birth: Optional[str] = None
- 
     house_anniversary: Optional[str] = None
     planning_to_sell_in: Optional[str] = None
     
@@ -353,7 +351,6 @@ class UpdateLeadRequest(BaseModel):
     
     # Dates and Anniversaries  
     date_of_birth: Optional[str] = None
- 
     house_anniversary: Optional[str] = None
     planning_to_sell_in: Optional[str] = None
     
@@ -5134,7 +5131,6 @@ class ConvertPartialLeadRequest(BaseModel):
     
     # Dates and Anniversaries  
     date_of_birth: Optional[str] = None
- 
     house_anniversary: Optional[str] = None
     planning_to_sell_in: Optional[str] = None
     
