@@ -113,6 +113,7 @@ export default function LeadDrawer({ open, lead, onClose, onSave, onDelete }) {
                           <div><span className="font-medium">Phone:</span> {lead.phone || 'Not provided'}</div>
                           <div><span className="font-medium">Work Phone:</span> {lead.work_phone || 'Not provided'}</div>
                           <div><span className="font-medium">Home Phone:</span> {lead.home_phone || 'Not provided'}</div>
+                          {lead.date_of_birth && <div><span className="font-medium">Date of Birth:</span> {lead.date_of_birth}</div>}
                         </div>
                       </div>
 
