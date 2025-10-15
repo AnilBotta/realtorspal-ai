@@ -43,12 +43,20 @@ from langchain_openai import ChatOpenAI
 # -------------------------
 # Database Setup
 # -------------------------
+# In production (Kubernetes), these are injected as secrets
+# In development, they should be in .env file
 MONGO_URL = os.environ.get("MONGO_URL")
 DB_NAME = os.environ.get("DB_NAME")
+
 if not MONGO_URL:
-    raise RuntimeError("MONGO_URL environment variable is required but not set")
+    import warnings
+    warnings.warn("MONGO_URL not set, using default localhost. This should not happen in production!")
+    MONGO_URL = "mongodb://127.0.0.1:27017"
+
 if not DB_NAME:
-    raise RuntimeError("DB_NAME environment variable is required but not set")
+    import warnings
+    warnings.warn("DB_NAME not set, using default 'realtorspal'. This should not happen in production!")
+    DB_NAME = "realtorspal"
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
