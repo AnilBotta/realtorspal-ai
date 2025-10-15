@@ -69,14 +69,16 @@ async def get_api_secret(key_name: str) -> str:
         db_name = os.getenv("DB_NAME")
         
         if not mongo_url:
-            import warnings
-            warnings.warn("MONGO_URL not set, using default localhost")
-            mongo_url = "mongodb://127.0.0.1:27017"
+            raise RuntimeError(
+                "MONGO_URL environment variable is required. "
+                "Set it in backend/.env file or via Kubernetes secrets."
+            )
         
         if not db_name:
-            import warnings
-            warnings.warn("DB_NAME not set, using default 'realtorspal'")
-            db_name = "realtorspal"
+            raise RuntimeError(
+                "DB_NAME environment variable is required. "
+                "Set it in backend/.env file or via Kubernetes secrets."
+            )
         client = AsyncIOMotorClient(mongo_url)
         db = client[db_name]
         
@@ -744,14 +746,16 @@ async def save_partial_lead(lead_data: Dict[str, Any]) -> str:
         db_name = os.getenv("DB_NAME")
         
         if not mongo_url:
-            import warnings
-            warnings.warn("MONGO_URL not set, using default localhost")
-            mongo_url = "mongodb://127.0.0.1:27017"
+            raise RuntimeError(
+                "MONGO_URL environment variable is required. "
+                "Set it in backend/.env file or via Kubernetes secrets."
+            )
         
         if not db_name:
-            import warnings
-            warnings.warn("DB_NAME not set, using default 'realtorspal'")
-            db_name = "realtorspal"
+            raise RuntimeError(
+                "DB_NAME environment variable is required. "
+                "Set it in backend/.env file or via Kubernetes secrets."
+            )
         client = AsyncIOMotorClient(mongo_url)
         db = client[db_name]
         
