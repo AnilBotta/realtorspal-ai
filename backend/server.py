@@ -658,7 +658,7 @@ async def update_lead_external(lead_id: str, lead_data: UpdateLeadExternalReques
             if field == "email" and value:
                 # Validate email
                 try:
-                    validation = validate_email(value.strip())
+                    validation = validate_email(value.strip(), check_deliverability=False)
                     update_data[field] = validation.email
                 except EmailNotValidError:
                     pass  # Skip invalid email
