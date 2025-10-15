@@ -9,21 +9,24 @@ from typing import Optional, Dict
 
 # MongoDB connection
 # In production (Kubernetes), MONGO_URL and DB_NAME are injected as secrets
-# In development, they should be in .env file
+# In development, they must be in .env file
 MONGO_URL = os.environ.get('MONGO_URL')
 DB_NAME = os.environ.get('DB_NAME')
 
+# Validate required environment variables
 if not MONGO_URL:
-    # For development/sandbox only
-    import warnings
-    warnings.warn("MONGO_URL not set, using default localhost. This should not happen in production!")
-    MONGO_URL = 'mongodb://127.0.0.1:27017'
+    raise RuntimeError(
+        "MONGO_URL environment variable is required. "
+        "In production, this is injected by Kubernetes secrets. "
+        "In development, set it in backend/.env file."
+    )
 
 if not DB_NAME:
-    # For development/sandbox only
-    import warnings
-    warnings.warn("DB_NAME not set, using default 'realtorspal'. This should not happen in production!")
-    DB_NAME = 'realtorspal'
+    raise RuntimeError(
+        "DB_NAME environment variable is required. "
+        "In production, this is injected by Kubernetes secrets. "
+        "In development, set it in backend/.env file."
+    )
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
