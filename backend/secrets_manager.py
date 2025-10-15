@@ -7,12 +7,23 @@ import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import Optional, Dict
 
-# MongoDB connection - must be provided by environment
+# MongoDB connection
+# In production (Kubernetes), MONGO_URL and DB_NAME are injected as secrets
+# In development, they should be in .env file
 MONGO_URL = os.environ.get('MONGO_URL')
-if not MONGO_URL:
-    raise ValueError("MONGO_URL environment variable is required but not set")
+DB_NAME = os.environ.get('DB_NAME')
 
-DB_NAME = os.environ.get('DB_NAME', 'realtorspal')
+if not MONGO_URL:
+    # For development/sandbox only
+    import warnings
+    warnings.warn("MONGO_URL not set, using default localhost. This should not happen in production!")
+    MONGO_URL = 'mongodb://127.0.0.1:27017'
+
+if not DB_NAME:
+    # For development/sandbox only
+    import warnings
+    warnings.warn("DB_NAME not set, using default 'realtorspal'. This should not happen in production!")
+    DB_NAME = 'realtorspal'
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
