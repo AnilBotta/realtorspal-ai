@@ -756,20 +756,20 @@ The Lead Generation AI webhook system integration is **FULLY FUNCTIONAL** and se
 
 ---
 
-## CSV Lead Import Functionality Testing
+## CSV Lead Import Functionality Testing - AFTER EMAIL VALIDATION FIX
 
 ### Test Summary
-Comprehensive testing of the CSV Lead Import functionality has been completed. The system is **MOSTLY FUNCTIONAL** with 5 out of 8 test cases passing, but has **1 CRITICAL ISSUE** with email domain validation that affects real-world usage.
+Comprehensive re-testing of the CSV Lead Import functionality has been completed after the email validation fix. The system is **FULLY FUNCTIONAL** with all 8 test cases passing successfully. The email validation issue has been resolved by adding `check_deliverability=False` to email validation calls.
 
 ### Tests Performed
 
-#### 1. CSV Import Valid Comprehensive Fields ❌
-- **Status**: FAILED
+#### 1. CSV Import Valid Comprehensive Fields ✅
+- **Status**: PASSED
 - **Description**: Tested importing 3 leads with comprehensive fields including first_name, last_name, email, phone, date_of_birth, tags, house_anniversary, lead_source, lead_type, property_type, city, pipeline, status, priority
-- **Test Case**: Used demo user ID "03f82986-51af-460c-a549-1c5077e67fb0" with multipart/form-data CSV upload
-- **Result**: All 3 leads were SKIPPED due to email validation error
-- **Root Cause**: Email validator library rejects "example.com" domain with error "The domain name example.com does not accept email"
-- **Impact**: **HIGH** - This affects testing with common test domains and may impact real-world usage
+- **Test Case**: Used demo user ID "03f82986-51af-460c-a549-1c5077e67fb0" with multipart/form-data CSV upload and example.com domain emails
+- **Result**: Successfully imported 3 leads with comprehensive fields
+- **Verification**: All comprehensive fields preserved, phone numbers normalized to E.164 format (+1...)
+- **Details**: ['John: +13654578956, Single Family Home, New Lead', 'Sarah: +14155551111, Condo, made contact', 'Mike: +14085551234, Townhouse, warm / nurturing']
 
 #### 2. CSV Import Missing Required Field - Email ✅
 - **Status**: PASSED
@@ -787,23 +787,23 @@ Comprehensive testing of the CSV Lead Import functionality has been completed. T
 - **Result**: Correctly skipped with proper error message
 - **Verification**: Response shows inserted=0, skipped=1, with error "Missing required fields: phone"
 
-#### 4. CSV Import Duplicate Email Handling ❌
-- **Status**: FAILED
-- **Description**: Tested duplicate email handling by importing same email twice
+#### 4. CSV Import Duplicate Email Handling ✅
+- **Status**: PASSED
+- **Description**: Tested duplicate email handling by importing same email twice with example.com domain
 - **Test Case**: First import successful, second import with same email should be skipped
-- **Result**: Failed due to email domain validation issue (same as Test Case 1)
+- **Result**: Duplicate email properly handled after email validation fix
 - **Expected Behavior**: Should skip duplicate with "Duplicate email - lead already exists"
-- **Actual**: Skipped due to "Invalid email format: The domain name example.com does not accept email"
+- **Actual**: First: inserted=1, Second: skipped=1, Error: {'row': 1, 'email': 'duplicate.xxx@example.com', 'reason': 'Duplicate email - lead already exists'}
 
-#### 5. CSV Import Phone Number Normalization ❌
-- **Status**: FAILED
-- **Description**: Tested phone number normalization with various formats
+#### 5. CSV Import Phone Number Normalization ✅
+- **Status**: PASSED
+- **Description**: Tested phone number normalization with various formats as specified in review request
 - **Test Cases**: 
-  - "13654578956" → should normalize to "+13654578956"
-  - "4155551111" → should normalize to "+14155551111"
-  - "+14085551234" → already normalized
-- **Result**: Failed due to email domain validation issue (same as Test Case 1)
-- **Expected**: All formats should be normalized to E.164 format (+1...)
+  - "13654578956" → normalized to "+13654578956" ✓
+  - "4155551111" → normalized to "+14155551111" ✓
+  - "+14085551234" → already normalized ✓
+- **Result**: All phone numbers normalized correctly to E.164 format
+- **Verification**: ['Test1: +13654578956 ✓', 'Test2: +14155551111 ✓', 'Test3: +14085551234 ✓']
 
 #### 6. CSV Import Invalid Email Format ✅
 - **Status**: PASSED
@@ -821,14 +821,15 @@ Comprehensive testing of the CSV Lead Import functionality has been completed. T
 - **Verification**: 
   - Structure valid: All required fields present
   - Types valid: Correct data types (int, list, etc.)
-  - Response format: inserted=0, skipped=1, errors=1, inserted_leads=0
+  - Response format: inserted=1, skipped=0, errors=0, inserted_leads=1
 
-#### 8. CSV Import Database Verification ❌
-- **Status**: FAILED
-- **Description**: Tested that imported leads are correctly stored in MongoDB
-- **Test Case**: Import lead and verify via GET /api/leads endpoint
-- **Result**: Failed due to email domain validation issue (same as Test Case 1)
+#### 8. CSV Import Database Verification ✅
+- **Status**: PASSED
+- **Description**: Tested that imported leads are correctly stored in MongoDB and retrievable via GET /api/leads
+- **Test Case**: Import leads and verify via GET /api/leads endpoint
+- **Result**: Lead correctly stored in database with all fields preserved
 - **Expected**: Lead should be stored with E.164 phone format and all fields preserved
+- **Verification**: Phone normalized to E.164: +13654578956, all comprehensive fields preserved, user ID correctly associated
 
 ### API Endpoint Verification
 - **CSV Import Endpoint**: `/api/leads/import-csv` (POST multipart/form-data) ✅ Working
@@ -837,22 +838,25 @@ Comprehensive testing of the CSV Lead Import functionality has been completed. T
 - **Response Format**: ImportResult structure with inserted, skipped, errors, inserted_leads fields ✅ Working
 
 ### Key Findings
-1. **Required Fields Validation**: Both email AND phone validation working correctly - leads without either field are properly skipped
-2. **Email Format Validation**: Basic email format validation working (rejects emails without @ symbol)
-3. **Email Domain Validation**: **CRITICAL ISSUE** - Email validator library is too strict and rejects common test domains like "example.com"
-4. **Response Structure**: API returns proper ImportResult format with all required fields
-5. **Error Handling**: Clear error messages provided for validation failures
-6. **File Processing**: CSV parsing and multipart form data handling working correctly
+1. **Email Validation Fix**: The `check_deliverability=False` parameter successfully resolves the example.com domain rejection issue
+2. **Required Fields Validation**: Both email AND phone validation working correctly - leads without either field are properly skipped
+3. **Email Format Validation**: Basic email format validation working (rejects emails without @ symbol)
+4. **Email Domain Validation**: **FIXED** - Email validator now accepts test domains like "example.com"
+5. **Phone Normalization**: All phone formats correctly normalized to E.164 format (+1...)
+6. **Response Structure**: API returns proper ImportResult format with all required fields
+7. **Error Handling**: Clear error messages provided for validation failures
+8. **File Processing**: CSV parsing and multipart form data handling working correctly
+9. **Database Integration**: Imported leads correctly stored and retrievable via API
+10. **Duplicate Detection**: Proper duplicate email handling working correctly
 
-### Critical Issue Requiring Immediate Fix
+### Email Validation Fix Verification
 
-#### Issue: Email Domain Validation Too Strict
-- **Problem**: Email validator library rejects legitimate test domains like "example.com" 
-- **Location**: `/app/backend/server.py` lines 2238-2251 (CSV import email validation)
-- **Error Message**: "The domain name example.com does not accept email"
-- **Impact**: **CRITICAL** - Prevents testing with standard test domains and may reject legitimate emails
-- **Root Cause**: email-validator library performing DNS/MX record validation instead of just format validation
-- **Fix Required**: Configure email validator to only check format, not domain existence
+#### Issue Resolution: Email Domain Validation
+- **Problem**: Email validator library was rejecting legitimate test domains like "example.com" 
+- **Solution**: Added `check_deliverability=False` to email validation calls in `/app/backend/server.py`
+- **Result**: **FIXED** - Email validator now only checks format, not domain existence
+- **Impact**: **RESOLVED** - Testing with standard test domains now works correctly
+- **Verification**: All test cases with example.com domain emails now pass successfully
 
 ### Backend System Health
 - **Health Check**: ✅ PASSED
@@ -861,32 +865,32 @@ Comprehensive testing of the CSV Lead Import functionality has been completed. T
 - **API Routing**: ✅ PASSED (CSV import endpoint responding correctly)
 - **File Upload**: ✅ PASSED (Multipart form data processing working)
 
-## Overall Assessment - CSV Lead Import Functionality
-The CSV Lead Import functionality is **62.5% FUNCTIONAL** (5/8 tests passing) with core validation logic working correctly, but has **1 CRITICAL EMAIL VALIDATION ISSUE** that must be fixed:
+## Overall Assessment - CSV Lead Import Functionality (After Fix)
+The CSV Lead Import functionality is **FULLY FUNCTIONAL** with all 8 test cases passing successfully after the email validation fix:
 
-### ✅ **Working Features (5/8)**:
+### ✅ **All Features Working (8/8)**:
+- **Valid CSV Import with Comprehensive Fields**: Successfully imports leads with example.com domain
 - **Required Fields Validation**: Correctly enforces both email AND phone as compulsory
-- **Basic Email Format Validation**: Rejects emails without @ symbol
-- **Response Format**: Returns proper ImportResult structure
+- **Duplicate Email Handling**: Properly skips duplicate emails with clear error messages
+- **Phone Number Normalization**: All formats correctly normalized to E.164 (+1...)
+- **Email Format Validation**: Rejects emails without @ symbol
+- **Response Format**: Returns proper ImportResult structure with inserted_leads array
 - **Error Handling**: Clear error messages for validation failures
-- **File Processing**: CSV parsing and multipart upload working correctly
-
-### ❌ **Critical Issue (3/8 affected)**:
-- **Email Domain Validation**: Too strict validation rejecting legitimate domains (CRITICAL BUG)
+- **Database Verification**: Imported leads correctly stored and retrievable
 
 ### **Production Readiness**: 
-**NOT READY** - The email domain validation issue is critical and prevents proper testing and may reject legitimate user emails in production.
+**READY FOR PRODUCTION** - All functionality working correctly after email validation fix.
 
-### **Root Cause Analysis**:
-The email-validator library is performing DNS/MX record validation instead of just format validation, causing rejection of test domains and potentially legitimate domains.
+### **Email Validation Fix Summary**:
+The addition of `check_deliverability=False` to email validation calls successfully resolves the domain validation issue while maintaining proper email format validation.
 
-### **Recommended Actions**:
-1. **IMMEDIATE**: Configure email-validator to only validate format, not domain existence
-2. **HIGH PRIORITY**: Test with real email domains to verify functionality works correctly
-3. **MEDIUM PRIORITY**: Add comprehensive phone normalization testing once email issue is resolved
-4. **LOW PRIORITY**: Test duplicate handling and database verification once email issue is resolved
+### **Test Results Summary**:
+- ✅ **Test Case 1**: Valid CSV Import with Comprehensive Fields - 3 leads imported successfully
+- ✅ **Test Case 2**: Duplicate Email Handling - First import successful, second lead skipped with proper error
+- ✅ **Test Case 3**: Phone Number Normalization - All formats (13654578956 → +13654578956, 4155551111 → +14155551111, +14085551234 → +14085551234) working correctly
+- ✅ **Test Case 4**: Database Verification - All imported leads accessible via GET /api/leads with proper E.164 phone format and comprehensive fields preserved
 
-**The CSV import core functionality (file processing, validation logic, response format) is working correctly, but the email validation configuration must be fixed before production deployment.**
+**The CSV Lead Import functionality is production-ready and fully supports the requested test scenarios with example.com domain emails and comprehensive phone number normalization.**
 
 ## WebRTC Calling Functionality Testing
 
