@@ -9,25 +9,14 @@ const api = axios.create({
   timeout: 10000, // 10 second timeout
 });
 
-// Create a fallback API instance for local backend
-const localApi = axios.create({
-  baseURL: 'http://localhost:8001/api',
-  timeout: 5000, // 5 second timeout
-});
-
-// Enhanced demo login with fallback
+// Demo login
 export const demoLogin = async () => {
   try {
-    console.log('Trying external backend:', API_BASE);
+    console.log('Connecting to backend:', API_BASE);
     return await api.get('/auth/demo');
   } catch (error) {
-    console.log('External backend failed, trying local backend:', error.message);
-    try {
-      return await localApi.get('/auth/demo');
-    } catch (localError) {
-      console.error('Both backends failed:', localError);
-      throw error; // Throw the original external error
-    }
+    console.error('Backend connection failed:', error.message);
+    throw error;
   }
 };
 
