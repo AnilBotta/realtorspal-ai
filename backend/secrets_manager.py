@@ -90,6 +90,7 @@ async def get_all_secrets(user_id: str) -> Dict[str, str]:
     Returns:
         Dictionary of all secrets (excluding _id and user_id)
     """
+    _ensure_connection()
     try:
         secret_doc = await secrets_collection.find_one({"user_id": user_id})
         if not secret_doc:
