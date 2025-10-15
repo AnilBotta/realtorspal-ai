@@ -1003,8 +1003,13 @@ async def generate_access_token(token_request: AccessTokenRequest):
                 identity=identity
             )
             
-            # Get base URL for TwiML endpoints
-            base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://realtor-workflow.preview.emergentagent.com')
+            # Get base URL for TwiML endpoints (must be set in environment)
+            base_url = os.environ.get('REACT_APP_BACKEND_URL')
+            if not base_url:
+                raise HTTPException(
+                    status_code=500, 
+                    detail="REACT_APP_BACKEND_URL environment variable is required for Twilio integration"
+                )
             
             # Create voice grant with TwiML Application SID
             voice_grant = VoiceGrant(
