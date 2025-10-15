@@ -44,9 +44,11 @@ from langchain_openai import ChatOpenAI
 # Database Setup
 # -------------------------
 MONGO_URL = os.environ.get("MONGO_URL")
-DB_NAME = os.environ.get("DB_NAME", "realtorspal")
+DB_NAME = os.environ.get("DB_NAME")
 if not MONGO_URL:
-    raise RuntimeError("MONGO_URL is not set")
+    raise RuntimeError("MONGO_URL environment variable is required but not set")
+if not DB_NAME:
+    raise RuntimeError("DB_NAME environment variable is required but not set")
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
