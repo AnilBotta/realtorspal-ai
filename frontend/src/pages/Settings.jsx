@@ -37,8 +37,8 @@ export default function Settings({ user }){
     facebook: { total: 0, last_24h: 0, last_activity: null, status: 'inactive' }
   });
 
-  // Generate webhook URLs
-  const baseUrl = process.env.REACT_APP_BACKEND_URL || 'https://realtor-workflow.preview.emergentagent.com';
+  // Generate webhook URLs using environment variable
+  const baseUrl = process.env.REACT_APP_BACKEND_URL;
   const facebookWebhookUrl = `${baseUrl}/api/webhooks/facebook-leads/${user?.id}`;
   const genericWebhookUrl = `${baseUrl}/api/webhooks/generic-leads/${user?.id}`;
 
