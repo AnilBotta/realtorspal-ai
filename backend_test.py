@@ -4833,6 +4833,16 @@ class RealtorsPalAPITester:
             self.test_import_leads_user_excel_format,  # New test for user's Excel format
             self.test_delete_all_import_workflow,  # NEW: Complete DELETE ALL → IMPORT workflow test
             
+            # CSV Import Tests (New - as requested in review)
+            self.test_csv_import_valid_comprehensive_fields,
+            self.test_csv_import_missing_email,
+            self.test_csv_import_missing_phone,
+            self.test_csv_import_duplicate_email_handling,
+            self.test_csv_import_phone_normalization,
+            self.test_csv_import_invalid_email_format,
+            self.test_csv_import_response_format_verification,
+            self.test_csv_import_database_verification,
+            
             # Partial Leads API tests (as requested in review)
             self.test_partial_leads_get_all,
             self.test_partial_leads_get_specific,
