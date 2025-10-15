@@ -2168,32 +2168,62 @@ async def import_leads_csv(
     user_id: str = Form(...)
 ):
     """
-    Import leads from CSV file with comprehensive field support
+    Import leads from CSV or Excel file with comprehensive field support
     
     Requirements:
     - Both email AND phone are compulsory
     - Maximum 1000 leads per import
     - Duplicates (same email) will be skipped
+    - Supports CSV (.csv) and Excel (.xlsx, .xls) formats
     """
-    print(f"CSV import request received for user {user_id}")
+    print(f"File import request received for user {user_id}")
     print(f"File: {file.filename}, Content-Type: {file.content_type}")
     
     # Check file type
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+    file_ext = file.filename.split('.')[-1].lower()
+    if file_ext not in ['csv', 'xlsx', 'xls']:
+        raise HTTPException(status_code=400, detail="Only CSV and Excel files are allowed (.csv, .xlsx, .xls)")
     
     # Read file content
     try:
         contents = await file.read()
-        csv_data = contents.decode('utf-8')
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error reading CSV file: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Error reading file: {str(e)}")
     
-    # Parse CSV
-    csv_reader = csv.DictReader(io.StringIO(csv_data))
-    rows = list(csv_reader)
+    # Parse file based on type
+    rows = []
+    if file_ext == 'csv':
+        try:
+            csv_data = contents.decode('utf-8')
+            csv_reader = csv.DictReader(io.StringIO(csv_data))
+            rows = list(csv_reader)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error parsing CSV file: {str(e)}")
+    else:  # Excel files
+        try:
+            # Load workbook from bytes
+            wb = load_workbook(filename=io.BytesIO(contents), read_only=True)
+            ws = wb.active
+            
+            # Get headers from first row
+            headers = []
+            for cell in ws[1]:
+                headers.append(str(cell.value) if cell.value else '')
+            
+            # Read data rows
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                row_dict = {}
+                for idx, value in enumerate(row):
+                    if idx < len(headers):
+                        # Convert to string and handle None values
+                        row_dict[headers[idx]] = str(value).strip() if value is not None else ''
+                rows.append(row_dict)
+            
+            wb.close()
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error parsing Excel file: {str(e)}")
     
-    print(f"CSV contains {len(rows)} rows")
+    print(f"File contains {len(rows)} rows")
     
     # Enforce 1000 lead limit
     if len(rows) > 1000:
