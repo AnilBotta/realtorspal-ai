@@ -125,6 +125,23 @@ export default function LeadDrawer({ open, lead, onClose, onSave, onDelete }) {
                           <div><span className="font-medium">Stage:</span> {lead.stage || 'New'}</div>
                           <div><span className="font-medium">Priority:</span> {lead.priority || 'medium'}</div>
                           <div><span className="font-medium">Lead Rating:</span> {lead.lead_rating || 'Not selected'}</div>
+                          <div><span className="font-medium">Lead Source:</span> {lead.lead_source || 'Not selected'}</div>
+                          <div><span className="font-medium">Lead Type:</span> {lead.lead_type || 'Not selected'}</div>
+                          {lead.source_tags && lead.source_tags.length > 0 && (
+                            <div>
+                              <span className="font-medium">Tags:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {lead.source_tags.map((tag, index) => (
+                                  <span
+                                    key={index}
+                                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
