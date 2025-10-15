@@ -7,10 +7,15 @@ import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import Optional, Dict
 
-# MongoDB connection
-MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://127.0.0.1:27017')
+# MongoDB connection - must be provided by environment
+MONGO_URL = os.environ.get('MONGO_URL')
+if not MONGO_URL:
+    raise ValueError("MONGO_URL environment variable is required but not set")
+
+DB_NAME = os.environ.get('DB_NAME', 'realtorspal')
+
 client = AsyncIOMotorClient(MONGO_URL)
-db = client.crm
+db = client[DB_NAME]
 secrets_collection = db.secrets
 
 
