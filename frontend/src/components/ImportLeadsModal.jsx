@@ -281,8 +281,10 @@ export default function ImportLeadsModal({ open, onClose, onImported, onImportAp
       const payload = { user_id: userId, default_stage: defaultStage, in_dashboard: inDashboard, leads };
       console.log('Final payload:', payload);
       
-      console.log('Calling onImportApi...');
-      const res = await onImportApi(payload);
+      // Use provided onImportApi or default to importLeads from api.js
+      const importFunction = onImportApi || defaultImportLeads;
+      console.log('Calling import function...');
+      const res = await importFunction(payload);
       console.log('Import API response:', res);
       
       setResult(res);
