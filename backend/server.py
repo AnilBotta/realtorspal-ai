@@ -111,12 +111,14 @@ app.add_middleware(
 
 # Mongo client
 # In production (Kubernetes), DB_NAME is injected as a secret
-# In development, it should be in .env file
+# In development, it must be in .env file
 DB_NAME = os.environ.get('DB_NAME')
 if not DB_NAME:
-    import warnings
-    warnings.warn("DB_NAME not set, using default 'realtorspal'. This should not happen in production!")
-    DB_NAME = 'realtorspal'
+    raise RuntimeError(
+        "DB_NAME environment variable is required. "
+        "In production, this is injected by Kubernetes secrets. "
+        "In development, set it in backend/.env file."
+    )
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
