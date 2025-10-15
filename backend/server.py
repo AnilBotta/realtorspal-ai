@@ -934,7 +934,7 @@ async def generate_access_token(token_request: AccessTokenRequest):
             )
             
             # Get base URL for TwiML endpoints
-            base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://crm-partial-leads.preview.emergentagent.com')
+            base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://realtor-workflow.preview.emergentagent.com')
             
             # Create voice grant with TwiML Application SID
             voice_grant = VoiceGrant(
