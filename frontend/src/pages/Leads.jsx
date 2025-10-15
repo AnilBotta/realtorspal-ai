@@ -27,6 +27,7 @@ export default function Leads({ user }) {
   const [timelineFilter, setTimelineFilter] = useState('all');
   const [showAdvancedPanel, setShowAdvancedPanel] = useState(false);
   const [appliedTemplateFilters, setAppliedTemplateFilters] = useState([]);
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   
   // Advanced Panel Filters
   const [locationFilter, setLocationFilter] = useState('');
