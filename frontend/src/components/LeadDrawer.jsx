@@ -154,6 +154,7 @@ export default function LeadDrawer({ open, lead, onClose, onSave, onDelete }) {
                           <div><span className="font-medium">Buying In:</span> {lead.buying_in || 'Not selected'}</div>
                           <div><span className="font-medium">House to Sell:</span> {lead.house_to_sell || 'Unknown'}</div>
                           <div><span className="font-medium">Owns/Rents:</span> {lead.owns_rents || 'Not Selected'}</div>
+                          {lead.house_anniversary && <div><span className="font-medium">House Anniversary:</span> {lead.house_anniversary}</div>}
                         </div>
                       </div>
 
@@ -167,17 +168,6 @@ export default function LeadDrawer({ open, lead, onClose, onSave, onDelete }) {
                           <div><span className="font-medium">Neighborhood:</span> {lead.neighborhood || 'Not provided'}</div>
                         </div>
                       </div>
-
-                      {/* Dates & Anniversaries */}
-                      {(lead.date_of_birth || lead.house_anniversary) && (
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <h3 className="font-medium text-gray-900 mb-3">Important Dates</h3>
-                          <div className="space-y-2 text-sm">
-                            {lead.date_of_birth && <div><span className="font-medium">Date of Birth:</span> {lead.date_of_birth}</div>}
-                            {lead.house_anniversary && <div><span className="font-medium">House Anniversary:</span> {lead.house_anniversary}</div>}
-                          </div>
-                        </div>
-                      )}
 
                       {/* Spouse Information */}
                       {(lead.spouse_first_name || lead.spouse_last_name || lead.spouse_email) && (
