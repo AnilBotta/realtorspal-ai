@@ -93,73 +93,93 @@ export default function Leads({ user }) {
     };
   }, []);
 
-  const downloadSampleCSV = () => {
-    // Create CSV with all lead fields
+  const downloadSampleFile = (format = 'csv') => {
+    // Create headers with all lead fields
     const headers = [
       // Lead Data tab
-      'First Name', 'Last Name', 'Phone', 'Email', 'Work Phone', 'Home Phone', 
-      'Date of Birth', 'Email 2', 'Lead Description', 'Pipeline', 'Status', 'Stage', 
-      'Priority', 'Lead Rating', 'Address', 'City', 'Zip/Postal Code', 'Neighborhood',
+      'first_name', 'last_name', 'phone', 'email', 'work_phone', 'home_phone', 
+      'date_of_birth', 'email_2', 'lead_description', 'pipeline', 'status', 'stage', 
+      'priority', 'lead_rating', 'address', 'city', 'zip_postal_code', 'neighborhood',
       
       // More Details tab
-      'Lead Source', 'Lead Type', 'Tags',
+      'lead_source', 'lead_type', 'tags',
       
       // Buyer Info tab
-      'Property Type', 'Buying In', 'Budget', 'Price Min', 'Price Max',
-      'Min Bedrooms', 'Min Bathrooms', 'Yard', 'Garage', 'Pool',
-      'Spouse First Name', 'Spouse Last Name',
+      'property_type', 'buying_in', 'price_min', 'price_max',
+      'bedrooms', 'bathrooms',
+      'spouse_first_name', 'spouse_last_name', 'spouse_email', 'spouse_mobile_phone',
       
       // Seller Info tab
-      'House to Sell', 'Selling In', 'House Type', 'Expected Price',
-      'Bedrooms', 'Bathrooms', 'Basement', 'Parking Type',
-      'Property Condition', 'Listing Status', 'House Anniversary',
-      'Planning to Sell In', 'Owns/Rents', 'Mortgage Type',
+      'house_to_sell', 'selling_in', 'house_anniversary',
+      'planning_to_sell_in', 'owns_rents', 'mortgage_type',
+      'property_condition', 'listing_status', 'basement', 'parking_type',
+      
+      // Agent assignments
+      'main_agent', 'mort_agent', 'list_agent',
       
       // Additional fields
-      'Notes'
+      'notes', 'ref_source', 'lead_type_2'
     ];
     
     // Create sample data row with examples
     const sampleRow = [
       // Lead Data
-      'John', 'Doe', '555-123-4567', 'john.doe@example.com', '555-987-6543', '555-111-2222',
+      'John', 'Doe', '4165551234', 'john.doe@example.com', '4169876543', '4161112222',
       '05/15/1990', 'johndoe2@example.com', 'Interested in family home', 'Sales', 'Open', 'New',
-      'high', '4', '123 Main Street', 'Toronto', 'M5V 3A8', 'Downtown',
+      'high', 'Hot', '123 Main Street', 'Toronto', 'M5V 3A8', 'Downtown',
       
       // More Details
       'Website', 'Buyer', 'Hot Lead, VIP',
       
       // Buyer Info
-      'Detached', '3-6 months', '500000-700000', '500000', '700000',
-      '3', '2', 'Yes', 'Yes', 'No',
-      'Jane', 'Doe',
+      'Detached', '3-6 months', '500000', '700000',
+      '3', '2',
+      'Jane', 'Doe', 'jane.doe@example.com', '4165559999',
       
       // Seller Info
-      'Yes', '3-6 months', 'Detached', '650000',
-      '4', '3', 'Finished', 'Garage',
-      'Excellent', 'Active', '01/15/2020',
+      'Yes', '3-6 months', '01/15/2020',
       '3-6 months', 'Owns', 'Fixed',
+      'Excellent', 'Active', 'Finished', 'Garage',
+      
+      // Agent assignments
+      'Agent Name', 'Mortgage Agent', 'Listing Agent',
       
       // Additional
-      'Looking for a family-friendly neighborhood with good schools.'
+      'Looking for a family-friendly neighborhood with good schools.', 'Referral', 'Seller'
     ];
     
-    // Create CSV content
-    const csvContent = [
-      headers.join(','),
-      sampleRow.map(cell => `"${cell}"`).join(',')
-    ].join('\n');
-    
-    // Create download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'lead_import_template.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (format === 'csv') {
+      // Create CSV content
+      const csvContent = [
+        headers.join(','),
+        sampleRow.map(cell => `"${cell}"`).join(',')
+      ].join('\n');
+      
+      // Create download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'lead_import_template.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (format === 'excel') {
+      // Create Excel workbook
+      const wb = XLSX.utils.book_new();
+      const wsData = [headers, sampleRow];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      
+      // Set column widths for better readability
+      const colWidths = headers.map(() => ({ wch: 15 }));
+      ws['!cols'] = colWidths;
+      
+      XLSX.utils.book_append_sheet(wb, ws, 'Lead Import Template');
+      
+      // Generate Excel file and download
+      XLSX.writeFile(wb, 'lead_import_template.xlsx');
+    }
   };
 
   const loadLeads = async () => {
