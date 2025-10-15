@@ -69,6 +69,7 @@ async def get_secret(user_id: str, secret_key: str) -> Optional[str]:
     Returns:
         Secret value or None if not found
     """
+    _ensure_connection()
     try:
         secret_doc = await secrets_collection.find_one({"user_id": user_id})
         if secret_doc and secret_key in secret_doc:
