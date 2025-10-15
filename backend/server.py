@@ -2158,6 +2158,8 @@ async def import_leads(payload: ImportPayload):
             print(f"Error processing lead {idx}: {error_msg}")
             print(f"Lead data: {item}")
 
+    print(f"Import completed: {inserted} inserted, {skipped} skipped")
+    return ImportResult(inserted=inserted, skipped=skipped, errors=errors, inserted_leads=inserted_docs)
 
 @app.post("/api/leads/import-csv", response_model=ImportResult)
 async def import_leads_csv(
