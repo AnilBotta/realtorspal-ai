@@ -5350,6 +5350,213 @@ Database,Verification,{test_email},13654578956,House,TestCity,high"""
             self.log_test("CSV Import Database Verification", False, f"Exception: {str(e)}")
             return False
 
+    def test_csv_import_valid_comprehensive_fields(self) -> bool:
+        """Test CSV import with comprehensive fields including example.com domain"""
+        # Use the specific demo user ID as requested
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Create CSV content with comprehensive fields
+            timestamp = int(time.time()) + 500
+            csv_content = f"""first_name,last_name,email,phone,date_of_birth,tags,house_anniversary,lead_source,lead_type,property_type,city,pipeline,status,priority
+John,Smith,john.smith.{timestamp}@example.com,13654578956,1985-05-15,"buyer,investor",2020-03-10,Website,Buyer,Single Family Home,Downtown,New Lead,Open,high
+Sarah,Johnson,sarah.johnson.{timestamp}@example.com,4155551111,1990-08-22,"seller,urgent",2018-07-20,Referral,Seller,Condo,Midtown,made contact,Active,medium
+Mike,Davis,mike.davis.{timestamp}@example.com,+14085551234,1982-12-03,"buyer,first-time",2021-11-15,Social Media,Buyer,Townhouse,Suburbs,warm / nurturing,Open,high"""
+            
+            # Prepare multipart form data
+            files = {
+                'file': ('test_leads.csv', csv_content, 'text/csv')
+            }
+            data = {
+                'user_id': demo_user_id
+            }
+            
+            response = requests.post(f"{self.base_url}/leads/import-csv", files=files, data=data, timeout=15)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if (result.get("inserted") == 3 and 
+                    result.get("skipped") == 0 and 
+                    len(result.get("inserted_leads", [])) == 3):
+                    
+                    # Verify comprehensive fields are preserved
+                    inserted_leads = result.get("inserted_leads", [])
+                    comprehensive_fields_check = True
+                    field_details = []
+                    
+                    for lead in inserted_leads:
+                        # Check phone normalization
+                        phone = lead.get("phone", "")
+                        if not phone.startswith("+1"):
+                            comprehensive_fields_check = False
+                        
+                        # Check comprehensive fields
+                        if (lead.get("date_of_birth") and 
+                            lead.get("house_anniversary") and 
+                            lead.get("lead_source") and 
+                            lead.get("property_type") and 
+                            lead.get("city") and 
+                            lead.get("pipeline")):
+                            field_details.append(f"{lead['first_name']}: {phone}, {lead['property_type']}, {lead['pipeline']}")
+                        else:
+                            comprehensive_fields_check = False
+                    
+                    if comprehensive_fields_check:
+                        self.log_test("CSV Import Valid Comprehensive Fields", True, 
+                                    f"Successfully imported 3 leads with comprehensive fields. Details: {field_details}")
+                        return True
+                    else:
+                        self.log_test("CSV Import Valid Comprehensive Fields", False, 
+                                    f"Comprehensive fields not preserved correctly: {field_details}")
+                        return False
+                else:
+                    self.log_test("CSV Import Valid Comprehensive Fields", False, f"Unexpected import result: {result}")
+                    return False
+            else:
+                self.log_test("CSV Import Valid Comprehensive Fields", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("CSV Import Valid Comprehensive Fields", False, f"Exception: {str(e)}")
+            return False
+
+    def test_csv_import_duplicate_email_handling(self) -> bool:
+        """Test CSV import duplicate email handling after email validation fix"""
+        # Use the specific demo user ID as requested
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            timestamp = int(time.time()) + 600
+            duplicate_email = f"duplicate.{timestamp}@example.com"
+            
+            # First import - should succeed
+            csv_content1 = f"""first_name,last_name,email,phone
+Original,User,{duplicate_email},13654578956"""
+            
+            files1 = {
+                'file': ('first_import.csv', csv_content1, 'text/csv')
+            }
+            data1 = {
+                'user_id': demo_user_id
+            }
+            
+            response1 = requests.post(f"{self.base_url}/leads/import-csv", files=files1, data=data1, timeout=15)
+            
+            if response1.status_code != 200:
+                self.log_test("CSV Import Duplicate Email Handling", False, f"First import failed: {response1.text}")
+                return False
+            
+            result1 = response1.json()
+            if result1.get("inserted") != 1:
+                self.log_test("CSV Import Duplicate Email Handling", False, f"First import should insert 1 lead: {result1}")
+                return False
+            
+            # Second import with same email - should be skipped
+            csv_content2 = f"""first_name,last_name,email,phone
+Duplicate,User,{duplicate_email},4155551111"""
+            
+            files2 = {
+                'file': ('second_import.csv', csv_content2, 'text/csv')
+            }
+            data2 = {
+                'user_id': demo_user_id
+            }
+            
+            response2 = requests.post(f"{self.base_url}/leads/import-csv", files=files2, data=data2, timeout=15)
+            
+            if response2.status_code == 200:
+                result2 = response2.json()
+                if (result2.get("inserted") == 0 and 
+                    result2.get("skipped") == 1):
+                    
+                    # Check for proper error message
+                    errors = result2.get("errors", [])
+                    if len(errors) > 0 and "duplicate" in str(errors[0]).lower():
+                        self.log_test("CSV Import Duplicate Email Handling", True, 
+                                    f"Duplicate email properly handled. First: inserted=1, Second: skipped=1, Error: {errors[0]}")
+                        return True
+                    else:
+                        self.log_test("CSV Import Duplicate Email Handling", False, 
+                                    f"Wrong error message for duplicate: {errors}")
+                        return False
+                else:
+                    self.log_test("CSV Import Duplicate Email Handling", False, f"Unexpected duplicate handling: {result2}")
+                    return False
+            else:
+                self.log_test("CSV Import Duplicate Email Handling", False, f"Status: {response2.status_code}, Response: {response2.text}")
+                return False
+        except Exception as e:
+            self.log_test("CSV Import Duplicate Email Handling", False, f"Exception: {str(e)}")
+            return False
+
+    def test_csv_import_phone_normalization(self) -> bool:
+        """Test CSV import phone number normalization with various formats"""
+        # Use the specific demo user ID as requested
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            timestamp = int(time.time()) + 700
+            
+            # Test various phone formats as specified in review request
+            csv_content = f"""first_name,last_name,email,phone
+Test1,User1,test1.{timestamp}@example.com,13654578956
+Test2,User2,test2.{timestamp}@example.com,4155551111
+Test3,User3,test3.{timestamp}@example.com,+14085551234"""
+            
+            files = {
+                'file': ('phone_test.csv', csv_content, 'text/csv')
+            }
+            data = {
+                'user_id': demo_user_id
+            }
+            
+            response = requests.post(f"{self.base_url}/leads/import-csv", files=files, data=data, timeout=15)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if (result.get("inserted") == 3 and 
+                    result.get("skipped") == 0 and 
+                    len(result.get("inserted_leads", [])) == 3):
+                    
+                    # Verify phone normalization to E.164 format
+                    inserted_leads = result.get("inserted_leads", [])
+                    phone_checks = []
+                    normalization_correct = True
+                    
+                    expected_phones = {
+                        "Test1": "+13654578956",  # 13654578956 → +13654578956
+                        "Test2": "+14155551111",  # 4155551111 → +14155551111
+                        "Test3": "+14085551234"   # +14085551234 → +14085551234 (already normalized)
+                    }
+                    
+                    for lead in inserted_leads:
+                        first_name = lead.get("first_name", "")
+                        phone = lead.get("phone", "")
+                        expected_phone = expected_phones.get(first_name, "")
+                        
+                        if phone == expected_phone:
+                            phone_checks.append(f"{first_name}: {phone} ✓")
+                        else:
+                            phone_checks.append(f"{first_name}: {phone} ✗ (expected {expected_phone})")
+                            normalization_correct = False
+                    
+                    if normalization_correct:
+                        self.log_test("CSV Import Phone Normalization", True, 
+                                    f"All phone numbers normalized correctly to E.164 format: {phone_checks}")
+                        return True
+                    else:
+                        self.log_test("CSV Import Phone Normalization", False, 
+                                    f"Phone normalization failed: {phone_checks}")
+                        return False
+                else:
+                    self.log_test("CSV Import Phone Normalization", False, f"Unexpected import result: {result}")
+                    return False
+            else:
+                self.log_test("CSV Import Phone Normalization", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("CSV Import Phone Normalization", False, f"Exception: {str(e)}")
+            return False
+
     def run_all_tests(self) -> bool:
         """Run all backend API tests"""
         print("🚀 Starting RealtorsPal AI Backend API Tests")
