@@ -483,8 +483,6 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
       <FormField label="Parking Type" name="parking_type" placeholder="e.g., Garage" formData={formData} handleInputChange={handleInputChange} />
       <FormField label="Property Condition" name="property_condition" formData={formData} handleInputChange={handleInputChange} />
       <FormField label="Listing Status" name="listing_status" formData={formData} handleInputChange={handleInputChange} />
-      <FormField label="Date of Birth" name="date_of_birth" type="date" formData={formData} handleInputChange={handleInputChange} />
-      <FormField label="Home Anniversary" name="home_anniversary" type="date" formData={formData} handleInputChange={handleInputChange} />
       <FormField label="House Anniversary" name="house_anniversary" type="date" formData={formData} handleInputChange={handleInputChange} />
       <FormField
         label="Planning to Sell In"
