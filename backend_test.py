@@ -4794,6 +4794,562 @@ class RealtorsPalAPITester:
             self.log_test("Convert Partial Lead Validation Error", False, f"Exception: {str(e)}")
             return False
 
+    def test_csv_import_valid_comprehensive_fields(self) -> bool:
+        """Test CSV Import with comprehensive fields - Test Case 1"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Create CSV content with comprehensive fields
+            timestamp = int(time.time()) + 500
+            csv_content = f"""first_name,last_name,email,phone,date_of_birth,tags,house_anniversary,lead_source,lead_type,property_type,city,pipeline,status,priority
+John,Smith,john.smith.{timestamp}@example.com,13654578956,1985-05-15,VIP Client,2020-06-01,Website,Buyer,Single Family Home,Downtown,New Lead,Open,high
+Jane,Doe,jane.doe.{timestamp}@example.com,4155551111,1990-08-22,Referral,2018-03-10,Agent Referral,Seller,Condo,Midtown,made contact,Active,medium
+Bob,Johnson,bob.johnson.{timestamp}@example.com,+14085551234,1978-12-05,First Time Buyer,2015-11-20,Social Media,Buyer,Townhouse,Suburbs,warm / nurturing,Open,low"""
+            
+            # Create temporary CSV file
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+                f.write(csv_content)
+                csv_file_path = f.name
+            
+            # Prepare multipart form data
+            with open(csv_file_path, 'rb') as f:
+                files = {'file': ('test_leads.csv', f, 'text/csv')}
+                data = {'user_id': demo_user_id}
+                
+                response = requests.post(
+                    f"{self.base_url}/leads/import-csv",
+                    files=files,
+                    data=data,
+                    timeout=30
+                )
+            
+            # Clean up temp file
+            import os
+            os.unlink(csv_file_path)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if (result.get("inserted") == 3 and 
+                    result.get("skipped") == 0 and 
+                    len(result.get("inserted_leads", [])) == 3):
+                    
+                    # Verify comprehensive fields are preserved
+                    inserted_leads = result.get("inserted_leads", [])
+                    comprehensive_fields_check = True
+                    
+                    for lead in inserted_leads:
+                        # Check phone normalization
+                        if not lead.get("phone", "").startswith("+1"):
+                            comprehensive_fields_check = False
+                            break
+                        
+                        # Check comprehensive fields
+                        if not all([
+                            lead.get("date_of_birth"),
+                            lead.get("house_anniversary"),
+                            lead.get("lead_source"),
+                            lead.get("property_type"),
+                            lead.get("city"),
+                            lead.get("pipeline"),
+                            lead.get("priority")
+                        ]):
+                            comprehensive_fields_check = False
+                            break
+                    
+                    if comprehensive_fields_check:
+                        self.log_test("CSV Import Valid Comprehensive Fields", True, 
+                                    f"Successfully imported 3 leads with all comprehensive fields preserved")
+                        return True
+                    else:
+                        self.log_test("CSV Import Valid Comprehensive Fields", False, 
+                                    f"Comprehensive fields not properly preserved: {inserted_leads}")
+                        return False
+                else:
+                    self.log_test("CSV Import Valid Comprehensive Fields", False, f"Unexpected import result: {result}")
+                    return False
+            else:
+                self.log_test("CSV Import Valid Comprehensive Fields", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("CSV Import Valid Comprehensive Fields", False, f"Exception: {str(e)}")
+            return False
+
+    def test_csv_import_missing_email(self) -> bool:
+        """Test CSV Import missing required field - Email - Test Case 2"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Create CSV content with missing email
+            csv_content = f"""first_name,last_name,phone,property_type
+Missing,Email,13654578956,House"""
+            
+            # Create temporary CSV file
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+                f.write(csv_content)
+                csv_file_path = f.name
+            
+            # Prepare multipart form data
+            with open(csv_file_path, 'rb') as f:
+                files = {'file': ('test_missing_email.csv', f, 'text/csv')}
+                data = {'user_id': demo_user_id}
+                
+                response = requests.post(
+                    f"{self.base_url}/leads/import-csv",
+                    files=files,
+                    data=data,
+                    timeout=30
+                )
+            
+            # Clean up temp file
+            import os
+            os.unlink(csv_file_path)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if (result.get("inserted") == 0 and 
+                    result.get("skipped") == 1 and 
+                    len(result.get("errors", [])) == 1):
+                    
+                    error = result["errors"][0]
+                    if "Missing required fields: email" in error.get("reason", ""):
+                        self.log_test("CSV Import Missing Email", True, 
+                                    f"Correctly skipped lead with missing email: {error['reason']}")
+                        return True
+                    else:
+                        self.log_test("CSV Import Missing Email", False, f"Wrong error reason: {error}")
+                        return False
+                else:
+                    self.log_test("CSV Import Missing Email", False, f"Unexpected result for missing email: {result}")
+                    return False
+            else:
+                self.log_test("CSV Import Missing Email", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("CSV Import Missing Email", False, f"Exception: {str(e)}")
+            return False
+
+    def test_csv_import_missing_phone(self) -> bool:
+        """Test CSV Import missing required field - Phone - Test Case 3"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Create CSV content with missing phone
+            timestamp = int(time.time()) + 502
+            csv_content = f"""first_name,last_name,email,property_type
+Missing,Phone,missing.phone.{timestamp}@example.com,Condo"""
+            
+            # Create temporary CSV file
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+                f.write(csv_content)
+                csv_file_path = f.name
+            
+            # Prepare multipart form data
+            with open(csv_file_path, 'rb') as f:
+                files = {'file': ('test_missing_phone.csv', f, 'text/csv')}
+                data = {'user_id': demo_user_id}
+                
+                response = requests.post(
+                    f"{self.base_url}/leads/import-csv",
+                    files=files,
+                    data=data,
+                    timeout=30
+                )
+            
+            # Clean up temp file
+            import os
+            os.unlink(csv_file_path)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if (result.get("inserted") == 0 and 
+                    result.get("skipped") == 1 and 
+                    len(result.get("errors", [])) == 1):
+                    
+                    error = result["errors"][0]
+                    if "Missing required fields: phone" in error.get("reason", ""):
+                        self.log_test("CSV Import Missing Phone", True, 
+                                    f"Correctly skipped lead with missing phone: {error['reason']}")
+                        return True
+                    else:
+                        self.log_test("CSV Import Missing Phone", False, f"Wrong error reason: {error}")
+                        return False
+                else:
+                    self.log_test("CSV Import Missing Phone", False, f"Unexpected result for missing phone: {result}")
+                    return False
+            else:
+                self.log_test("CSV Import Missing Phone", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("CSV Import Missing Phone", False, f"Exception: {str(e)}")
+            return False
+
+    def test_csv_import_duplicate_email_handling(self) -> bool:
+        """Test CSV Import duplicate email handling - Test Case 4"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # First, import a lead
+            timestamp = int(time.time()) + 503
+            duplicate_email = f"duplicate.test.{timestamp}@example.com"
+            
+            csv_content1 = f"""first_name,last_name,email,phone,property_type
+Original,User,{duplicate_email},13654578956,House"""
+            
+            # Create temporary CSV file for first import
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+                f.write(csv_content1)
+                csv_file_path1 = f.name
+            
+            # First import
+            with open(csv_file_path1, 'rb') as f:
+                files = {'file': ('test_original.csv', f, 'text/csv')}
+                data = {'user_id': demo_user_id}
+                
+                response1 = requests.post(
+                    f"{self.base_url}/leads/import-csv",
+                    files=files,
+                    data=data,
+                    timeout=30
+                )
+            
+            # Clean up temp file
+            import os
+            os.unlink(csv_file_path1)
+            
+            if response1.status_code != 200:
+                self.log_test("CSV Import Duplicate Email Handling", False, f"Failed first import: {response1.text}")
+                return False
+            
+            # Now try to import duplicate
+            csv_content2 = f"""first_name,last_name,email,phone,property_type
+Duplicate,User,{duplicate_email},14155551111,Condo"""
+            
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+                f.write(csv_content2)
+                csv_file_path2 = f.name
+            
+            # Second import with duplicate email
+            with open(csv_file_path2, 'rb') as f:
+                files = {'file': ('test_duplicate.csv', f, 'text/csv')}
+                data = {'user_id': demo_user_id}
+                
+                response2 = requests.post(
+                    f"{self.base_url}/leads/import-csv",
+                    files=files,
+                    data=data,
+                    timeout=30
+                )
+            
+            # Clean up temp file
+            os.unlink(csv_file_path2)
+            
+            if response2.status_code == 200:
+                result = response2.json()
+                if (result.get("inserted") == 0 and 
+                    result.get("skipped") == 1 and 
+                    len(result.get("errors", [])) == 1):
+                    
+                    error = result["errors"][0]
+                    if "Duplicate email - lead already exists" in error.get("reason", ""):
+                        self.log_test("CSV Import Duplicate Email Handling", True, 
+                                    f"Correctly handled duplicate email: {error['reason']}")
+                        return True
+                    else:
+                        self.log_test("CSV Import Duplicate Email Handling", False, f"Wrong error reason: {error}")
+                        return False
+                else:
+                    self.log_test("CSV Import Duplicate Email Handling", False, f"Unexpected duplicate handling: {result}")
+                    return False
+            else:
+                self.log_test("CSV Import Duplicate Email Handling", False, f"Status: {response2.status_code}, Response: {response2.text}")
+                return False
+        except Exception as e:
+            self.log_test("CSV Import Duplicate Email Handling", False, f"Exception: {str(e)}")
+            return False
+
+    def test_csv_import_phone_normalization(self) -> bool:
+        """Test CSV Import phone number normalization - Test Case 5"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Create CSV content with various phone formats
+            timestamp = int(time.time()) + 504
+            csv_content = f"""first_name,last_name,email,phone,property_type
+Test1,User1,test1.{timestamp}@example.com,13654578956,House
+Test2,User2,test2.{timestamp}@example.com,4155551111,Condo
+Test3,User3,test3.{timestamp}@example.com,+14085551234,Apartment"""
+            
+            # Create temporary CSV file
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+                f.write(csv_content)
+                csv_file_path = f.name
+            
+            # Prepare multipart form data
+            with open(csv_file_path, 'rb') as f:
+                files = {'file': ('test_phone_normalization.csv', f, 'text/csv')}
+                data = {'user_id': demo_user_id}
+                
+                response = requests.post(
+                    f"{self.base_url}/leads/import-csv",
+                    files=files,
+                    data=data,
+                    timeout=30
+                )
+            
+            # Clean up temp file
+            import os
+            os.unlink(csv_file_path)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if (result.get("inserted") == 3 and 
+                    result.get("skipped") == 0 and 
+                    len(result.get("inserted_leads", [])) == 3):
+                    
+                    # Verify phone normalization
+                    inserted_leads = result.get("inserted_leads", [])
+                    expected_phones = ["+13654578956", "+14155551111", "+14085551234"]
+                    actual_phones = [lead.get("phone") for lead in inserted_leads]
+                    
+                    normalization_correct = all(phone in expected_phones for phone in actual_phones)
+                    
+                    if normalization_correct:
+                        self.log_test("CSV Import Phone Normalization", True, 
+                                    f"Phone numbers correctly normalized to E.164 format: {actual_phones}")
+                        return True
+                    else:
+                        self.log_test("CSV Import Phone Normalization", False, 
+                                    f"Phone normalization failed. Expected: {expected_phones}, Got: {actual_phones}")
+                        return False
+                else:
+                    self.log_test("CSV Import Phone Normalization", False, f"Unexpected import result: {result}")
+                    return False
+            else:
+                self.log_test("CSV Import Phone Normalization", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("CSV Import Phone Normalization", False, f"Exception: {str(e)}")
+            return False
+
+    def test_csv_import_invalid_email_format(self) -> bool:
+        """Test CSV Import invalid email format - Test Case 6"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Create CSV content with invalid email
+            csv_content = f"""first_name,last_name,email,phone,property_type
+Invalid,Email,not-an-email,13654578956,House"""
+            
+            # Create temporary CSV file
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+                f.write(csv_content)
+                csv_file_path = f.name
+            
+            # Prepare multipart form data
+            with open(csv_file_path, 'rb') as f:
+                files = {'file': ('test_invalid_email.csv', f, 'text/csv')}
+                data = {'user_id': demo_user_id}
+                
+                response = requests.post(
+                    f"{self.base_url}/leads/import-csv",
+                    files=files,
+                    data=data,
+                    timeout=30
+                )
+            
+            # Clean up temp file
+            import os
+            os.unlink(csv_file_path)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if (result.get("inserted") == 0 and 
+                    result.get("skipped") == 1 and 
+                    len(result.get("errors", [])) == 1):
+                    
+                    error = result["errors"][0]
+                    if "Invalid email format" in error.get("reason", ""):
+                        self.log_test("CSV Import Invalid Email Format", True, 
+                                    f"Correctly handled invalid email format: {error['reason']}")
+                        return True
+                    else:
+                        self.log_test("CSV Import Invalid Email Format", False, f"Wrong error reason: {error}")
+                        return False
+                else:
+                    self.log_test("CSV Import Invalid Email Format", False, f"Unexpected result for invalid email: {result}")
+                    return False
+            else:
+                self.log_test("CSV Import Invalid Email Format", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("CSV Import Invalid Email Format", False, f"Exception: {str(e)}")
+            return False
+
+    def test_csv_import_response_format_verification(self) -> bool:
+        """Test CSV Import response format verification"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Create CSV content with valid data
+            timestamp = int(time.time()) + 505
+            csv_content = f"""first_name,last_name,email,phone,property_type
+Format,Test,format.test.{timestamp}@example.com,13654578956,House"""
+            
+            # Create temporary CSV file
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+                f.write(csv_content)
+                csv_file_path = f.name
+            
+            # Prepare multipart form data
+            with open(csv_file_path, 'rb') as f:
+                files = {'file': ('test_response_format.csv', f, 'text/csv')}
+                data = {'user_id': demo_user_id}
+                
+                response = requests.post(
+                    f"{self.base_url}/leads/import-csv",
+                    files=files,
+                    data=data,
+                    timeout=30
+                )
+            
+            # Clean up temp file
+            import os
+            os.unlink(csv_file_path)
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Verify ImportResult structure
+                required_fields = ["inserted", "skipped", "errors", "inserted_leads"]
+                structure_valid = all(field in result for field in required_fields)
+                
+                # Verify data types
+                types_valid = (
+                    isinstance(result.get("inserted"), int) and
+                    isinstance(result.get("skipped"), int) and
+                    isinstance(result.get("errors"), list) and
+                    isinstance(result.get("inserted_leads"), list)
+                )
+                
+                # Verify inserted_leads contains Lead objects with required fields
+                leads_valid = True
+                if result.get("inserted_leads"):
+                    for lead in result["inserted_leads"]:
+                        if not all(field in lead for field in ["id", "user_id", "created_at"]):
+                            leads_valid = False
+                            break
+                
+                if structure_valid and types_valid and leads_valid:
+                    self.log_test("CSV Import Response Format Verification", True, 
+                                f"Response format correct: inserted={result['inserted']}, skipped={result['skipped']}, "
+                                f"errors={len(result['errors'])}, inserted_leads={len(result['inserted_leads'])}")
+                    return True
+                else:
+                    self.log_test("CSV Import Response Format Verification", False, 
+                                f"Invalid response format. Structure: {structure_valid}, Types: {types_valid}, Leads: {leads_valid}")
+                    return False
+            else:
+                self.log_test("CSV Import Response Format Verification", False, f"Status: {response.status_code}, Response: {response.text}")
+                return False
+        except Exception as e:
+            self.log_test("CSV Import Response Format Verification", False, f"Exception: {str(e)}")
+            return False
+
+    def test_csv_import_database_verification(self) -> bool:
+        """Test CSV Import database verification"""
+        demo_user_id = "03f82986-51af-460c-a549-1c5077e67fb0"
+        
+        try:
+            # Create CSV content with identifiable data
+            timestamp = int(time.time()) + 506
+            test_email = f"db.verification.{timestamp}@example.com"
+            csv_content = f"""first_name,last_name,email,phone,property_type,city,priority
+Database,Verification,{test_email},13654578956,House,TestCity,high"""
+            
+            # Create temporary CSV file
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+                f.write(csv_content)
+                csv_file_path = f.name
+            
+            # Import the lead
+            with open(csv_file_path, 'rb') as f:
+                files = {'file': ('test_db_verification.csv', f, 'text/csv')}
+                data = {'user_id': demo_user_id}
+                
+                response = requests.post(
+                    f"{self.base_url}/leads/import-csv",
+                    files=files,
+                    data=data,
+                    timeout=30
+                )
+            
+            # Clean up temp file
+            import os
+            os.unlink(csv_file_path)
+            
+            if response.status_code != 200:
+                self.log_test("CSV Import Database Verification", False, f"Import failed: {response.text}")
+                return False
+            
+            import_result = response.json()
+            if import_result.get("inserted") != 1:
+                self.log_test("CSV Import Database Verification", False, f"Import result unexpected: {import_result}")
+                return False
+            
+            # Now verify the lead exists in database via GET /api/leads
+            get_response = requests.get(f"{self.base_url}/leads", params={"user_id": demo_user_id}, timeout=10)
+            
+            if get_response.status_code == 200:
+                all_leads = get_response.json()
+                
+                # Find our imported lead
+                imported_lead = None
+                for lead in all_leads:
+                    if lead.get("email") == test_email:
+                        imported_lead = lead
+                        break
+                
+                if imported_lead:
+                    # Verify all fields are correctly stored
+                    verification_checks = [
+                        imported_lead.get("first_name") == "Database",
+                        imported_lead.get("last_name") == "Verification",
+                        imported_lead.get("email") == test_email,
+                        imported_lead.get("phone") == "+13654578956",  # E.164 format
+                        imported_lead.get("property_type") == "House",
+                        imported_lead.get("city") == "TestCity",
+                        imported_lead.get("priority") == "high",
+                        imported_lead.get("user_id") == demo_user_id
+                    ]
+                    
+                    if all(verification_checks):
+                        self.log_test("CSV Import Database Verification", True, 
+                                    f"Lead correctly stored in database with all fields preserved. "
+                                    f"Phone normalized to E.164: {imported_lead.get('phone')}")
+                        return True
+                    else:
+                        self.log_test("CSV Import Database Verification", False, 
+                                    f"Lead fields not correctly stored: {imported_lead}")
+                        return False
+                else:
+                    self.log_test("CSV Import Database Verification", False, 
+                                f"Imported lead not found in database. Email: {test_email}")
+                    return False
+            else:
+                self.log_test("CSV Import Database Verification", False, f"Failed to retrieve leads: {get_response.text}")
+                return False
+        except Exception as e:
+            self.log_test("CSV Import Database Verification", False, f"Exception: {str(e)}")
+            return False
+
     def run_all_tests(self) -> bool:
         """Run all backend API tests"""
         print("🚀 Starting RealtorsPal AI Backend API Tests")
