@@ -18,27 +18,44 @@ if env_path.exists():
 # MongoDB connection
 # In production (Kubernetes), MONGO_URL and DB_NAME are injected as secrets
 # In development, they are loaded from .env file
-MONGO_URL = os.environ.get('MONGO_URL')
-DB_NAME = os.environ.get('DB_NAME')
 
-# Validate required environment variables
-if not MONGO_URL:
-    raise RuntimeError(
-        "MONGO_URL environment variable is required. "
-        "In production, this is injected by Kubernetes secrets. "
-        "In development, set it in backend/.env file."
-    )
+def _get_mongo_connection():
+    """
+    Get MongoDB connection with lazy initialization.
+    This defers environment variable validation until first use,
+    avoiding import-time crashes in production.
+    """
+    MONGO_URL = os.environ.get('MONGO_URL')
+    DB_NAME = os.environ.get('DB_NAME')
+    
+    # Validate required environment variables
+    if not MONGO_URL:
+        raise RuntimeError(
+            "MONGO_URL environment variable is required. "
+            "In production, this is injected by Kubernetes secrets. "
+            "In development, set it in backend/.env file."
+        )
+    
+    if not DB_NAME:
+        raise RuntimeError(
+            "DB_NAME environment variable is required. "
+            "In production, this is injected by Kubernetes secrets. "
+            "In development, set it in backend/.env file."
+        )
+    
+    client = AsyncIOMotorClient(MONGO_URL)
+    return client[DB_NAME]
 
-if not DB_NAME:
-    raise RuntimeError(
-        "DB_NAME environment variable is required. "
-        "In production, this is injected by Kubernetes secrets. "
-        "In development, set it in backend/.env file."
-    )
+# Initialize connection lazily
+db = None
+secrets_collection = None
 
-client = AsyncIOMotorClient(MONGO_URL)
-db = client[DB_NAME]
-secrets_collection = db.secrets
+def _ensure_connection():
+    """Ensure database connection is initialized"""
+    global db, secrets_collection
+    if db is None:
+        db = _get_mongo_connection()
+        secrets_collection = db.secrets
 
 
 async def get_secret(user_id: str, secret_key: str) -> Optional[str]:
