@@ -114,7 +114,6 @@ const ComprehensiveLeadForm = ({ lead = null, onSave, onCancel, isModal = false 
     
     // Dates and Anniversaries
     date_of_birth: '',
-    home_anniversary: '',
     house_anniversary: '',
     planning_to_sell_in: '',
     
