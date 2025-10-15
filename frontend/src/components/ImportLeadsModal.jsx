@@ -68,18 +68,64 @@ const STAGES = ["New","Contacted","Appointment","Onboarded","Closed"];
 function guessMapping(headers){
   const m = {};
   headers.forEach(h => {
-    const k = h.trim().toLowerCase();
-    if (k.includes("first")) m[h] = "first_name";
-    else if (k.includes("last")) m[h] = "last_name";
-    else if (k.includes("email")) m[h] = "email";
+    const k = h.trim().toLowerCase().replace(/[\/\s]/g, '_');
+    
+    // Lead Data tab fields
+    if (k.includes("first") && k.includes("name")) m[h] = "first_name";
+    else if (k.includes("last") && k.includes("name")) m[h] = "last_name";
+    else if (k.includes("email") && !k.includes("2")) m[h] = "email";
+    else if (k.includes("email") && k.includes("2")) m[h] = "email_2";
+    else if (k.includes("work") && k.includes("phone")) m[h] = "work_phone";
+    else if (k.includes("home") && k.includes("phone")) m[h] = "home_phone";
     else if (k.includes("phone") || k.includes("mobile")) m[h] = "phone";
+    else if (k.includes("date") && k.includes("birth")) m[h] = "date_of_birth";
+    else if (k.includes("lead") && k.includes("description")) m[h] = "lead_description";
+    else if (k.includes("pipeline")) m[h] = "pipeline";
+    else if (k.includes("status")) m[h] = "status";
     else if (k.includes("stage")) m[h] = "stage";
-    else if (k.includes("type")) m[h] = "property_type";
-    else if (k.includes("neighborhood") || k.includes("location") || k.includes("area")) m[h] = "neighborhood";
-    else if (k.includes("min")) m[h] = "price_min";
-    else if (k.includes("max")) m[h] = "price_max";
     else if (k.includes("priority")) m[h] = "priority";
+    else if (k.includes("lead") && k.includes("rating")) m[h] = "lead_rating";
+    else if (k.includes("address")) m[h] = "address";
+    else if (k.includes("city")) m[h] = "city";
+    else if (k.includes("zip") || k.includes("postal")) m[h] = "zip_postal_code";
+    else if (k.includes("neighborhood") || k.includes("location") || k.includes("area")) m[h] = "neighborhood";
+    
+    // More Details tab
+    else if (k.includes("lead") && k.includes("source")) m[h] = "lead_source";
+    else if (k.includes("lead") && k.includes("type")) m[h] = "lead_type";
     else if (k.includes("tag")) m[h] = "source_tags";
+    
+    // Buyer Info tab
+    else if (k.includes("property") && k.includes("type")) m[h] = "property_type";
+    else if (k.includes("buying") && k.includes("in")) m[h] = "buying_in";
+    else if (k.includes("budget")) m[h] = "budget";
+    else if (k.includes("price") && k.includes("min")) m[h] = "price_min";
+    else if (k.includes("price") && k.includes("max")) m[h] = "price_max";
+    else if (k.includes("min") && k.includes("bedroom")) m[h] = "min_bedrooms";
+    else if (k.includes("min") && k.includes("bathroom")) m[h] = "min_bathrooms";
+    else if (k.includes("yard")) m[h] = "yard";
+    else if (k.includes("garage")) m[h] = "garage";
+    else if (k.includes("pool")) m[h] = "pool";
+    else if (k.includes("spouse") && k.includes("first")) m[h] = "spouse_first_name";
+    else if (k.includes("spouse") && k.includes("last")) m[h] = "spouse_last_name";
+    
+    // Seller Info tab
+    else if (k.includes("house") && k.includes("sell")) m[h] = "house_to_sell";
+    else if (k.includes("selling") && k.includes("in")) m[h] = "selling_in";
+    else if (k.includes("house") && k.includes("type")) m[h] = "house_type";
+    else if (k.includes("expected") && k.includes("price")) m[h] = "expected_price";
+    else if (k.includes("bedroom") && !k.includes("min")) m[h] = "bedrooms";
+    else if (k.includes("bathroom") && !k.includes("min")) m[h] = "bathrooms";
+    else if (k.includes("basement")) m[h] = "basement";
+    else if (k.includes("parking")) m[h] = "parking_type";
+    else if (k.includes("property") && k.includes("condition")) m[h] = "property_condition";
+    else if (k.includes("listing") && k.includes("status")) m[h] = "listing_status";
+    else if (k.includes("house") && k.includes("anniversary")) m[h] = "house_anniversary";
+    else if (k.includes("planning") && k.includes("sell")) m[h] = "planning_to_sell_in";
+    else if (k.includes("owns") || k.includes("rents")) m[h] = "owns_rents";
+    else if (k.includes("mortgage")) m[h] = "mortgage_type";
+    
+    // Additional
     else if (k.includes("note")) m[h] = "notes";
     else m[h] = "";
   });
