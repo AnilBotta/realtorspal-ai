@@ -5943,6 +5943,359 @@ async def get_preferred_from_email(user_id: str):
     except Exception as e:
         return {"preferred_from_email": None}
 
+# =========================
+# Lead Nurturing Background Task Endpoints
+# =========================
+
+class StartNurturingRequest(BaseModel):
+    lead_id: str
+    user_id: str
+    total_steps: Optional[int] = 5
+    agent_config: Optional[dict] = None
+
+class PauseNurturingRequest(BaseModel):
+    lead_id: str
+    user_id: str
+    reason: Optional[str] = "user_paused"
+
+class ResumeNurturingRequest(BaseModel):
+    lead_id: str
+    user_id: str
+
+class SnoozeNurturingRequest(BaseModel):
+    lead_id: str
+    user_id: str
+    snooze_duration_hours: int = 24
+
+class StopNurturingRequest(BaseModel):
+    lead_id: str
+    user_id: str
+
+@app.post("/api/nurturing/start")
+async def start_nurturing_sequence(request: StartNurturingRequest):
+    """Start a new nurturing sequence for a lead"""
+    try:
+        # Get lead
+        lead = await db.leads.find_one({"id": request.lead_id, "user_id": request.user_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Check if already active
+        if lead.get("nurturing_status") in ["active", "running"]:
+            raise HTTPException(status_code=400, detail="Nurturing already active for this lead")
+        
+        # Import nurturing logic
+        from lead_nurture_service import calculate_next_followup, _get_stage
+        from nurture_scheduler import log_activity
+        
+        # Determine initial stage
+        stage = _get_stage(lead)
+        
+        # Calculate first action time
+        next_action_time = calculate_next_followup(lead, stage)
+        
+        # Update lead with nurturing fields
+        now = datetime.now(timezone.utc)
+        update_data = {
+            "nurturing_status": "active",
+            "nurturing_agent_id": request.agent_config.get("agent_id") if request.agent_config else "default_nurture_agent",
+            "nurturing_current_step": 0,
+            "nurturing_total_steps": request.total_steps,
+            "nurturing_next_action_at": next_action_time.isoformat() if next_action_time else None,
+            "nurturing_started_at": now.isoformat(),
+            "nurturing_paused_until": None,
+            "nurturing_paused_reason": None,
+            "nurturing_completed_at": None
+        }
+        
+        await db.leads.update_one(
+            {"id": request.lead_id},
+            {"$set": update_data}
+        )
+        
+        # Log activity
+        await log_activity(
+            request.lead_id,
+            request.user_id,
+            f"Nurturing sequence started. First action scheduled at {next_action_time.strftime('%Y-%m-%d %H:%M') if next_action_time else 'TBD'}",
+            "success"
+        )
+        
+        return {
+            "success": True,
+            "lead_id": request.lead_id,
+            "status": "active",
+            "current_step": 0,
+            "total_steps": request.total_steps,
+            "next_action_at": next_action_time.isoformat() if next_action_time else None,
+            "message": "Nurturing sequence started successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error starting nurturing: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/nurturing/pause")
+async def pause_nurturing_sequence(request: PauseNurturingRequest):
+    """Pause an active nurturing sequence"""
+    try:
+        # Get lead
+        lead = await db.leads.find_one({"id": request.lead_id, "user_id": request.user_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Check if nurturing is active
+        if lead.get("nurturing_status") not in ["active", "running"]:
+            raise HTTPException(status_code=400, detail="No active nurturing sequence to pause")
+        
+        from nurture_scheduler import log_activity
+        
+        # Update status to paused
+        await db.leads.update_one(
+            {"id": request.lead_id},
+            {"$set": {
+                "nurturing_status": "paused",
+                "nurturing_paused_reason": request.reason,
+                "nurturing_paused_until": None  # Indefinite pause
+            }}
+        )
+        
+        await log_activity(
+            request.lead_id,
+            request.user_id,
+            f"Nurturing sequence paused. Reason: {request.reason}",
+            "info"
+        )
+        
+        return {
+            "success": True,
+            "lead_id": request.lead_id,
+            "status": "paused",
+            "message": "Nurturing sequence paused"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error pausing nurturing: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/nurturing/resume")
+async def resume_nurturing_sequence(request: ResumeNurturingRequest):
+    """Resume a paused or snoozed nurturing sequence"""
+    try:
+        # Get lead
+        lead = await db.leads.find_one({"id": request.lead_id, "user_id": request.user_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Check if nurturing is paused
+        if lead.get("nurturing_status") not in ["paused", "snoozed"]:
+            raise HTTPException(status_code=400, detail="Nurturing is not paused or snoozed")
+        
+        from lead_nurture_service import calculate_next_followup, _get_stage
+        from nurture_scheduler import log_activity
+        
+        # Recalculate next action time
+        stage = _get_stage(lead)
+        next_action_time = calculate_next_followup(lead, stage)
+        
+        # Update status to active
+        await db.leads.update_one(
+            {"id": request.lead_id},
+            {"$set": {
+                "nurturing_status": "active",
+                "nurturing_next_action_at": next_action_time.isoformat() if next_action_time else None,
+                "nurturing_paused_until": None,
+                "nurturing_paused_reason": None
+            }}
+        )
+        
+        await log_activity(
+            request.lead_id,
+            request.user_id,
+            f"Nurturing sequence resumed. Next action at {next_action_time.strftime('%Y-%m-%d %H:%M') if next_action_time else 'TBD'}",
+            "success"
+        )
+        
+        return {
+            "success": True,
+            "lead_id": request.lead_id,
+            "status": "active",
+            "next_action_at": next_action_time.isoformat() if next_action_time else None,
+            "message": "Nurturing sequence resumed"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error resuming nurturing: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/nurturing/snooze")
+async def snooze_nurturing_sequence(request: SnoozeNurturingRequest):
+    """Snooze a nurturing sequence for a specified duration"""
+    try:
+        # Get lead
+        lead = await db.leads.find_one({"id": request.lead_id, "user_id": request.user_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        # Check if nurturing is active
+        if lead.get("nurturing_status") not in ["active", "running", "paused"]:
+            raise HTTPException(status_code=400, detail="No active nurturing sequence to snooze")
+        
+        from nurture_scheduler import log_activity
+        
+        # Calculate snooze until time
+        now = datetime.now(timezone.utc)
+        snooze_until = now + timedelta(hours=request.snooze_duration_hours)
+        
+        # Update status to snoozed
+        await db.leads.update_one(
+            {"id": request.lead_id},
+            {"$set": {
+                "nurturing_status": "snoozed",
+                "nurturing_paused_until": snooze_until.isoformat(),
+                "nurturing_paused_reason": f"snoozed_for_{request.snooze_duration_hours}_hours"
+            }}
+        )
+        
+        await log_activity(
+            request.lead_id,
+            request.user_id,
+            f"Nurturing sequence snoozed until {snooze_until.strftime('%Y-%m-%d %H:%M')}",
+            "info"
+        )
+        
+        return {
+            "success": True,
+            "lead_id": request.lead_id,
+            "status": "snoozed",
+            "snooze_until": snooze_until.isoformat(),
+            "message": f"Nurturing sequence snoozed for {request.snooze_duration_hours} hours"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error snoozing nurturing: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/nurturing/stop")
+async def stop_nurturing_sequence(request: StopNurturingRequest):
+    """Stop and cancel a nurturing sequence"""
+    try:
+        # Get lead
+        lead = await db.leads.find_one({"id": request.lead_id, "user_id": request.user_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        from nurture_scheduler import log_activity
+        
+        # Update status to cancelled
+        now = datetime.now(timezone.utc)
+        await db.leads.update_one(
+            {"id": request.lead_id},
+            {"$set": {
+                "nurturing_status": "cancelled",
+                "nurturing_completed_at": now.isoformat(),
+                "nurturing_next_action_at": None,
+                "nurturing_paused_until": None,
+                "nurturing_paused_reason": None
+            }}
+        )
+        
+        await log_activity(
+            request.lead_id,
+            request.user_id,
+            "Nurturing sequence stopped by user",
+            "info"
+        )
+        
+        return {
+            "success": True,
+            "lead_id": request.lead_id,
+            "status": "cancelled",
+            "message": "Nurturing sequence stopped"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error stopping nurturing: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/nurturing/status/{lead_id}")
+async def get_nurturing_status(lead_id: str, user_id: str):
+    """Get current nurturing status for a lead"""
+    try:
+        # Get lead
+        lead = await db.leads.find_one({"id": lead_id, "user_id": user_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        
+        from nurture_scheduler import get_nurturing_activity_logs
+        
+        # Get activity logs
+        logs = await get_nurturing_activity_logs(lead_id, limit=20)
+        
+        return {
+            "lead_id": lead_id,
+            "status": lead.get("nurturing_status"),
+            "agent_id": lead.get("nurturing_agent_id"),
+            "current_step": lead.get("nurturing_current_step", 0),
+            "total_steps": lead.get("nurturing_total_steps", 0),
+            "next_action_at": lead.get("nurturing_next_action_at"),
+            "paused_until": lead.get("nurturing_paused_until"),
+            "paused_reason": lead.get("nurturing_paused_reason"),
+            "started_at": lead.get("nurturing_started_at"),
+            "completed_at": lead.get("nurturing_completed_at"),
+            "activity_logs": [
+                {
+                    "message": log.get("message"),
+                    "action_type": log.get("action_type"),
+                    "timestamp": log.get("timestamp")
+                }
+                for log in logs
+            ]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting nurturing status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/nurturing/active/{user_id}")
+async def get_active_nurturing_leads(user_id: str):
+    """Get all leads with active nurturing for a user"""
+    try:
+        from nurture_scheduler import get_active_nurturing_leads
+        
+        leads = await get_active_nurturing_leads(user_id)
+        
+        result = []
+        for lead in leads:
+            result.append({
+                "lead_id": lead.get("id"),
+                "first_name": lead.get("first_name"),
+                "last_name": lead.get("last_name"),
+                "email": lead.get("email"),
+                "status": lead.get("nurturing_status"),
+                "current_step": lead.get("nurturing_current_step", 0),
+                "total_steps": lead.get("nurturing_total_steps", 0),
+                "next_action_at": lead.get("nurturing_next_action_at")
+            })
+        
+        return {"leads": result, "count": len(result)}
+        
+    except Exception as e:
+        print(f"Error getting active nurturing leads: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Mount Lead Generation Service
 from leadgen_service import app as leadgen_app
 
