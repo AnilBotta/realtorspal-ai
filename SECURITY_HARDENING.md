@@ -75,7 +75,7 @@ TWILIO_TWIML_APP_SID=APxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ### Frontend `.env`
 ```
-REACT_APP_BACKEND_URL=https://realtor-workflow.preview.emergentagent.com
+REACT_APP_BACKEND_URL=https://ai-lead-manager-1.preview.emergentagent.com
 ```
 
 ## What's Safe in Code
