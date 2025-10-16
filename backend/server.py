@@ -221,6 +221,17 @@ class Lead(BaseModel):
     hash_email: Optional[str] = None  # SHA256 hash of lowercase email
     hash_phone: Optional[str] = None  # SHA256 hash of E.164 phone
     phone_e164: Optional[str] = None  # Normalized E.164 phone format
+    
+    # Lead Nurturing Background Task fields
+    nurturing_status: Optional[str] = None  # active, paused, snoozed, completed, cancelled
+    nurturing_agent_id: Optional[str] = None  # ID of the running nurturing agent
+    nurturing_current_step: Optional[int] = None  # Current step in sequence (e.g., 2)
+    nurturing_total_steps: Optional[int] = None  # Total steps in sequence (e.g., 5)
+    nurturing_next_action_at: Optional[str] = None  # ISO timestamp of next scheduled action
+    nurturing_paused_until: Optional[str] = None  # ISO timestamp for snooze/pause
+    nurturing_paused_reason: Optional[str] = None  # Reason for pause (user, auto-reply, etc.)
+    nurturing_started_at: Optional[str] = None  # When nurturing started
+    nurturing_completed_at: Optional[str] = None  # When nurturing completed
 
 class CreateLeadRequest(BaseModel):
     user_id: str
