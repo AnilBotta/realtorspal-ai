@@ -9,7 +9,8 @@ import EmailModal from '../components/EmailModal';
 import EmailDraftModal from '../components/EmailDraftModal';
 import CommunicationModal from '../components/CommunicationModal';
 import FilterTemplates from '../components/FilterTemplates';
-import AIAgentModal from '../components/AIAgentModal';
+import NurturingControlPanel from '../components/NurturingControlPanel';
+import { getNurturingStatusBadge, getStatusColorClass } from '../utils/nurturingUtils';
 
 export default function Leads({ user }) {
   const [leads, setLeads] = useState([]);
