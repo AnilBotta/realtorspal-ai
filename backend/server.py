@@ -5,7 +5,7 @@ import hashlib
 import hmac
 import csv
 import io
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any, Union
 from email_validator import validate_email, EmailNotValidError
 from twilio.rest import Client as TwilioClient
