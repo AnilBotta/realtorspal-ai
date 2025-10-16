@@ -345,8 +345,8 @@ export default function Leads({ user }) {
   };
 
   const handleAIAgentLead = (lead) => {
-    setAIAgentLead(lead);
-    setShowAIAgentModal(true);
+    setNurturingLead(lead);
+    setShowNurturingPanel(true);
   };
 
   const handleRunAgent = async (agentConfig) => {
