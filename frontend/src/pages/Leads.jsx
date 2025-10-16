@@ -59,9 +59,9 @@ export default function Leads({ user }) {
   const [communicationType, setCommunicationType] = useState('call');
   const [communicationLead, setCommunicationLead] = useState(null);
 
-  // AI Agent modal states
-  const [showAIAgentModal, setShowAIAgentModal] = useState(false);
-  const [aiAgentLead, setAIAgentLead] = useState(null);
+  // Nurturing Control Panel states
+  const [showNurturingPanel, setShowNurturingPanel] = useState(false);
+  const [nurturingLead, setNurturingLead] = useState(null);
 
   useEffect(() => {
     loadLeads();
