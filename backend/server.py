@@ -1942,6 +1942,24 @@ async def on_startup():
         partialFilterExpression={"email": {"$type": "string"}},
     )
     await db.settings.create_index([("user_id", 1)], unique=True)
+    
+    # Start background scheduler for lead nurturing
+    try:
+        from nurture_scheduler import start_scheduler
+        start_scheduler()
+        print("✅ Lead nurturing background scheduler started")
+    except Exception as e:
+        print(f"⚠️ Failed to start nurturing scheduler: {e}")
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    """Cleanup on server shutdown"""
+    try:
+        from nurture_scheduler import stop_scheduler
+        stop_scheduler()
+        print("✅ Lead nurturing scheduler stopped")
+    except Exception as e:
+        print(f"⚠️ Error stopping scheduler: {e}")
 
 # --- Routes ---
 @app.get("/api/health")
