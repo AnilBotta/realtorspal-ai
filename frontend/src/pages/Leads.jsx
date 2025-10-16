@@ -1348,15 +1348,18 @@ export default function Leads({ user }) {
         user={user}
       />
 
-      <AIAgentModal
-        open={showAIAgentModal}
-        lead={aiAgentLead}
-        onClose={() => {
-          setShowAIAgentModal(false);
-          setAIAgentLead(null);
-        }}
-        onRunAgent={handleRunAgent}
+      <NurturingControlPanel
+        open={showNurturingPanel}
+        lead={nurturingLead}
         user={user}
+        onClose={() => {
+          setShowNurturingPanel(false);
+          setNurturingLead(null);
+        }}
+        onStatusChange={() => {
+          // Reload leads to show updated nurturing status
+          loadLeads();
+        }}
       />
     </div>
   );
