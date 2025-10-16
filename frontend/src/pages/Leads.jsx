@@ -822,15 +822,30 @@ export default function Leads({ user }) {
 
       {/* DASHBOARD STATUS */}
       <td className="px-3 py-3 border-b w-36">
-        {lead.in_dashboard ? (
-          <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800 block text-center">
-            📊 On Dashboard
-          </span>
-        ) : (
-          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600 block text-center">
-            Not on Dashboard
-          </span>
-        )}
+        <div className="flex flex-col gap-2">
+          {lead.in_dashboard ? (
+            <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800 block text-center">
+              📊 On Dashboard
+            </span>
+          ) : (
+            <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600 block text-center">
+              Not on Dashboard
+            </span>
+          )}
+          
+          {/* Nurturing Status Badge */}
+          {(() => {
+            const badge = getNurturingStatusBadge(lead);
+            if (badge) {
+              return (
+                <span className={`px-2 py-1 text-[10px] rounded-full border ${getStatusColorClass(badge.color)} block text-center truncate`}>
+                  {badge.text}
+                </span>
+              );
+            }
+            return null;
+          })()}
+        </div>
       </td>
 
       {/* ACTIONS */}
