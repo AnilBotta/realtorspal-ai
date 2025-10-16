@@ -52,6 +52,15 @@ export const processNurtureTick = (payload) => api.post(`/agents/nurture/tick`, 
 export const getNurtureStatus = (lead_id) => api.get(`/agents/nurture/status/${lead_id}`);
 // Note: Activity stream is handled via EventSource directly in components
 
+// Lead Nurturing Background Task APIs (new server-side nurturing)
+export const startNurturingSequence = (payload) => api.post(`/nurturing/start`, payload);
+export const pauseNurturingSequence = (payload) => api.post(`/nurturing/pause`, payload);
+export const resumeNurturingSequence = (payload) => api.post(`/nurturing/resume`, payload);
+export const snoozeNurturingSequence = (payload) => api.post(`/nurturing/snooze`, payload);
+export const stopNurturingSequence = (payload) => api.post(`/nurturing/stop`, payload);
+export const getNurturingStatus = (lead_id, user_id) => api.get(`/nurturing/status/${lead_id}`, { params: { user_id } });
+export const getActiveNurturingLeads = (user_id) => api.get(`/nurturing/active/${user_id}`);
+
 export const getDashboardAnalytics = (user_id) => api.get(`/analytics/dashboard`, { params: { user_id } });
 
 export const chat = (payload) => api.post(`/ai/chat`, payload);
