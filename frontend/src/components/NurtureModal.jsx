@@ -59,8 +59,15 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
     try {
       const response = await getNurturingStatus(leadId, user.id);
       setNurtureStatus(response.data);
-      if (response.data.activity_logs) {
-        setLogs(response.data.activity_logs.map(log => log.message));
+      
+      // If there's active nurturing, show it as running
+      if (response.data && ['active', 'running', 'paused', 'snoozed'].includes(response.data.status)) {
+        setStatus('running');
+        
+        // Load activity logs
+        if (response.data.activity_logs) {
+          setLogs(response.data.activity_logs.map(log => log.message));
+        }
       }
     } catch (error) {
       console.error('Failed to load nurturing status:', error);
