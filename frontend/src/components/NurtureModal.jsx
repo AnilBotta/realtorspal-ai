@@ -67,47 +67,6 @@ const NurtureModal = ({ isOpen, onClose, user }) => {
     // Open the Nurturing Control Panel which handles background tasks
     setShowNurturingPanel(true);
   };
-            setNurtureStatus(statusData);
-            
-            // Check if nurturing is complete based on stage
-            if (statusData.stage && ['onboarding', 'not_interested'].includes(statusData.stage)) {
-              setStatus('done');
-              setLogs(prev => [...prev, `✅ Nurturing completed with stage: ${statusData.stage}`]);
-              clearInterval(pollIntervalRef.current);
-              if (eventSourceRef.current) {
-                eventSourceRef.current.close();
-                eventSourceRef.current = null;
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Status polling error:', error);
-        }
-      }, 3000);
-
-      // Auto-complete after 2 minutes for demo
-      setTimeout(() => {
-        if (status === 'running') {
-          setStatus('done');
-          setLogs(prev => [...prev, '✅ Nurturing sequence completed']);
-          setSummary(`Nurturing completed for ${selectedLead.first_name} ${selectedLead.last_name}. 
-            Messages sent via email and SMS based on lead preferences. 
-            Lead moved to appropriate stage based on response patterns.`);
-          
-          clearInterval(pollIntervalRef.current);
-          if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-            eventSourceRef.current = null;
-          }
-        }
-      }, 120000); // 2 minutes
-
-    } catch (error) {
-      console.error('Error starting nurturing:', error);
-      setStatus('error');
-      setLogs(prev => [...prev, `❌ Error: ${error.message}`]);
-    }
-  };
 
   const handleClose = () => {
     // Cleanup
