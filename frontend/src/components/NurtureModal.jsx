@@ -553,6 +553,66 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
           </div>
         </div>
       </div>
+      
+      {/* Snooze Dialog */}
+      {showSnoozeDialog && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowSnoozeDialog(false)} />
+          <div className="relative bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold mb-4 dark:text-white">Snooze Nurturing</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">How long would you like to snooze?</p>
+            <input
+              type="number"
+              value={snoozeDuration}
+              onChange={(e) => setSnoozeDuration(parseInt(e.target.value) || 24)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700 dark:text-white"
+              placeholder="Hours"
+              min="1"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSnoozeDialog(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSnooze}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Snooze
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stop Confirmation Dialog */}
+      {showStopConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowStopConfirm(false)} />
+          <div className="relative bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold mb-4 text-red-600 dark:text-red-400">Stop Nurturing?</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              This will permanently stop the nurturing sequence for this lead. You can start a new sequence anytime.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowStopConfirm(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleStop}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Stop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
