@@ -622,8 +622,8 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
                 </div>
               )}
               
-              {/* Control Buttons for Preselected Lead */}
-              {preselectedLead && nurtureStatus && ['active', 'running', 'paused', 'snoozed'].includes(nurtureStatus.status) && (
+              {/* Control Buttons for Preselected Lead or Full-Width Mode */}
+              {(preselectedLead || showFullWidth) && nurtureStatus && ['active', 'running', 'paused', 'snoozed'].includes(nurtureStatus.status) && (
                 <div className="mt-3 flex gap-2">
                   {nurtureStatus.status === 'active' || nurtureStatus.status === 'running' ? (
                     <>
