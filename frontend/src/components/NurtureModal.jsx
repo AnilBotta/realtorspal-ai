@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Play, Search, MessageSquare, User, Loader, CheckCircle, AlertCircle, Phone, Mail } from 'lucide-react';
 import { getLeads } from '../api';
-import NurturingControlPanel from './NurturingControlPanel';
 
 const NurtureModal = ({ isOpen, onClose, user }) => {
   const [leads, setLeads] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLead, setSelectedLead] = useState(null);
-  const [showNurturingPanel, setShowNurturingPanel] = useState(false);
   const [jobId, setJobId] = useState(null);
   const [status, setStatus] = useState('idle'); // idle, running, done, error
   const [logs, setLogs] = useState([]);
