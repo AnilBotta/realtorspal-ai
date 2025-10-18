@@ -302,7 +302,11 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
     } catch (error) {
       console.error('Error starting nurturing:', error);
       setStatus('error');
-      setLogs(prev => [...prev, `❌ Error: ${error.message}`]);
+      setLogs(prev => [...prev, {
+        message: `❌ Error: ${error.message}`,
+        timestamp: new Date().toISOString(),
+        action_type: 'error'
+      }]);
     }
   };
 
