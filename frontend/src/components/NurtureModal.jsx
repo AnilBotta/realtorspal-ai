@@ -337,6 +337,22 @@ const NurtureModal = ({ isOpen, onClose, user }) => {
           </div>
         </div>
       </div>
+      
+      {/* Nurturing Control Panel */}
+      {showNurturingPanel && (
+        <NurturingControlPanel
+          open={showNurturingPanel}
+          lead={selectedLead}
+          user={user}
+          onClose={() => {
+            setShowNurturingPanel(false);
+            loadLeads(); // Reload leads to show updated status
+          }}
+          onStatusChange={() => {
+            loadLeads(); // Reload leads when status changes
+          }}
+        />
+      )}
     </div>
   );
 };
