@@ -978,13 +978,20 @@ async def schedule_next_action(lead: Dict[str, Any], stage: str) -> None:
         # No more actions needed (final stages)
         await db.leads.update_one(
             {"id": lead["id"]},
-            {"$unset": {"next_nurture_action": ""}}
+            {"$unset": {
+                "next_nurture_action": "",
+                "nurturing_next_action_at": ""
+            }}
         )
         _log(lead["id"], f"[SCHEDULE] No more actions needed for stage: {stage}")
     else:
+        # Update both old and new field names for compatibility
         await db.leads.update_one(
             {"id": lead["id"]},
-            {"$set": {"next_nurture_action": next_time.isoformat()}}
+            {"$set": {
+                "next_nurture_action": next_time.isoformat(),
+                "nurturing_next_action_at": next_time.isoformat()
+            }}
         )
         _log(lead["id"], f"[SCHEDULE] Next action at {next_time.strftime('%Y-%m-%d %H:%M')} for stage: {stage}")
 
