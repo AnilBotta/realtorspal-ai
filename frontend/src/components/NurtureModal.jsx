@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Play, Search, MessageSquare, User, Loader, CheckCircle, AlertCircle, Phone, Mail } from 'lucide-react';
-import { getLeads } from '../api';
+import { X, Play, Search, MessageSquare, User, Loader, CheckCircle, AlertCircle, Phone, Mail, Pause, Clock, StopCircle } from 'lucide-react';
+import { getLeads, getNurturingStatus, pauseNurturingSequence, resumeNurturingSequence, snoozeNurturingSequence, stopNurturingSequence } from '../api';
 
-const NurtureModal = ({ isOpen, onClose, user }) => {
+const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
   const [leads, setLeads] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLead, setSelectedLead] = useState(null);
@@ -11,13 +11,29 @@ const NurtureModal = ({ isOpen, onClose, user }) => {
   const [logs, setLogs] = useState([]);
   const [summary, setSummary] = useState(null);
   const [nurtureStatus, setNurtureStatus] = useState(null);
+  const [showSnoozeDialog, setShowSnoozeDialog] = useState(false);
+  const [snoozeDuration, setSnoozeDuration] = useState(24);
+  const [showStopConfirm, setShowStopConfirm] = useState(false);
   const eventSourceRef = useRef(null);
   const pollIntervalRef = useRef(null);
+
+  // Auto-select preselected lead
+  useEffect(() => {
+    if (preselectedLead) {
+      setSelectedLead(preselectedLead);
+    }
+  }, [preselectedLead]);
 
   // Load leads when modal opens
   useEffect(() => {
     if (isOpen && user?.id) {
       loadLeads();
+      // If there's a preselected lead, load its nurturing status
+      if (preselectedLead?.id) {
+        loadNurturingStatus(preselectedLead.id);
+      }
+    }
+  }, [isOpen, user?.id, preselectedLead]);
     }
     
     // Cleanup on unmount or close
