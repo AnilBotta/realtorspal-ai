@@ -6,6 +6,7 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
   const [leads, setLeads] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLead, setSelectedLead] = useState(null);
+  const [showFullWidth, setShowFullWidth] = useState(false); // Track if should show full-width view
   const [jobId, setJobId] = useState(null);
   const [status, setStatus] = useState('idle'); // idle, running, done, error
   const [logs, setLogs] = useState([]);
@@ -17,10 +18,11 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
   const eventSourceRef = useRef(null);
   const pollIntervalRef = useRef(null);
 
-  // Auto-select preselected lead
+  // Auto-select preselected lead and show full-width
   useEffect(() => {
     if (preselectedLead) {
       setSelectedLead(preselectedLead);
+      setShowFullWidth(true);
     }
   }, [preselectedLead]);
 
