@@ -189,7 +189,11 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {
-        setLogs(prev => [...prev, '🔗 Connected to nurturing stream...']);
+        setLogs(prev => [...prev, {
+          message: '🔗 Connected to nurturing stream...',
+          timestamp: new Date().toISOString(),
+          action_type: 'info'
+        }]);
       };
 
       eventSource.addEventListener('log', (e) => {
