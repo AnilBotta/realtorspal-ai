@@ -3,6 +3,7 @@ import { Play, Pause, Settings, Activity, Clock, CheckCircle, AlertCircle, Brain
 import { getAIAgents, updateAIAgent, getAgentActivities, getApprovalQueue, handleApprovalDecision, createAgentActivity, orchestrateAgents, getLiveActivityStream, getAgentRuns, executeAgent } from '../api';
 import LeadGenModal from '../components/LeadGenModal';
 import NurtureModal from '../components/NurtureModal';
+import NurturingControlPanel from '../components/NurturingControlPanel';
 
 const AIAgents = ({ user }) => {
   const [agents, setAgents] = useState([]);
