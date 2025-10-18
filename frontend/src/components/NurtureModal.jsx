@@ -158,6 +158,9 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
       setSummary(null);
       setNurtureStatus(null);
       setStatus('running');
+      
+      // Switch to full-width view immediately when starting nurturing
+      setShowFullWidth(true);
 
       // Step 1: Create persistent nurturing sequence in background system
       const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
@@ -183,11 +186,11 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
           const persistResult = await persistResponse.json();
           console.log('Background nurturing sequence started:', persistResult);
           
-          // Switch to full-width view after starting nurturing
-          setShowFullWidth(true);
-          
           // Load the nurturing status to show controls and progress
           await loadNurturingStatus(selectedLead.id);
+        } else {
+          const errorData = await persistResponse.json();
+          console.warn('Persistent sequence creation failed:', errorData);
         }
       } catch (error) {
         console.warn('Could not start background sequence:', error);
