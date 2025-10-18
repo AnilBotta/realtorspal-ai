@@ -358,6 +358,7 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
     setSummary(null);
     setSelectedLead(null);
     setJobId(null);
+    setShowFullWidth(false); // Reset full-width mode
     
     onClose();
   };
