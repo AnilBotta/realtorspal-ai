@@ -617,14 +617,30 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {logs.map((log, index) => (
-                    <div key={index} className="bg-white dark:bg-gray-800 p-3 rounded text-sm font-mono border dark:border-gray-700">
-                      <span className="text-gray-500 dark:text-gray-400">
-                        {new Date().toLocaleTimeString()}
-                      </span>
-                      <span className="ml-2 dark:text-gray-200">{log}</span>
-                    </div>
-                  ))}
+                  {logs.map((log, index) => {
+                    // Handle both string logs (from SSE) and object logs (from activity_logs)
+                    const isObject = typeof log === 'object' && log !== null;
+                    const logMessage = isObject ? log.message : log;
+                    const logTimestamp = isObject && log.timestamp 
+                      ? new Date(log.timestamp).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: true
+                        })
+                      : new Date().toLocaleTimeString();
+                    
+                    return (
+                      <div key={index} className="bg-white dark:bg-gray-800 p-3 rounded text-sm font-mono border dark:border-gray-700">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {logTimestamp}
+                        </span>
+                        <span className="ml-2 dark:text-gray-200">{logMessage}</span>
+                      </div>
+                    );
+                  })}
                   {status === 'running' && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded text-sm border border-blue-200 dark:border-blue-800">
                       <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
