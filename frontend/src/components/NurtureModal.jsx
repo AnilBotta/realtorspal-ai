@@ -57,6 +57,74 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
     }
   };
 
+  const loadNurturingStatus = async (leadId) => {
+    try {
+      const response = await getNurturingStatus(leadId, user.id);
+      setNurtureStatus(response.data);
+      if (response.data.activity_logs) {
+        setLogs(response.data.activity_logs.map(log => log.message));
+      }
+    } catch (error) {
+      console.error('Failed to load nurturing status:', error);
+    }
+  };
+
+  const handlePause = async () => {
+    if (!selectedLead) return;
+    try {
+      await pauseNurturingSequence({
+        lead_id: selectedLead.id,
+        user_id: user.id,
+        reason: 'user_paused'
+      });
+      await loadNurturingStatus(selectedLead.id);
+    } catch (error) {
+      console.error('Failed to pause:', error);
+    }
+  };
+
+  const handleResume = async () => {
+    if (!selectedLead) return;
+    try {
+      await resumeNurturingSequence({
+        lead_id: selectedLead.id,
+        user_id: user.id
+      });
+      await loadNurturingStatus(selectedLead.id);
+    } catch (error) {
+      console.error('Failed to resume:', error);
+    }
+  };
+
+  const handleSnooze = async () => {
+    if (!selectedLead) return;
+    try {
+      await snoozeNurturingSequence({
+        lead_id: selectedLead.id,
+        user_id: user.id,
+        snooze_duration_hours: snoozeDuration
+      });
+      await loadNurturingStatus(selectedLead.id);
+      setShowSnoozeDialog(false);
+    } catch (error) {
+      console.error('Failed to snooze:', error);
+    }
+  };
+
+  const handleStop = async () => {
+    if (!selectedLead) return;
+    try {
+      await stopNurturingSequence({
+        lead_id: selectedLead.id,
+        user_id: user.id
+      });
+      await loadNurturingStatus(selectedLead.id);
+      setShowStopConfirm(false);
+    } catch (error) {
+      console.error('Failed to stop:', error);
+    }
+  };
+
   // Filter leads based on search
   const filteredLeads = leads.filter(lead => {
     if (!searchQuery) return true;
