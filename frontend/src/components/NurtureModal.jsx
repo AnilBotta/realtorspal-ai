@@ -397,7 +397,7 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
             </div>
 
             {/* Action Button */}
-            <div className="p-4 border-t dark:border-gray-700">
+            <div className="p-4 border-t dark:border-gray-700 space-y-3">
               <button
                 onClick={handleStart}
                 disabled={!selectedLead || status === 'running'}
@@ -415,6 +415,67 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
                   </>
                 )}
               </button>
+
+              {/* Nurturing Controls */}
+              {nurtureStatus && ['active', 'running', 'paused', 'snoozed'].includes(nurtureStatus.status) && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Nurturing Controls:</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {nurtureStatus.status === 'active' || nurtureStatus.status === 'running' ? (
+                      <>
+                        <button
+                          onClick={handlePause}
+                          className="flex items-center justify-center gap-1 px-3 py-2 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 transition-colors"
+                        >
+                          <Pause size={14} />
+                          Pause
+                        </button>
+                        <button
+                          onClick={() => setShowSnoozeDialog(true)}
+                          className="flex items-center justify-center gap-1 px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                        >
+                          <Clock size={14} />
+                          Snooze
+                        </button>
+                        <button
+                          onClick={() => setShowStopConfirm(true)}
+                          className="col-span-2 flex items-center justify-center gap-1 px-3 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                        >
+                          <StopCircle size={14} />
+                          Stop
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleResume}
+                          className="col-span-2 flex items-center justify-center gap-1 px-3 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                        >
+                          <Play size={14} />
+                          Resume
+                        </button>
+                        <button
+                          onClick={() => setShowStopConfirm(true)}
+                          className="col-span-2 flex items-center justify-center gap-1 px-3 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                        >
+                          <StopCircle size={14} />
+                          Stop
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Status Info */}
+                  {nurtureStatus.current_step !== undefined && nurtureStatus.total_steps && (
+                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                      <div>Progress: Step {nurtureStatus.current_step + 1} / {nurtureStatus.total_steps}</div>
+                      {nurtureStatus.next_action_at && (
+                        <div>Next action: {new Date(nurtureStatus.next_action_at).toLocaleString()}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
