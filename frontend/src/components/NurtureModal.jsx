@@ -64,9 +64,82 @@ const NurtureModal = ({ isOpen, onClose, user }) => {
       return;
     }
 
-    // Open the Nurturing Control Panel which handles background tasks
-    setShowNurturingPanel(true);
-  };
+    try {
+      setLogs([]);
+      setSummary(null);
+      setNurtureStatus(null);
+      setStatus('running');
+
+      // Start nurturing
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
+      if (!backendUrl) {
+        throw new Error('Backend URL not configured');
+      }
+      const response = await fetch(`${backendUrl}/api/agents/nurture/run`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lead_id: selectedLead.id,
+          user_id: user.id
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to start nurturing');
+      }
+
+      const result = await response.json();
+      const newJobId = `${selectedLead.id}_${Date.now()}`;
+      setJobId(newJobId);
+
+      // Connect to SSE stream for real-time logs
+      const eventSource = new EventSource(
+        `${backendUrl}/api/agents/nurture/stream/${selectedLead.id}`
+      );
+      eventSourceRef.current = eventSource;
+
+      eventSource.onopen = () => {
+        setLogs(prev => [...prev, '🔗 Connected to nurturing stream...']);
+      };
+
+      eventSource.addEventListener('log', (e) => {
+        setLogs(prev => [...prev, e.data]);
+      });
+
+      eventSource.addEventListener('status', (e) => {
+        const statusData = e.data;
+        if (statusData.includes('complete:') || statusData.includes('stopped:')) {
+          setStatus('done');
+          eventSource.close();
+          eventSourceRef.current = null;
+        }
+      });
+
+      eventSource.onerror = () => {
+        setLogs(prev => [...prev, '❌ Connection lost, retrying...']);
+        eventSource.close();
+        eventSourceRef.current = null;
+        // Don't set error status, let polling handle it
+      };
+
+      // Add initial log
+      setLogs(prev => [...prev, `🚀 Starting nurturing for ${selectedLead.first_name} ${selectedLead.last_name}`]);
+      setLogs(prev => [...prev, `📧 Lead Contact: ${selectedLead.email || 'No email'}`]);
+      setLogs(prev => [...prev, `📱 Lead Phone: ${selectedLead.phone || 'No phone'}`]);
+      setLogs(prev => [...prev, `🎯 Current Stage: ${result.stage || 'Unknown'}`]);
+
+      // Poll for status updates every 3 seconds
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const statusResponse = await fetch(
+            `${backendUrl}/api/agents/nurture/status/${selectedLead.id}`
+          );
+          
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
             setNurtureStatus(statusData);
             
             // Check if nurturing is complete based on stage
