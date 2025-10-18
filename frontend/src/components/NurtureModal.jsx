@@ -64,9 +64,9 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
       if (response.data && ['active', 'running', 'paused', 'snoozed'].includes(response.data.status)) {
         setStatus('running');
         
-        // Load activity logs
+        // Load activity logs with full objects (including timestamps)
         if (response.data.activity_logs) {
-          setLogs(response.data.activity_logs.map(log => log.message));
+          setLogs(response.data.activity_logs);
         }
       }
     } catch (error) {
