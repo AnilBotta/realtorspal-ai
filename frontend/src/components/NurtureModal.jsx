@@ -531,7 +531,7 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
                 {nurtureStatus && ['active', 'running'].includes(nurtureStatus.status) ? (
                   <>
                     <CheckCircle size={16} />
-                    Lead is Nurturing
+                    View Nurturing Status
                   </>
                 ) : nurtureStatus && ['paused', 'snoozed'].includes(nurtureStatus.status) ? (
                   <>
