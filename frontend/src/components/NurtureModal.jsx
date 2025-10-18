@@ -413,8 +413,8 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Left Panel - Lead Selection (hide if preselected lead) */}
-          {!preselectedLead && (
+          {/* Left Panel - Lead Selection (hide if preselected lead or full-width mode) */}
+          {!preselectedLead && !showFullWidth && (
             <div className="w-1/3 border-r dark:border-gray-700 flex flex-col">
               <div className="p-4 border-b dark:border-gray-700">
                 <div className="relative">
