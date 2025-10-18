@@ -33,8 +33,6 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
         loadNurturingStatus(preselectedLead.id);
       }
     }
-  }, [isOpen, user?.id, preselectedLead]);
-    }
     
     // Cleanup on unmount or close
     return () => {
@@ -45,7 +43,7 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
         clearInterval(pollIntervalRef.current);
       }
     };
-  }, [isOpen, user?.id]);
+  }, [isOpen, user?.id, preselectedLead]);
 
   const loadLeads = async () => {
     try {
