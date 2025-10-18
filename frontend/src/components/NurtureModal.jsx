@@ -483,7 +483,11 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
                   {filteredLeads.map(lead => (
                     <div
                       key={lead.id}
-                      onClick={() => setSelectedLead(lead)}
+                      onClick={async () => {
+                        setSelectedLead(lead);
+                        // Load nurturing status when lead is selected
+                        await loadNurturingStatus(lead.id);
+                      }}
                       className={`p-3 cursor-pointer border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
                         selectedLead?.id === lead.id 
                           ? 'bg-green-50 border-l-4 border-l-green-500 dark:bg-green-900/20' 
