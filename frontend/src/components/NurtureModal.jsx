@@ -261,7 +261,11 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
             // Check if nurturing is complete based on stage
             if (statusData.stage && ['onboarding', 'not_interested'].includes(statusData.stage)) {
               setStatus('done');
-              setLogs(prev => [...prev, `✅ Nurturing completed with stage: ${statusData.stage}`]);
+              setLogs(prev => [...prev, {
+                message: `✅ Nurturing completed with stage: ${statusData.stage}`,
+                timestamp: new Date().toISOString(),
+                action_type: 'success'
+              }]);
               clearInterval(pollIntervalRef.current);
               if (eventSourceRef.current) {
                 eventSourceRef.current.close();
