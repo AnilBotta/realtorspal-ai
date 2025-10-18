@@ -193,7 +193,12 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
       };
 
       eventSource.addEventListener('log', (e) => {
-        setLogs(prev => [...prev, e.data]);
+        // Store as object with timestamp
+        setLogs(prev => [...prev, {
+          message: e.data,
+          timestamp: new Date().toISOString(),
+          action_type: 'info'
+        }]);
       });
 
       eventSource.addEventListener('status', (e) => {
@@ -206,17 +211,37 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
       });
 
       eventSource.onerror = () => {
-        setLogs(prev => [...prev, '❌ Connection lost, retrying...']);
+        setLogs(prev => [...prev, {
+          message: '❌ Connection lost, retrying...',
+          timestamp: new Date().toISOString(),
+          action_type: 'error'
+        }]);
         eventSource.close();
         eventSourceRef.current = null;
         // Don't set error status, let polling handle it
       };
 
-      // Add initial log
-      setLogs(prev => [...prev, `🚀 Starting nurturing for ${selectedLead.first_name} ${selectedLead.last_name}`]);
-      setLogs(prev => [...prev, `📧 Lead Contact: ${selectedLead.email || 'No email'}`]);
-      setLogs(prev => [...prev, `📱 Lead Phone: ${selectedLead.phone || 'No phone'}`]);
-      setLogs(prev => [...prev, `🎯 Current Stage: ${result.stage || 'Unknown'}`]);
+      // Add initial logs as objects with timestamps
+      setLogs(prev => [...prev, {
+        message: `🚀 Starting nurturing for ${selectedLead.first_name} ${selectedLead.last_name}`,
+        timestamp: new Date().toISOString(),
+        action_type: 'info'
+      }]);
+      setLogs(prev => [...prev, {
+        message: `📧 Lead Contact: ${selectedLead.email || 'No email'}`,
+        timestamp: new Date().toISOString(),
+        action_type: 'info'
+      }]);
+      setLogs(prev => [...prev, {
+        message: `📱 Lead Phone: ${selectedLead.phone || 'No phone'}`,
+        timestamp: new Date().toISOString(),
+        action_type: 'info'
+      }]);
+      setLogs(prev => [...prev, {
+        message: `🎯 Current Stage: ${result.stage || 'Unknown'}`,
+        timestamp: new Date().toISOString(),
+        action_type: 'info'
+      }]);
 
       // Poll for status updates every 3 seconds
       pollIntervalRef.current = setInterval(async () => {
