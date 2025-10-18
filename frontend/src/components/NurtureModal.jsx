@@ -339,23 +339,24 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Left Panel - Lead Selection */}
-          <div className="w-1/3 border-r dark:border-gray-700 flex flex-col">
-            <div className="p-4 border-b dark:border-gray-700">
-              <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search leads..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                />
+          {/* Left Panel - Lead Selection (hide if preselected lead) */}
+          {!preselectedLead && (
+            <div className="w-1/3 border-r dark:border-gray-700 flex flex-col">
+              <div className="p-4 border-b dark:border-gray-700">
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search leads..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  {filteredLeads.length} leads available
+                </div>
               </div>
-              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                {filteredLeads.length} leads available
-              </div>
-            </div>
 
             <div className="flex-1 overflow-y-auto">
               {filteredLeads.length === 0 ? (
