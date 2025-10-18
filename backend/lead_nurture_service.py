@@ -1040,8 +1040,19 @@ async def start_nurturing(request: RunNurtureRequest, background_tasks: Backgrou
     current_stage = _get_stage(lead)
     _log(request.lead_id, f"[STAGE] Current stage: {current_stage}")
     
-    # Update stage in database
+    # Update stage and nurturing status in database
     await _update_lead_stage(request.lead_id, current_stage)
+    
+    # Initialize nurturing status if not already set
+    if not lead.get("nurturing_status") or lead.get("nurturing_status") not in ["active", "running"]:
+        await db.leads.update_one(
+            {"id": request.lead_id},
+            {"$set": {
+                "nurturing_status": "active",
+                "nurturing_current_step": lead.get("nurturing_current_step", 0),
+                "nurturing_total_steps": lead.get("nurturing_total_steps", 5)
+            }}
+        )
     
     # Determine action based on stage
     if current_stage == "new":
