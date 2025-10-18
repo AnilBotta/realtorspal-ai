@@ -157,11 +157,36 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
       setNurtureStatus(null);
       setStatus('running');
 
-      // Start nurturing
+      // Step 1: Create persistent nurturing sequence in background system
       const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
       if (!backendUrl) {
         throw new Error('Backend URL not configured');
       }
+      
+      // Start the persistent background sequence first
+      try {
+        const persistResponse = await fetch(`${backendUrl}/api/nurturing/start`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            lead_id: selectedLead.id,
+            user_id: user.id,
+            total_steps: 5
+          })
+        });
+        
+        if (persistResponse.ok) {
+          const persistResult = await persistResponse.json();
+          console.log('Background nurturing sequence started:', persistResult);
+        }
+      } catch (error) {
+        console.warn('Could not start background sequence:', error);
+        // Continue anyway to show SSE streaming
+      }
+      
+      // Step 2: Start SSE streaming for live execution logs
       const response = await fetch(`${backendUrl}/api/agents/nurture/run`, {
         method: 'POST',
         headers: {
