@@ -182,6 +182,12 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
         if (persistResponse.ok) {
           const persistResult = await persistResponse.json();
           console.log('Background nurturing sequence started:', persistResult);
+          
+          // Switch to full-width view after starting nurturing
+          setShowFullWidth(true);
+          
+          // Load the nurturing status to show controls and progress
+          await loadNurturingStatus(selectedLead.id);
         }
       } catch (error) {
         console.warn('Could not start background sequence:', error);
