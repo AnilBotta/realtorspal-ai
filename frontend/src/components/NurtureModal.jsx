@@ -484,9 +484,10 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
               )}
             </div>
           </div>
+          )}
 
           {/* Right Panel - Activity Stream */}
-          <div className="w-2/3 flex flex-col">
+          <div className={`${preselectedLead ? 'w-full' : 'w-2/3'} flex flex-col`}>
             <div className="p-4 border-b dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium dark:text-white">
