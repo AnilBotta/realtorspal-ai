@@ -7,6 +7,7 @@ const NurtureModal = ({ isOpen, onClose, user }) => {
   const [leads, setLeads] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLead, setSelectedLead] = useState(null);
+  const [showNurturingPanel, setShowNurturingPanel] = useState(false);
   const [jobId, setJobId] = useState(null);
   const [status, setStatus] = useState('idle'); // idle, running, done, error
   const [logs, setLogs] = useState([]);
