@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Play, Search, MessageSquare, User, Loader, CheckCircle, AlertCircle, Phone, Mail } from 'lucide-react';
 import { getLeads } from '../api';
+import NurturingControlPanel from './NurturingControlPanel';
 
 const NurtureModal = ({ isOpen, onClose, user }) => {
   const [leads, setLeads] = useState([]);
