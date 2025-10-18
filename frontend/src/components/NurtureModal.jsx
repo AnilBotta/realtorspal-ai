@@ -162,12 +162,49 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
       // Switch to full-width view immediately when starting nurturing
       setShowFullWidth(true);
 
-      // Step 1: Create persistent nurturing sequence in background system
+      // Step 0: Check if lead is already being nurtured
       const backendUrl = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
       if (!backendUrl) {
         throw new Error('Backend URL not configured');
       }
       
+      // Check existing nurturing status
+      try {
+        const statusResponse = await fetch(`${backendUrl}/api/nurturing/status/${selectedLead.id}?user_id=${user.id}`);
+        if (statusResponse.ok) {
+          const existingStatus = await statusResponse.json();
+          
+          // If lead is already being nurtured (active/paused/snoozed), load existing session
+          if (existingStatus.status && ['active', 'running', 'paused', 'snoozed'].includes(existingStatus.status)) {
+            console.log('Lead is already being nurtured, loading existing session:', existingStatus);
+            
+            // Load existing nurturing status and logs
+            setNurtureStatus(existingStatus);
+            
+            if (existingStatus.activity_logs && existingStatus.activity_logs.length > 0) {
+              setLogs(existingStatus.activity_logs);
+            }
+            
+            // Set status to running to show we're viewing an active session
+            setStatus('running');
+            
+            // Show message that we're viewing existing session
+            setLogs(prev => [...prev, {
+              message: `📋 Viewing existing nurturing session for ${selectedLead.first_name} ${selectedLead.last_name}`,
+              timestamp: new Date().toISOString(),
+              action_type: 'info'
+            }]);
+            
+            // Don't start a new session, just return
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('Could not check existing nurturing status:', error);
+        // Continue with starting new session
+      }
+      
+      // Step 1: Create persistent nurturing sequence in background system (only if not already nurturing)
       // Start the persistent background sequence first
       try {
         const persistResponse = await fetch(`${backendUrl}/api/nurturing/start`, {
