@@ -406,10 +406,20 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
             <div className="p-4 border-t dark:border-gray-700 space-y-3">
               <button
                 onClick={handleStart}
-                disabled={!selectedLead || status === 'running'}
+                disabled={!selectedLead || (status === 'running' && nurtureStatus?.status !== 'paused' && nurtureStatus?.status !== 'snoozed')}
                 className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 font-medium"
               >
-                {status === 'running' ? (
+                {nurtureStatus && ['active', 'running'].includes(nurtureStatus.status) ? (
+                  <>
+                    <CheckCircle size={16} />
+                    Lead is Nurturing
+                  </>
+                ) : nurtureStatus && ['paused', 'snoozed'].includes(nurtureStatus.status) ? (
+                  <>
+                    <Play size={16} />
+                    Resume Nurturing
+                  </>
+                ) : status === 'running' ? (
                   <>
                     <Loader className="animate-spin" size={16} />
                     Nurturing in Progress...
