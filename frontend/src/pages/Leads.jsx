@@ -1364,18 +1364,16 @@ export default function Leads({ user }) {
         user={user}
       />
 
-      <NurturingControlPanel
-        open={showNurturingPanel}
-        lead={nurturingLead}
-        user={user}
+      <NurtureModal
+        isOpen={showNurturingPanel}
         onClose={() => {
           setShowNurturingPanel(false);
           setNurturingLead(null);
-        }}
-        onStatusChange={() => {
           // Reload leads to show updated nurturing status
           loadLeads();
         }}
+        user={user}
+        preselectedLead={nurturingLead}
       />
     </div>
   );
