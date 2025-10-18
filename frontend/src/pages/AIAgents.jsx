@@ -17,6 +17,8 @@ const AIAgents = ({ user }) => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showLeadGenModal, setShowLeadGenModal] = useState(false);
   const [showNurtureModal, setShowNurtureModal] = useState(false);
+  const [showNurturingPanel, setShowNurturingPanel] = useState(false);
+  const [selectedNurtureLead, setSelectedNurtureLead] = useState(null);
   const [configAgent, setConfigAgent] = useState(null);
   const streamRef = useRef(null);
 
