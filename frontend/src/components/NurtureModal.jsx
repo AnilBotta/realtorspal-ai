@@ -489,23 +489,100 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
           {/* Right Panel - Activity Stream */}
           <div className={`${preselectedLead ? 'w-full' : 'w-2/3'} flex flex-col`}>
             <div className="p-4 border-b dark:border-gray-700">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-2">
                 <h3 className="font-medium dark:text-white">
                   {selectedLead ? 
                     `Nurturing: ${selectedLead.first_name} ${selectedLead.last_name}` : 
                     'Select a lead to start nurturing'
                   }
                 </h3>
-                {nurtureStatus && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400 space-x-4">
-                    <span>Stage: {nurtureStatus.stage}</span>
-                    <span>Contacts: {nurtureStatus.contact_count || 0}</span>
+                
+                {/* Nurturing Status Badge */}
+                {nurtureStatus && nurtureStatus.status && (
+                  <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    nurtureStatus.status === 'active' || nurtureStatus.status === 'running' 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      : nurtureStatus.status === 'paused'
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                      : nurtureStatus.status === 'snoozed'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                  }`}>
+                    {nurtureStatus.status === 'active' || nurtureStatus.status === 'running' ? '🤖 Nurturing Active' :
+                     nurtureStatus.status === 'paused' ? '⏸️ Paused' :
+                     nurtureStatus.status === 'snoozed' ? '😴 Snoozed' :
+                     nurtureStatus.status === 'completed' ? '✅ Completed' :
+                     '⏹️ Stopped'}
                   </div>
                 )}
               </div>
+              
+              {/* Progress and Info */}
+              {nurtureStatus && (
+                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-2">
+                  <div className="flex items-center space-x-4">
+                    {nurtureStatus.current_step !== undefined && nurtureStatus.total_steps && (
+                      <span>Step {nurtureStatus.current_step + 1} / {nurtureStatus.total_steps}</span>
+                    )}
+                    {nurtureStatus.stage && <span>Stage: {nurtureStatus.stage}</span>}
+                  </div>
+                  {nurtureStatus.next_action_at && (
+                    <span>Next: {new Date(nurtureStatus.next_action_at).toLocaleString()}</span>
+                  )}
+                </div>
+              )}
+              
               {selectedLead && (
-                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  Email: {selectedLead.email} • Phone: {selectedLead.phone} • Priority: {selectedLead.priority}
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Email: {selectedLead.email} • Phone: {selectedLead.phone}
+                </div>
+              )}
+              
+              {/* Control Buttons for Preselected Lead */}
+              {preselectedLead && nurtureStatus && ['active', 'running', 'paused', 'snoozed'].includes(nurtureStatus.status) && (
+                <div className="mt-3 flex gap-2">
+                  {nurtureStatus.status === 'active' || nurtureStatus.status === 'running' ? (
+                    <>
+                      <button
+                        onClick={handlePause}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 transition-colors"
+                      >
+                        <Pause size={12} />
+                        Pause
+                      </button>
+                      <button
+                        onClick={() => setShowSnoozeDialog(true)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                      >
+                        <Clock size={12} />
+                        Snooze
+                      </button>
+                      <button
+                        onClick={() => setShowStopConfirm(true)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                      >
+                        <StopCircle size={12} />
+                        Stop
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleResume}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                      >
+                        <Play size={12} />
+                        Resume
+                      </button>
+                      <button
+                        onClick={() => setShowStopConfirm(true)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                      >
+                        <StopCircle size={12} />
+                        Stop
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
