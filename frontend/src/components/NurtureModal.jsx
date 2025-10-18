@@ -282,7 +282,11 @@ const NurtureModal = ({ isOpen, onClose, user, preselectedLead = null }) => {
       setTimeout(() => {
         if (status === 'running') {
           setStatus('done');
-          setLogs(prev => [...prev, '✅ Nurturing sequence completed']);
+          setLogs(prev => [...prev, {
+            message: '✅ Nurturing sequence completed',
+            timestamp: new Date().toISOString(),
+            action_type: 'success'
+          }]);
           setSummary(`Nurturing completed for ${selectedLead.first_name} ${selectedLead.last_name}. 
             Messages sent via email and SMS based on lead preferences. 
             Lead moved to appropriate stage based on response patterns.`);
