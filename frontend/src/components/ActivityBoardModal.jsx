@@ -60,7 +60,11 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
       const response = await getNurturingActivities(user.id, dateFilter, statusFilter === 'today' ? null : statusFilter);
       
       if (response.data.status === 'success') {
-        setActivities(response.data.activities || []);
+        // Filter out deleted activities
+        const filteredActivities = (response.data.activities || []).filter(
+          activity => activity.status !== 'deleted'
+        );
+        setActivities(filteredActivities);
       }
     } catch (error) {
       console.error('Failed to load activities:', error);
