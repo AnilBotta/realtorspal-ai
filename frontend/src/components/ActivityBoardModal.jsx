@@ -18,6 +18,7 @@ import {
   X
 } from 'lucide-react';
 import { getNurturingActivities, updateActivityStatus, generateNurturingPlan, getLeads } from '../api';
+import EmailDraftModal from './EmailDraftModal';
 
 const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
   const [activities, setActivities] = useState([]);
@@ -29,6 +30,8 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
   const [selectedActivities, setSelectedActivities] = useState(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [leads, setLeads] = useState([]);
+  const [showEmailDraftModal, setShowEmailDraftModal] = useState(false);
+  const [selectedLeadForDrafts, setSelectedLeadForDrafts] = useState(null);
 
   useEffect(() => {
     if (open) {
