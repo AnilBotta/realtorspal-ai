@@ -647,6 +647,13 @@ async def _save_sms_draft(lead: Dict[str, Any], message: str, user_id: str) -> s
         await db.sms_drafts.insert_one(sms_draft)
         _log(lead["id"], f"[SMS] Draft saved -> {draft_id} (Type: {sms_type}, Urgency: {urgency})")
         
+        # Update draft activity for this lead
+        try:
+            from server import update_draft_activity
+            await update_draft_activity(lead["id"], user_id, "sms")
+        except Exception as e:
+            _log(lead["id"], f"[WARNING] Failed to update draft activity: {str(e)}")
+        
         return draft_id
         
     except Exception as e:
