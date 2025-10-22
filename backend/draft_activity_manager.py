@@ -11,7 +11,7 @@ import os
 
 # Database connection
 MONGO_URL = os.environ.get("MONGO_URL")
-DB_NAME = os.environ.get('DB_NAME')
+DB_NAME = os.environ.get('DB_NAME', 'realtorspal')  # Default to realtorspal
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
 
