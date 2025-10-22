@@ -609,10 +609,13 @@ async def _save_email_draft(lead: Dict[str, Any], message: str, user_id: str) ->
         
         # Update draft activity for this lead
         try:
-            from server import update_draft_activity
+            from draft_activity_manager import update_draft_activity
             await update_draft_activity(lead["id"], user_id, "email")
+            _log(lead["id"], f"[ACTIVITY] Draft activity updated for email")
         except Exception as e:
             _log(lead["id"], f"[WARNING] Failed to update draft activity: {str(e)}")
+            import traceback
+            traceback.print_exc()
         
         return draft_id
         
