@@ -5944,9 +5944,22 @@ async def send_email_draft(request: SendDraftRequest):
 async def delete_email_draft(draft_id: str):
     """Delete an email draft"""
     try:
-        result = await db.email_drafts.delete_one({"id": draft_id})
-        if result.deleted_count == 0:
+        # Get draft info before deleting
+        draft = await db.email_drafts.find_one({"id": draft_id})
+        if not draft:
             raise HTTPException(status_code=404, detail="Draft not found")
+        
+        lead_id = draft.get("lead_id")
+        user_id = draft.get("user_id")
+        channel = draft.get("channel", "email")
+        
+        # Delete the draft
+        result = await db.email_drafts.delete_one({"id": draft_id})
+        
+        # Update draft activity
+        if lead_id and user_id:
+            await update_draft_activity(lead_id, user_id, channel)
+        
         return {"message": "Draft deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
