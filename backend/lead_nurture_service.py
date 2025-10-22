@@ -654,10 +654,13 @@ async def _save_sms_draft(lead: Dict[str, Any], message: str, user_id: str) -> s
         
         # Update draft activity for this lead
         try:
-            from server import update_draft_activity
+            from draft_activity_manager import update_draft_activity
             await update_draft_activity(lead["id"], user_id, "sms")
+            _log(lead["id"], f"[ACTIVITY] Draft activity updated for SMS")
         except Exception as e:
             _log(lead["id"], f"[WARNING] Failed to update draft activity: {str(e)}")
+            import traceback
+            traceback.print_exc()
         
         return draft_id
         
