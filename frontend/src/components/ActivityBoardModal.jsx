@@ -348,9 +348,33 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
                             {getActivityIcon(activity.action)}
                             <div>
                               <p className="text-sm font-medium text-gray-900">
-                                {getActivityTitle(activity.action)} with {getLeadName(activity.lead_id)}
+                                {activity.activity_type === 'pending_email_drafts' || activity.activity_type === 'pending_sms_drafts' ? (
+                                  <>
+                                    {activity.title || getActivityTitle(activity.action)} with {getLeadName(activity.lead_id)}
+                                    {activity.draft_count > 0 && (
+                                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {activity.draft_count} draft{activity.draft_count !== 1 ? 's' : ''}
+                                      </span>
+                                    )}
+                                    {activity.urgency_badge && activity.urgency_level !== 'normal' && (
+                                      <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                        activity.urgency_level === 'urgent' || activity.urgency_level === 'high' 
+                                          ? 'bg-red-100 text-red-800' 
+                                          : activity.urgency_level === 'first_time_email'
+                                          ? 'bg-orange-100 text-orange-800'
+                                          : 'bg-yellow-100 text-yellow-800'
+                                      }`}>
+                                        {activity.urgency_badge}
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    {getActivityTitle(activity.action)} with {getLeadName(activity.lead_id)}
+                                  </>
+                                )}
                               </p>
-                              {activity.draft_content && (
+                              {(activity.draft_content || activity.activity_type === 'pending_email_drafts' || activity.activity_type === 'pending_sms_drafts') && (
                                 <button
                                   onClick={() => openDraftModal(activity)}
                                   className="text-xs text-blue-600 hover:text-blue-700 underline"
