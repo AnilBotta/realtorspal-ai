@@ -633,10 +633,11 @@ async def _save_sms_draft(lead: Dict[str, Any], message: str, user_id: str) -> s
             "id": draft_id,
             "lead_id": lead["id"], 
             "user_id": user_id,
-            "message": message,
-            "to_phone": lead.get("phone"),
+            "subject": "Quick SMS",  # Add subject for consistency
+            "body": message,  # Use body field for consistency
+            "to_email": lead.get("phone"),  # Store phone in to_email for now (or add to_phone)
             "status": "draft",
-            "sms_type": sms_type,
+            "email_type": sms_type,  # Use email_type field
             "urgency": urgency,
             "created_at": _now().isoformat(),
             "due_date": (_now() + timedelta(hours=24)).isoformat(),
@@ -644,7 +645,8 @@ async def _save_sms_draft(lead: Dict[str, Any], message: str, user_id: str) -> s
             "channel": "sms"
         }
         
-        await db.sms_drafts.insert_one(sms_draft)
+        # Store in email_drafts collection with channel=sms for unified handling
+        await db.email_drafts.insert_one(sms_draft)
         _log(lead["id"], f"[SMS] Draft saved -> {draft_id} (Type: {sms_type}, Urgency: {urgency})")
         
         # Update draft activity for this lead
