@@ -210,6 +210,22 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
     }
   };
 
+  const handleDeleteActivity = async (activityId, event) => {
+    event.stopPropagation(); // Prevent triggering row selection
+    
+    if (!window.confirm('Are you sure you want to delete this activity?')) {
+      return;
+    }
+    
+    try {
+      await updateActivityStatus(activityId, 'deleted', user.id, 'Activity removed by user');
+      await loadActivities();
+    } catch (error) {
+      console.error('Failed to delete activity:', error);
+      alert('Failed to delete activity');
+    }
+  };
+
   const getLeadName = (leadId) => {
     const lead = leads.find(l => l.id === leadId);
     if (!lead) return 'Unknown Lead';
