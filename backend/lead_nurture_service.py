@@ -574,6 +574,9 @@ async def deliver_message(lead: Dict[str, Any], channel: str, message: str, user
 async def _save_email_draft(lead: Dict[str, Any], message: str, user_id: str) -> str:
     """Save email as draft for later sending"""
     try:
+        _log(lead.get("id", "UNKNOWN"), f"[_save_email_draft] CALLED - Starting email draft creation")
+        _log(lead.get("id", "UNKNOWN"), f"[_save_email_draft] Lead email: {lead.get('email')}, User ID: {user_id}")
+        
         # Generate email subject
         lead_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
         if not lead_name:
@@ -583,6 +586,8 @@ async def _save_email_draft(lead: Dict[str, Any], message: str, user_id: str) ->
         # Determine email type and urgency based on lead stage and last contact
         email_type = _determine_email_type(lead)
         urgency = _calculate_urgency(lead)
+        
+        _log(lead.get("id", "UNKNOWN"), f"[_save_email_draft] Email type: {email_type}, Urgency: {urgency}")
         
         draft_id = str(uuid.uuid4())
         
@@ -604,6 +609,7 @@ async def _save_email_draft(lead: Dict[str, Any], message: str, user_id: str) ->
             "channel": "email"
         }
         
+        _log(lead.get("id", "UNKNOWN"), f"[_save_email_draft] About to insert draft into DB...")
         await db.email_drafts.insert_one(email_draft)
         _log(lead["id"], f"[EMAIL] Draft saved -> {draft_id} (Type: {email_type}, Urgency: {urgency})")
         
