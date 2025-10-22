@@ -6071,7 +6071,7 @@ async def update_draft_activity(lead_id: str, user_id: str, channel: str):
         
         if draft_count == 0:
             # No pending drafts - mark activity as completed
-            await db.activity_logs.update_one(
+            await db.nurturing_activities.update_one(
                 {"id": activity["id"]},
                 {
                     "$set": {
@@ -6086,7 +6086,7 @@ async def update_draft_activity(lead_id: str, user_id: str, channel: str):
             # Update draft count and urgency
             urgency_level, urgency_badge = await get_highest_urgency(drafts)
             
-            await db.activity_logs.update_one(
+            await db.nurturing_activities.update_one(
                 {"id": activity["id"]},
                 {
                     "$set": {
