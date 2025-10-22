@@ -6015,7 +6015,7 @@ async def get_or_create_draft_activity(lead_id: str, user_id: str, channel: str)
     Returns the activity document.
     """
     # Try to find existing pending draft activity for this lead and channel
-    activity = await db.activity_logs.find_one({
+    activity = await db.nurturing_activities.find_one({
         "lead_id": lead_id,
         "user_id": user_id,
         "activity_type": f"pending_{channel}_drafts",
@@ -6046,7 +6046,7 @@ async def get_or_create_draft_activity(lead_id: str, user_id: str, channel: str)
         "updated_at": now_iso
     }
     
-    await db.activity_logs.insert_one(new_activity)
+    await db.nurturing_activities.insert_one(new_activity)
     return new_activity
 
 async def update_draft_activity(lead_id: str, user_id: str, channel: str):
