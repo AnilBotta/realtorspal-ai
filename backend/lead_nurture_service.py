@@ -607,6 +607,13 @@ async def _save_email_draft(lead: Dict[str, Any], message: str, user_id: str) ->
         await db.email_drafts.insert_one(email_draft)
         _log(lead["id"], f"[EMAIL] Draft saved -> {draft_id} (Type: {email_type}, Urgency: {urgency})")
         
+        # Update draft activity for this lead
+        try:
+            from server import update_draft_activity
+            await update_draft_activity(lead["id"], user_id, "email")
+        except Exception as e:
+            _log(lead["id"], f"[WARNING] Failed to update draft activity: {str(e)}")
+        
         return draft_id
         
     except Exception as e:
