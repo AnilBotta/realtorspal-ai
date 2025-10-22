@@ -5875,6 +5875,9 @@ async def send_email_draft(request: SendDraftRequest):
                     {"$set": {"notes": current_notes + new_note}}
                 )
                 
+                # Update draft activity count after sending
+                await update_draft_activity(draft["lead_id"], draft["user_id"], draft.get("channel", "email"))
+                
                 print(f"✅ Email sent successfully! Message ID: {message_id}")
                 
                 return {
