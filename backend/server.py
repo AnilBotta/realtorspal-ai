@@ -35,6 +35,9 @@ from secrets_manager import (
     migrate_secrets_from_settings
 )
 
+# Import draft activity manager
+from draft_activity_manager import update_draft_activity as update_draft_activity_impl
+
 # Load environment from backend/.env if present
 load_dotenv()
 
