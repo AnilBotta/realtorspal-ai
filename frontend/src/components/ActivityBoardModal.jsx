@@ -147,12 +147,32 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
   });
 
   const openDraftModal = (activity) => {
-    setSelectedActivity(activity);
-    setShowDraftModal(true);
+    // Check if this is a draft activity (email/SMS drafts)
+    if (activity.activity_type === 'pending_email_drafts' || activity.activity_type === 'pending_sms_drafts') {
+      // Find the lead for this activity
+      const lead = leads.find(l => l.id === activity.lead_id);
+      if (lead) {
+        setSelectedLeadForDrafts(lead);
+        setShowEmailDraftModal(true);
+      }
+    } else {
+      // Old style draft modal for regular activities
+      setSelectedActivity(activity);
+      setShowDraftModal(true);
+    }
   };
 
   const closeDraftModal = () => {
     setSelectedActivity(null);
+    setShowDraftModal(false);
+  };
+  
+  const closeEmailDraftModal = () => {
+    setSelectedLeadForDrafts(null);
+    setShowEmailDraftModal(false);
+    // Reload activities to reflect any changes in draft counts
+    loadActivities();
+  };
     setShowDraftModal(false);
   };
 
