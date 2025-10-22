@@ -571,6 +571,20 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
           </div>
         </div>
       )}
+      
+      {/* Email Draft Modal */}
+      {showEmailDraftModal && selectedLeadForDrafts && (
+        <EmailDraftModal
+          open={showEmailDraftModal}
+          lead={selectedLeadForDrafts}
+          onClose={closeEmailDraftModal}
+          user={user}
+          onOpenComposer={() => {
+            // Handle compose new if needed
+            console.log('Open composer for lead:', selectedLeadForDrafts);
+          }}
+        />
+      )}
     </>
   );
 };
