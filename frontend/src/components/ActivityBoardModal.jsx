@@ -15,7 +15,8 @@ import {
   MoreVertical,
   Send,
   Edit,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { getNurturingActivities, updateActivityStatus, generateNurturingPlan, getLeads } from '../api';
 import EmailDraftModal from './EmailDraftModal';
