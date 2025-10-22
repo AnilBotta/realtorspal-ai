@@ -173,8 +173,6 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
     // Reload activities to reflect any changes in draft counts
     loadActivities();
   };
-    setShowDraftModal(false);
-  };
 
   const handleActivitySelect = (activityId) => {
     setSelectedActivities(prev => {
