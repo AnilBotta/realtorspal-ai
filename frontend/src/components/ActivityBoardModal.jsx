@@ -441,10 +441,17 @@ const ActivityBoardModal = ({ open, onClose, user, onGenerateActivities }) => {
                               : new Date(activity.date + 'T17:00:00').toLocaleString()
                             }
                           </div>
-                          <div className="col-span-1">
+                          <div className="col-span-1 flex items-center gap-2">
                             <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getStatusColor(activity.status)}`}>
                               {activity.status === 'pending' ? 'Open' : 'Done'}
                             </span>
+                            <button
+                              onClick={(e) => handleDeleteActivity(activity.id, e)}
+                              className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded hover:bg-red-50"
+                              title="Delete activity"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
                         </div>
                       ))
