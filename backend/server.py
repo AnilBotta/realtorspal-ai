@@ -5390,7 +5390,8 @@ async def get_nurturing_activities(user_id: str, date: Optional[str] = None, sta
         if status:
             query["status"] = status
         
-        activities = await db.nurturing_activities.find(query).sort("date", 1).to_list(length=100)
+        # Sort by created_at descending to show newest first, increased limit to 500
+        activities = await db.nurturing_activities.find(query).sort("created_at", -1).to_list(length=500)
         
         # Remove MongoDB ObjectId for JSON serialization
         clean_activities = []
