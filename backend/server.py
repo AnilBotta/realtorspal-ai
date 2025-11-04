@@ -47,7 +47,12 @@ EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("EMERGEN
 if not MONGO_URL:
     raise RuntimeError("MONGO_URL is not set. Please set it in backend/.env as per platform configuration.")
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__rounds=12,
+    bcrypt__default_ident="2b"
+)
 
 # JWT Configuration
 import jwt
