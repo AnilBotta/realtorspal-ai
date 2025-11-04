@@ -32,16 +32,27 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      // TODO: Implement Emergent Authentication
-      // For now, this is a placeholder that redirects to the CRM dashboard
+      // Import auth API dynamically to avoid SSR issues
+      const { authAPI } = await import("@/lib/auth-api")
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Call signup API
+      const response = await authAPI.signup({
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        company: formData.company,
+      })
+      
+      // Store tokens
+      localStorage.setItem("access_token", response.access_token)
+      localStorage.setItem("refresh_token", response.refresh_token)
+      localStorage.setItem("user", JSON.stringify(response.user))
 
       // Redirect to the existing React CRM dashboard
       window.location.href = "https://draft-activity-mgr.preview.emergentagent.com/dashboard"
-    } catch (err) {
-      setError("Failed to create account. Please try again.")
+    } catch (err: any) {
+      setError(err.message || "Failed to create account. Please try again.")
     } finally {
       setIsLoading(false)
     }
