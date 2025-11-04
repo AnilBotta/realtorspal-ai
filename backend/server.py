@@ -54,6 +54,14 @@ pwd_context = CryptContext(
     bcrypt__default_ident="2b"
 )
 
+def hash_password_safe(password: str) -> str:
+    """Hash password with bcrypt, truncating to 72 bytes if needed"""
+    # Bcrypt has a 72-byte password limit
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    return pwd_context.hash(password_bytes.decode('utf-8', errors='ignore'))
+
 # JWT Configuration
 import jwt
 from jwt.exceptions import InvalidTokenError
