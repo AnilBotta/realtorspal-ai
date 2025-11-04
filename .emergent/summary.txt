@@ -1,80 +1,94 @@
 <analysis>
-The AI engineer's work primarily focused on expanding the RealtorsPal AI CRM. Initially, the core task revolved around implementing a Partial Leads feature, which involved creating backend APIs for managing incomplete leads and developing a dedicated frontend page for them. This was followed by debugging and fixing a FastAPI validation error related to lead conversion. Subsequently, the user requested disabling timing restrictions in the Lead Nurturing AI for testing, which the engineer successfully implemented. A critical issue with SendGrid API key persistence was then addressed by correctly integrating the API key into the backend's  model. Finally, a comprehensive email draft management system was built, including saving AI-generated emails as drafts, displaying them in the frontend with notification badges, and implementing send/delete functionalities, along with resolving issues related to CrewAI agent message generation and SendGrid's verified sender requirements. The work demonstrated an iterative approach, with prompt responsiveness to user feedback and thorough debugging.
+The provided trajectory details the work of a previous AI engineer on the RealtorsPal AI CRM. The core task revolved around enhancing the lead nurturing system's activity logging and management. Initially, the engineer focused on ensuring drafted emails appeared in the Activity Board modal with urgency indicators and counts. This involved refactoring backend logic to manage activity creation, deletion, and status updates, including moving activity management to a dedicated  module to resolve circular import issues. Frontend work primarily updated  to parse and display these new activity types, incorporating badges for urgency and draft counts, and enabling View draft message to open the . Towards the end, the engineer addressed user feedback to implement individual activity deletion (trash icon) and fixed the UI filtering to exclude deleted activities, ensuring both individual and bulk deletion worked seamlessly.
 </analysis>
 
 <product_requirements>
-The RealtorsPal AI CRM is a multi-agent AI system designed for real estate lead management, featuring advanced filtering, global search, and configurable AI agents for orchestration, lead generation, and nurturing. The AI Agents page allows monitoring and human approval. Users can trigger lead generation with search parameters (e.g., Google Maps queries) and view live activity. The Nurturing AI includes an Activity Board for tasks. The application supports mobile responsiveness and dark/light modes.
+The RealtorsPal AI CRM manages real estate leads using AI agents. The current development has focused on enhancing the activity management within the CRM, specifically for email and SMS drafts:
 
-Recent product requirements included:
-1.  **Partial Leads Feature**: A dedicated page displaying incomplete leads in a table, similar to the main Leads page, with View (to open an Add/Update Lead window for completion) and Remove actions. A Convert to Lead button should be available in the modal to move the lead to the main collection.
-2.  **Email Draft System**: CrewAI-generated emails should be saved as drafts. These drafts need to be indicated by notification badges on email buttons on the Leads page. A modal should display draft content, allow sending (using a user-provided verified from email that is persistently stored), and deletion. Urgency indicators (e.g., send two days back) and email types (e.g., 1st follow-up) are required.
-3.  **Lead Nurturing AI Testing**: The ability to temporarily disable Quiet hours and 3-month dormant stage timing restrictions in the Lead Nurturing AI for testing purposes.
-4.  **SendGrid API Key Management**: Ensure the SendGrid API key, provided via the settings page, is correctly stored in the database and accessible by AI agents for email sending.
+1.  **Lead Nurturing AI - Activity Integration:**
+    *   Drafted emails (and SMS, via the same  collection with a  field) must appear in the Activities modal.
+    *   Activities should be automatically created when the AI generates a new email draft or a lead nurturing sequence creates a draft.
+    *   Each activity entry should represent a group of drafts for a lead (Option B: Grouped Activity - X drafts pending), with urgency indicators.
+    *   Urgency indicators should be colored badges/labels based on a combination of  and  fields (e.g., Urgent Email (🔴), First Nurture Email (🔵), Follow-up Email (🟡), Quick SMS (📱)). The priority order for displaying urgency badges is: Urgent > First Nurture > Follow-up.
+    *   The activity title should be Pending Email Drafts.
+    *   Draft counts must update immediately on new drafts.
+    *   Clicking on an activity item (or View draft message link) should open the existing Email Drafts modal for that lead.
+    *   Activities should only appear in the Activities modal, not the main Dashboard.
+
+2.  **Activity Management:**
+    *   When a draft is sent, the corresponding activity status should change to Done/Completed.
+    *   When a draft activity is deleted, it should be marked as deleted and filtered out from the default display in the Activities modal.
+    *   Users need an individual delete option (trash icon) next to each activity row to delete single activities directly.
+    *   The existing bulk delete functionality for activities must continue to work.
+
+3.  **Email Sending Functionality:**
+    *   The system should integrate with existing SendGrid/SMTP email sending functionality.
+
 </product_requirements>
 
 <key_technical_concepts>
--   **Backend**: FastAPI, MongoDB (Motor, Pydantic), CrewAI, Apify (Google Maps Scraper),  (LLM), SendGrid.
--   **Frontend**: React, Tailwind CSS, Axios.
--   **AI/LLM Integration**: OpenAI (via ), Emergent LLM Key.
--   **Persistence**: MongoDB (, , ,  collections).
--   **Communication**: Server-Sent Events (SSE).
+-   **Backend**: FastAPI, MongoDB (Motor), , , , .
+-   **Frontend**: React, Tailwind CSS, Axios, Server-Sent Events (SSE).
+-   **AI/LLM**: CrewAI for nurturing agent logic.
+-   **New Module**:  for centralized draft activity logic.
 </key_technical_concepts>
 
 <code_architecture>
-The application utilizes a monorepo structure with a React frontend and a FastAPI backend.
-
 
 
 -   ****
     -   **Importance**: Central FastAPI backend.
-    -   **Changes**: Added API endpoints for  (, , ) and  (, , , ). Fixed a FastAPI 422 validation error handler. Modified the  Pydantic model to include  for persistent storage.
+    -   **Changes**: Refactored , , , and  functions out to  and now imports them. Modified  and  endpoints to call these imported functions to update activity logs. Increased the activity retrieval limit in  endpoint to 500 and sorted by  in descending order to ensure draft activities are fetched.
 -   ****
-    -   **Importance**: Dedicated service for CrewAI-based lead generation.
-    -   **Changes**: No direct modifications in this trajectory, but it generates data processed by the partial leads system.
+    -   **Importance**: Core CrewAI logic for lead nurturing.
+    -   **Changes**: Modified the email and SMS draft creation logic (, ) to import and call  from  after a draft is inserted, ensuring activity entries are created when new drafts are generated. Corrected SMS draft storage to use  collection with .
+-   **** (NEW FILE)
+    -   **Importance**: Centralizes logic for managing draft-related activities in the  MongoDB collection.
+    -   **Changes**: Created from scratch. Contains functions:  (to create/update activity entries based on lead drafts),  (to mark a specific draft activity as deleted),  (to determine the badge priority),  (to count drafts for a lead). It also handles MongoDB connection and  retrieval.
+-   **** (NEW SCRIPT)
+    -   **Importance**: A one-off script to synchronize existing email drafts with the new activity logging system.
+    -   **Changes**: Created to iterate through all leads, count their existing email/SMS drafts, and create or update corresponding  entries using .
 -   ****
-    -   **Importance**: Dedicated service for CrewAI-based lead nurturing and email handling.
-    -   **Changes**: Modified  and the 3-month dormant logic to temporarily return  for testing. The  function was updated to save AI-generated emails as  status in a new  collection instead of sending them directly. CrewAI agent configurations were adjusted to prevent iteration limit errors and ensure full message generation.
--   ****
-    -   **Importance**: Centralizes all frontend API calls.
-    -   **Changes**: Extended with new functions for  (e.g., , , ) and  (e.g., , , , ).
--   ****
-    -   **Importance**: Main entry point, defines routes.
-    -   **Changes**: Added a new route for the  page.
--   ****
-    -   **Importance**: Main application layout and navigation.
-    -   **Changes**: Already had a navigation link for Partial Leads as part of the initial setup.
--   ****
-    -   **Importance**: Displays main CRM leads.
-    -   **Changes**: Implemented a sticky first column for the leads table. Added  state and  function to fetch and display notification badges on email buttons. Integrated  for managing drafts and updated  to display it.
--   ** (NEW)**
-    -   **Importance**: Displays leads identified as partial.
-    -   **Changes**: Created to display a table of partial leads with a sticky first column, View and Remove buttons. It integrates an existing modal for converting partial leads to full leads.
--   ** (NEW)**
-    -   **Importance**: Frontend UI for managing AI-generated email drafts.
-    -   **Changes**: Created to display draft content, metadata, and provide Send and Delete actions. It now includes a dedicated from email input field with validation and guidance for SendGrid's verified sender identity requirement.
--   ****
-    -   **Importance**: Allows users to configure application settings.
-    -   **Changes**: Modified to ensure correct saving and retrieval of the SendGrid API key, resolving an issue with persistence due to a missing field in the backend's Pydantic model.
+    -   **Importance**: Displays all activities for a lead.
+    -   **Changes**:
+        -   Imported  and  icon.
+        -   Added state (, ) to manage the  visibility and context.
+        -   Modified  to handle new draft activity types, filter out  activities, and display them with urgency badges (e.g., Pending Email Drafts with a count badge and color-coded urgency).
+        -   Updated activity rendering logic to dynamically display View draft message which opens the .
+        -   Implemented  to delete individual activities, marking them as Done with .
+        -   Added a  icon button next to each Open activity status for individual deletion, confirming deletion via a modal.
+        -   Ensured activities marked  are filtered out from the  state to prevent them from showing in the UI.
+
 </code_architecture>
 
 <pending_tasks>
--   Full LLM integration for features beyond the AI Agent system (e.g., streaming responses for chat, prompts editor UX).
--   UI polish: Replace basic CSS with Tailwind + shadcn components for pixel-perfect fidelity.
+-   Full LLM integration for features beyond the AI Agent system.
+-   UI polish (replace CSS with Tailwind/shadcn).
 -   Advanced analytics dashboards.
 -   Real Google Drive/Sheets integration for lead import.
--   Re-enable user login with features like remember me and Switch User.
--   Implement Add new group, Person, and Group by functionalities in the Activity Board Modal.
--   Re-enable quiet hours and 3-month (90-day) dormant stage rules in  for production.
+-   Re-enable user login features.
+-   Implement Add new group, Person, Group by in Activity Board Modal.
+-   Re-enable quiet hours and 3-month dormant stage rules in  for production.
+-   Implement urgency indicators and overdue warnings for email drafts (beyond what was done in this trajectory, potentially for the EmailDraftModal itself).
+-   Fix the WebRTC (Full) calling functionality (JWT is invalid error).
 </pending_tasks>
 
 <current_work>
-The most recent work involved fixing issues within the newly implemented email draft management system. Specifically, the AI engineer addressed two main problems:
-1.  **AI Message Content**: CrewAI agents were producing generic Agent stopped due to iteration limit messages in email drafts. This was resolved by modifying the  function and Crew configuration in  to ensure agents complete their tasks and generate personalized, contextual content.
-2.  **SendGrid Verified Sender Identity**: Email sending failed due to SendGrid's requirement for verified sender identities. To fix this, the  was updated. It now prompts the user for a verified from email address when sending, providing clear guidance on SendGrid's requirements. This ensures emails can be sent successfully by the user.
+Immediately prior to this summary, the AI engineer completed the integration of drafted emails into the . This involved a multi-step process:
 
-These fixes, coupled with the previous work on displaying email draft notification badges on the Leads page and the functional , mean the email draft management system is now fully operational, from AI generation to user review and sending, with robust error handling for SendGrid.
+1.  **Backend Refactoring**: Moved draft activity management functions (, , , ) from  to a new, dedicated module . This resolved circular import issues and centralized draft-related activity logic.
+2.  **Activity Creation**: Modified  to automatically call  whenever an email or SMS draft is generated by the AI agent, ensuring activities are created in the  collection. A one-off  script was also created and executed to populate activities for pre-existing drafts.
+3.  **Frontend Display**: Updated  to correctly fetch and display these new Pending Email Drafts activities. This included showing:
+    *   A count badge (e.g., 10 drafts).
+    *   Color-coded urgency badges (e.g., 🔴 Urgent Email, 🔵 First Nurture Email).
+    *   A View draft message link that, when clicked, opens the  with the relevant lead's drafts.
+4.  **Individual Delete Functionality**: Addressed user feedback by implementing a trash icon (🗑️) next to each activity in the . Clicking this icon triggers a confirmation and then calls the backend to delete (mark as ) the individual activity.
+5.  **Activity Filtering**: Modified the  to filter out activities with  from the display, ensuring that deleted activities no longer appear in the list.
+6.  **Backend API Enhancement**: Increased the fetch limit and added sorting to the  endpoint in  to ensure all relevant activities, including draft activities, are returned to the frontend.
+
+All these features were thoroughly tested, and both individual and bulk delete functionalities are confirmed to be working correctly, with deleted activities no longer visible in the modal.
 </current_work>
 
 <optional_next_step>
-Implement urgency indicators and overdue warnings for email drafts within the .
+Confirm completion of the activity display and delete features with the user, then proceed with the next highest priority task from the pending tasks list.
 </optional_next_step>
