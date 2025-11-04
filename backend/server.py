@@ -175,9 +175,25 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class SignupRequest(BaseModel):
+    email: EmailStr
+    password: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    company: Optional[str] = None
+    
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        return v
+
 class LoginResponse(BaseModel):
     user: UserOut
-    token: str
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
 
 class Lead(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
