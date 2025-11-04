@@ -20,16 +20,21 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // TODO: Implement Emergent Authentication
-      // For now, this is a placeholder that redirects to the CRM dashboard
+      // Import auth API dynamically to avoid SSR issues
+      const { authAPI } = await import("@/lib/auth-api")
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Call login API
+      const response = await authAPI.login({ email, password })
+      
+      // Store tokens
+      localStorage.setItem("access_token", response.access_token)
+      localStorage.setItem("refresh_token", response.refresh_token)
+      localStorage.setItem("user", JSON.stringify(response.user))
 
       // Redirect to the existing React CRM dashboard
       window.location.href = "https://draft-activity-mgr.preview.emergentagent.com/dashboard"
-    } catch (err) {
-      setError("Invalid email or password")
+    } catch (err: any) {
+      setError(err.message || "Invalid email or password")
     } finally {
       setIsLoading(false)
     }
