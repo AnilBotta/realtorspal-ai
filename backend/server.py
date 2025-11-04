@@ -1965,13 +1965,30 @@ def normalize_phone(phone_str):
 async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     return await db.users.find_one({"email": email})
 
-async def create_user(email: str, password: str, name: Optional[str] = None) -> Dict[str, Any]:
+async def create_user(
+    email: str, 
+    password: str, 
+    name: Optional[str] = None,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+    company: Optional[str] = None
+) -> Dict[str, Any]:
     hashed = pwd_context.hash(password)
+    
+    # Build full name from first_name and last_name if provided
+    if not name and (first_name or last_name):
+        name = " ".join(filter(None, [first_name, last_name]))
+    
     user = {
         "id": str(uuid.uuid4()),
         "email": email,
         "password_hash": hashed,
-        "name": name or "Demo User",
+        "name": name or "New User",
+        "first_name": first_name,
+        "last_name": last_name,
+        "company": company,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "is_active": True,
     }
     await db.users.insert_one(user)
     return user
