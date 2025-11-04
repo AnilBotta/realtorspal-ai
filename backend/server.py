@@ -47,20 +47,22 @@ EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("EMERGEN
 if not MONGO_URL:
     raise RuntimeError("MONGO_URL is not set. Please set it in backend/.env as per platform configuration.")
 
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__rounds=12,
-    bcrypt__default_ident="2b"
-)
+# Password hashing - use bcrypt directly to avoid passlib issues
+import bcrypt as bcrypt_lib
 
 def hash_password_safe(password: str) -> str:
-    """Hash password with bcrypt, truncating to 72 bytes if needed"""
-    # Bcrypt has a 72-byte password limit
+    """Hash password with bcrypt"""
     password_bytes = password.encode('utf-8')
-    if len(password_bytes) > 72:
-        password_bytes = password_bytes[:72]
-    return pwd_context.hash(password_bytes.decode('utf-8', errors='ignore'))
+    salt = bcrypt_lib.gensalt(rounds=12)
+    hashed = bcrypt_lib.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
+
+def verify_password_safe(plain_password: str, hashed_password: str) -> bool:
+    """Verify password against bcrypt hash"""
+    return bcrypt_lib.checkpw(
+        plain_password.encode('utf-8'),
+        hashed_password.encode('utf-8')
+    )
 
 # JWT Configuration
 import jwt
