@@ -205,7 +205,7 @@ export default function SignupPage() {
           {/* Right: Benefits */}
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold mb-4">What's included in your trial</h2>
+              <h2 className="text-2xl font-bold mb-4">What&apos;s included in your trial</h2>
               <ul className="space-y-3">
                 <li className="flex items-start">
                   <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
