@@ -1986,7 +1986,7 @@ async def create_user(
     last_name: Optional[str] = None,
     company: Optional[str] = None
 ) -> Dict[str, Any]:
-    hashed = pwd_context.hash(password)
+    hashed = hash_password_safe(password)
     
     # Build full name from first_name and last_name if provided
     if not name and (first_name or last_name):
