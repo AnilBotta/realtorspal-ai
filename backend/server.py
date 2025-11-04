@@ -2009,7 +2009,7 @@ async def create_user(
     return user
 
 async def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return verify_password_safe(plain, hashed)
 
 # --- Startup: indexes & seed ---
 @app.on_event("startup")
