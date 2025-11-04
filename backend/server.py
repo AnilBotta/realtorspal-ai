@@ -2045,7 +2045,209 @@ async def demo_session():
     user = await get_user_by_email(demo_email)
     if not user:
         user = await create_user(demo_email, "Demo123!", name="Demo User")
-    return {"user": {"id": user["id"], "email": user["email"], "name": user.get("name")}, "token": "demo-token"}
+    
+    # Generate real tokens for demo
+    access_token = create_access_token({"user_id": user["id"], "email": user["email"]})
+    refresh_token = create_refresh_token({"user_id": user["id"]})
+    
+    return {
+        "user": {"id": user["id"], "email": user["email"], "name": user.get("name")},
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+@app.post("/api/auth/signup", response_model=LoginResponse)
+async def signup(payload: SignupRequest, response: Response):
+    """Register a new user"""
+    # Check if user already exists
+    existing_user = await get_user_by_email(payload.email)
+    if existing_user:
+        raise HTTPException(
+            status_code=409,
+            detail="Email already registered"
+        )
+    
+    try:
+        # Create new user
+        user = await create_user(
+            email=payload.email,
+            password=payload.password,
+            first_name=payload.first_name,
+            last_name=payload.last_name,
+            company=payload.company
+        )
+        
+        # Generate tokens
+        access_token = create_access_token({"user_id": user["id"], "email": user["email"]})
+        refresh_token = create_refresh_token({"user_id": user["id"]})
+        
+        # Set refresh token in HTTP-only cookie
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            max_age=7 * 24 * 60 * 60,  # 7 days
+            httponly=True,
+            secure=True,  # Only send over HTTPS in production
+            samesite="lax",
+        )
+        
+        return {
+            "user": {
+                "id": user["id"],
+                "email": user["email"],
+                "name": user.get("name")
+            },
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        }
+    except DuplicateKeyError:
+        raise HTTPException(
+            status_code=409,
+            detail="Email already registered"
+        )
+
+@app.post("/api/auth/login", response_model=LoginResponse)
+async def login(payload: LoginRequest, response: Response):
+    """Authenticate user and return tokens"""
+    # Find user by email
+    user = await get_user_by_email(payload.email)
+    
+    if not user or not await verify_password(payload.password, user["password_hash"]):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+    
+    # Check if user is active
+    if not user.get("is_active", True):
+        raise HTTPException(
+            status_code=403,
+            detail="User account is inactive"
+        )
+    
+    # Update last login
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"last_login": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Generate tokens
+    access_token = create_access_token({"user_id": user["id"], "email": user["email"]})
+    refresh_token = create_refresh_token({"user_id": user["id"]})
+    
+    # Set refresh token in HTTP-only cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        max_age=7 * 24 * 60 * 60,  # 7 days
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
+    
+    return {
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "name": user.get("name")
+        },
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+@app.post("/api/auth/refresh", response_model=LoginResponse)
+async def refresh_access_token(request: Request):
+    """Get new access token using refresh token"""
+    # Try to get refresh token from cookie
+    refresh_token = request.cookies.get("refresh_token")
+    
+    # Fallback to Authorization header
+    if not refresh_token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            refresh_token = auth_header[7:]
+    
+    if not refresh_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Refresh token not found"
+        )
+    
+    # Verify refresh token
+    payload = verify_token(refresh_token)
+    if not payload or payload.get("type") != "refresh":
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired refresh token"
+        )
+    
+    # Get user from database
+    user = await db.users.find_one({"id": payload["user_id"]})
+    if not user or not user.get("is_active", True):
+        raise HTTPException(
+            status_code=401,
+            detail="User not found or inactive"
+        )
+    
+    # Generate new tokens
+    new_access_token = create_access_token({"user_id": user["id"], "email": user["email"]})
+    new_refresh_token = create_refresh_token({"user_id": user["id"]})
+    
+    return {
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "name": user.get("name")
+        },
+        "access_token": new_access_token,
+        "refresh_token": new_refresh_token,
+        "token_type": "bearer"
+    }
+
+@app.post("/api/auth/logout")
+async def logout(response: Response):
+    """Logout user by clearing refresh token cookie"""
+    response.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
+    return {"message": "Successfully logged out"}
+
+@app.get("/api/auth/me", response_model=UserOut)
+async def get_current_user(authorization: Optional[str] = Header(None)):
+    """Get current authenticated user's profile"""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Missing or invalid authorization header"
+        )
+    
+    token = authorization[7:]
+    payload = verify_token(token)
+    
+    if not payload or payload.get("type") != "access":
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired token"
+        )
+    
+    user = await db.users.find_one({"id": payload["user_id"]})
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    return {
+        "id": user["id"],
+        "email": user["email"],
+        "name": user.get("name")
+    }
 
 @app.get("/api/leads", response_model=List[Lead])
 async def list_leads(user_id: str):
