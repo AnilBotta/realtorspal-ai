@@ -238,7 +238,7 @@ export default function SignupPage() {
               <CardContent className="pt-6">
                 <p className="text-lg font-semibold mb-2">No credit card required</p>
                 <p className="text-sm opacity-90">
-                  Your 14-day trial is completely free. We'll remind you before it ends, and you can cancel anytime with no questions asked.
+                  Your 14-day trial is completely free. We&apos;ll remind you before it ends, and you can cancel anytime with no questions asked.
                 </p>
               </CardContent>
             </Card>
