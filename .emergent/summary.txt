@@ -1,36 +1,24 @@
 <analysis>
-The provided trajectory details the work of a previous AI engineer on the RealtorsPal AI CRM. The core task revolved around enhancing the lead nurturing system's activity logging and management. Initially, the engineer focused on ensuring drafted emails appeared in the Activity Board modal with urgency indicators and counts. This involved refactoring backend logic to manage activity creation, deletion, and status updates, including moving activity management to a dedicated  module to resolve circular import issues. Frontend work primarily updated  to parse and display these new activity types, incorporating badges for urgency and draft counts, and enabling View draft message to open the . Towards the end, the engineer addressed user feedback to implement individual activity deletion (trash icon) and fixed the UI filtering to exclude deleted activities, ensuring both individual and bulk deletion worked seamlessly.
+The AI engineer's trajectory shows two distinct phases. Initially, the focus was on enhancing the RealtorsPal AI CRM's lead nurturing system by integrating email/SMS drafts into the Activity Board modal. This involved significant backend refactoring to centralize draft activity management in , modifying  for activity creation, and updating  to display these activities with urgency badges and enable individual deletion. After confirming these features, the user shifted the task to building a new Next.js marketing site for RealtorsPal AI CRM, styled like . The engineer successfully scaffolded the Next.js application, built out the landing page with various sections and UI components, integrated a basic backend authentication system, and then debugged Vercel deployment issues related to ESLint errors and a 502 Bad Gateway, ensuring the site is deployable.
 </analysis>
 
 <product_requirements>
-The RealtorsPal AI CRM manages real estate leads using AI agents. The current development has focused on enhancing the activity management within the CRM, specifically for email and SMS drafts:
+The RealtorsPal AI CRM aims to manage real estate leads using AI agents.
+**Phase 1: CRM Activity Management Enhancement**
+1.  **Lead Nurturing AI - Activity Integration:** Drafted emails/SMS must appear in the Activities modal as grouped entries (X drafts pending) with color-coded urgency badges (Urgent > First Nurture > Follow-up). Activities are created automatically upon draft generation. Clicking an activity opens the Email Drafts modal. Activities display only in the Activities modal.
+2.  **Activity Management:** Draft activity status changes to Done/Completed upon sending. Deleted draft activities are marked as deleted and filtered from display. Individual delete (trash icon) and existing bulk delete must function.
+3.  **Email Sending Functionality:** Integrate with SendGrid/SMTP.
 
-1.  **Lead Nurturing AI - Activity Integration:**
-    *   Drafted emails (and SMS, via the same  collection with a  field) must appear in the Activities modal.
-    *   Activities should be automatically created when the AI generates a new email draft or a lead nurturing sequence creates a draft.
-    *   Each activity entry should represent a group of drafts for a lead (Option B: Grouped Activity - X drafts pending), with urgency indicators.
-    *   Urgency indicators should be colored badges/labels based on a combination of  and  fields (e.g., Urgent Email (🔴), First Nurture Email (🔵), Follow-up Email (🟡), Quick SMS (📱)). The priority order for displaying urgency badges is: Urgent > First Nurture > Follow-up.
-    *   The activity title should be Pending Email Drafts.
-    *   Draft counts must update immediately on new drafts.
-    *   Clicking on an activity item (or View draft message link) should open the existing Email Drafts modal for that lead.
-    *   Activities should only appear in the Activities modal, not the main Dashboard.
-
-2.  **Activity Management:**
-    *   When a draft is sent, the corresponding activity status should change to Done/Completed.
-    *   When a draft activity is deleted, it should be marked as deleted and filtered out from the default display in the Activities modal.
-    *   Users need an individual delete option (trash icon) next to each activity row to delete single activities directly.
-    *   The existing bulk delete functionality for activities must continue to work.
-
-3.  **Email Sending Functionality:**
-    *   The system should integrate with existing SendGrid/SMTP email sending functionality.
-
+**Phase 2: Marketing Site Development**
+Create a high-converting marketing site for RealtorsPal AI CRM (Next.js, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion) with a structure inspired by . Key sections include Hero, Outcome Highlights, How It Works, Product Features (with CRM UI screenshots), Smart Knowledge, Integrations, Pricing (with Monthly/Annual toggle, 3 plans: Starter, Standard, Enterprise), FAQ, and a Closing CTA.
+Authentication must use Emergent's system with magic-link login/signup, redirecting to  after login. Routes: , , , , , , . The landing page should be the app's start, leading to login, subscription, then the CRM dashboard, all under the same URL. Real screenshots of the CRM UI must be used.
 </product_requirements>
 
 <key_technical_concepts>
--   **Backend**: FastAPI, MongoDB (Motor), , , , .
--   **Frontend**: React, Tailwind CSS, Axios, Server-Sent Events (SSE).
--   **AI/LLM**: CrewAI for nurturing agent logic.
--   **New Module**:  for centralized draft activity logic.
+-   **Backend**: FastAPI, MongoDB (Motor), , , , ,  (bcrypt), .
+-   **Frontend**: React, Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui, Axios.
+-   **AI/LLM**: CrewAI.
+-   **Auth**: Emergent's authentication, Supabase magic-link pattern.
 </key_technical_concepts>
 
 <code_architecture>
@@ -38,57 +26,53 @@ The RealtorsPal AI CRM manages real estate leads using AI agents. The current de
 
 -   ****
     -   **Importance**: Central FastAPI backend.
-    -   **Changes**: Refactored , , , and  functions out to  and now imports them. Modified  and  endpoints to call these imported functions to update activity logs. Increased the activity retrieval limit in  endpoint to 500 and sorted by  in descending order to ensure draft activities are fetched.
+    -   **Changes**: Refactored draft activity management (initially for ActivityBoardModal features). **Crucially for the marketing site**, new authentication endpoints (, , ) were added. User creation, password hashing/verification (now using ), and JWT token generation/validation logic were implemented to support the new login/signup flow. The demo login endpoint was updated.
 -   ****
     -   **Importance**: Core CrewAI logic for lead nurturing.
-    -   **Changes**: Modified the email and SMS draft creation logic (, ) to import and call  from  after a draft is inserted, ensuring activity entries are created when new drafts are generated. Corrected SMS draft storage to use  collection with .
+    -   **Changes**: Modified to integrate with  for automatic activity creation upon email/SMS draft generation.
 -   **** (NEW FILE)
-    -   **Importance**: Centralizes logic for managing draft-related activities in the  MongoDB collection.
-    -   **Changes**: Created from scratch. Contains functions:  (to create/update activity entries based on lead drafts),  (to mark a specific draft activity as deleted),  (to determine the badge priority),  (to count drafts for a lead). It also handles MongoDB connection and  retrieval.
+    -   **Importance**: Centralizes logic for managing draft-related activities in MongoDB.
+    -   **Changes**: Created to include , , , and .
 -   **** (NEW SCRIPT)
-    -   **Importance**: A one-off script to synchronize existing email drafts with the new activity logging system.
-    -   **Changes**: Created to iterate through all leads, count their existing email/SMS drafts, and create or update corresponding  entries using .
+    -   **Importance**: One-off script to sync existing drafts with the new activity logging system.
+    -   **Changes**: Created to iterate through leads and populate .
 -   ****
     -   **Importance**: Displays all activities for a lead.
+    -   **Changes**: Updated to parse and display new draft activity types with urgency badges and counts, open , and implement individual activity deletion (marking as ) with filtering.
+-   **** (NEW DIRECTORY)
+    -   **Importance**: Contains the entire Next.js marketing site.
     -   **Changes**:
-        -   Imported  and  icon.
-        -   Added state (, ) to manage the  visibility and context.
-        -   Modified  to handle new draft activity types, filter out  activities, and display them with urgency badges (e.g., Pending Email Drafts with a count badge and color-coded urgency).
-        -   Updated activity rendering logic to dynamically display View draft message which opens the .
-        -   Implemented  to delete individual activities, marking them as Done with .
-        -   Added a  icon button next to each Open activity status for individual deletion, confirming deletion via a modal.
-        -   Ensured activities marked  are filtered out from the  state to prevent them from showing in the UI.
-
+        -   ****: Main landing page, structured with various sections (Hero, Features, Pricing, etc.), incorporating CRM screenshots.
+        -   ****: Dedicated pricing page with different plan cards and a monthly/annual toggle.
+        -   ****, ****: Authentication pages using client-side Supabase/Emergent auth pattern, interacting with the backend API.
+        -   ****: Frontend service for handling API calls related to authentication.
+        -   ****: Stores CRM screenshots (, , ) used on the landing page.
+        -   ****: Configured to directly use  for backend API calls instead of rewrites, fixing Vercel 502 errors.
+        -   ****: Modified to remove rewrites, aligning with the direct API call approach.
+        -   ****, ****, ****: Documentation for deployment and troubleshooting.
 </code_architecture>
 
 <pending_tasks>
 -   Full LLM integration for features beyond the AI Agent system.
--   UI polish (replace CSS with Tailwind/shadcn).
+-   UI polish (replace CSS with Tailwind/shadcn in the CRM app).
 -   Advanced analytics dashboards.
 -   Real Google Drive/Sheets integration for lead import.
--   Re-enable user login features.
+-   Re-enable user login features (in the CRM itself, distinct from the marketing site's auth).
 -   Implement Add new group, Person, Group by in Activity Board Modal.
 -   Re-enable quiet hours and 3-month dormant stage rules in  for production.
--   Implement urgency indicators and overdue warnings for email drafts (beyond what was done in this trajectory, potentially for the EmailDraftModal itself).
+-   Implement urgency indicators and overdue warnings for email drafts (potentially for the EmailDraftModal itself).
 -   Fix the WebRTC (Full) calling functionality (JWT is invalid error).
 </pending_tasks>
 
 <current_work>
-Immediately prior to this summary, the AI engineer completed the integration of drafted emails into the . This involved a multi-step process:
-
-1.  **Backend Refactoring**: Moved draft activity management functions (, , , ) from  to a new, dedicated module . This resolved circular import issues and centralized draft-related activity logic.
-2.  **Activity Creation**: Modified  to automatically call  whenever an email or SMS draft is generated by the AI agent, ensuring activities are created in the  collection. A one-off  script was also created and executed to populate activities for pre-existing drafts.
-3.  **Frontend Display**: Updated  to correctly fetch and display these new Pending Email Drafts activities. This included showing:
-    *   A count badge (e.g., 10 drafts).
-    *   Color-coded urgency badges (e.g., 🔴 Urgent Email, 🔵 First Nurture Email).
-    *   A View draft message link that, when clicked, opens the  with the relevant lead's drafts.
-4.  **Individual Delete Functionality**: Addressed user feedback by implementing a trash icon (🗑️) next to each activity in the . Clicking this icon triggers a confirmation and then calls the backend to delete (mark as ) the individual activity.
-5.  **Activity Filtering**: Modified the  to filter out activities with  from the display, ensuring that deleted activities no longer appear in the list.
-6.  **Backend API Enhancement**: Increased the fetch limit and added sorting to the  endpoint in  to ensure all relevant activities, including draft activities, are returned to the frontend.
-
-All these features were thoroughly tested, and both individual and bulk delete functionalities are confirmed to be working correctly, with deleted activities no longer visible in the modal.
+Immediately prior to this summary, the AI engineer was focused on deploying the new Next.js marketing site.
+1.  **Backend Auth Integration**: A comprehensive authentication system was implemented in , including JWT token generation,  for password hashing, and , ,  endpoints. This allows users to register and log in to the system.
+2.  **Frontend Auth Integration**: The Next.js marketing site's  and  were updated to use a new  service to interact with the FastAPI backend for user authentication.
+3.  **Vercel Deployment Issues (ESLint)**: The user reported  ESLint errors during Vercel deployment. The engineer identified and fixed all unescaped apostrophes () in  and  by replacing them with , resolving the build errors.
+4.  **Vercel Deployment Issues (502 Bad Gateway)**: The user encountered a 502 error on the deployed marketing site. The engineer determined this was due to API calls failing during build/render on Vercel or incorrect rewrite rules. The fix involved modifying  to explicitly set  and allowing direct API calls from the frontend, bypassing Vercel's rewrite mechanism. The  file was also updated to remove previous rewrites.
+The build is now confirmed successful locally, and guides were created to facilitate Vercel redeployment.
 </current_work>
 
 <optional_next_step>
-Confirm completion of the activity display and delete features with the user, then proceed with the next highest priority task from the pending tasks list.
+Verify with the user that the Vercel deployment is now successful and the 502 error is resolved.
 </optional_next_step>

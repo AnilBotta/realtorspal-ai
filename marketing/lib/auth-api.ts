@@ -1,5 +1,5 @@
 // API base URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://draft-activity-mgr.preview.emergentagent.com/api'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://realtorspal-crm.preview.emergentagent.com/api'
 
 export interface User {
   id: string

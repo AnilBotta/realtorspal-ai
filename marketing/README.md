@@ -159,7 +159,7 @@ The login and signup pages are currently **placeholders** that redirect to the e
 4. **Environment Variables**:
    Already configured in `.env.local`:
    ```
-   NEXT_PUBLIC_API_URL=https://draft-activity-mgr.preview.emergentagent.com/api
+   NEXT_PUBLIC_API_URL=https://realtorspal-crm.preview.emergentagent.com/api
    EMERGENT_LLM_KEY=sk-emergent-7751d34B226BdCc8f8
    ```
 
@@ -211,13 +211,13 @@ Required in `.env.local`:
 
 ```bash
 # Backend API URL
-NEXT_PUBLIC_API_URL=https://draft-activity-mgr.preview.emergentagent.com/api
+NEXT_PUBLIC_API_URL=https://realtorspal-crm.preview.emergentagent.com/api
 
 # Emergent LLM Key (for future AI features)
 EMERGENT_LLM_KEY=sk-emergent-7751d34B226BdCc8f8
 
 # Site URL (for SEO and redirects)
-NEXT_PUBLIC_SITE_URL=https://draft-activity-mgr.preview.emergentagent.com
+NEXT_PUBLIC_SITE_URL=https://realtorspal-crm.preview.emergentagent.com
 ```
 
 ## 📸 Screenshots

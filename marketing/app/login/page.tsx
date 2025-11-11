@@ -32,7 +32,7 @@ export default function LoginPage() {
       localStorage.setItem("user", JSON.stringify(response.user))
 
       // Redirect to the existing React CRM dashboard
-      window.location.href = "https://draft-activity-mgr.preview.emergentagent.com/dashboard"
+      window.location.href = "https://realtorspal-crm.preview.emergentagent.com/dashboard"
     } catch (err: any) {
       setError(err.message || "Invalid email or password")
     } finally {
