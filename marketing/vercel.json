@@ -3,11 +3,5 @@
   "outputDirectory": ".next",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "framework": "nextjs",
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://draft-activity-mgr.preview.emergentagent.com/api/:path*"
-    }
-  ]
+  "framework": "nextjs"
 }
