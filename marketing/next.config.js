@@ -9,15 +9,10 @@ const nextConfig = {
       },
     ],
   },
-  // Proxy API requests to the existing FastAPI backend
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'https://draft-activity-mgr.preview.emergentagent.com/api/:path*',
-      },
-    ];
-  },
+  // Don't try to rewrite during static generation
+  // Client-side will use NEXT_PUBLIC_API_URL directly
+  skipTrailingSlashRedirect: true,
+  trailingSlash: false,
 }
 
 module.exports = nextConfig
