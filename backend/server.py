@@ -135,7 +135,13 @@ def verify_token(token: str) -> Optional[dict]:
     except InvalidTokenError:
         return None
 
-app = FastAPI(title="RealtorsPal AI - FastAPI Backend")
+print("\n📋 Step 4/5: Initializing FastAPI Application...")
+try:
+    app = FastAPI(title="RealtorsPal AI - FastAPI Backend")
+    print("   ✓ FastAPI application created successfully")
+except Exception as e:
+    print(f"   ✗ Failed to create FastAPI app: {e}")
+    raise
 
 # Custom validation error handler
 from fastapi.encoders import jsonable_encoder
