@@ -2150,7 +2150,30 @@ async def on_shutdown():
 # --- Routes ---
 @app.get("/api/health")
 async def health():
-    return {"status": "ok"}
+    """Health check endpoint with detailed diagnostics"""
+    health_status = {
+        "status": "ok",
+        "service": "RealtorsPal AI Backend",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Check MongoDB connection
+    try:
+        await db.command("ping")
+        health_status["database"] = "connected"
+    except Exception as db_error:
+        health_status["database"] = "error"
+        health_status["database_error"] = str(db_error)
+        health_status["status"] = "degraded"
+    
+    # Check environment variables
+    health_status["environment"] = {
+        "mongo_url_set": bool(MONGO_URL),
+        "db_name": DB_NAME,
+        "emergent_llm_key_set": bool(EMERGENT_LLM_KEY)
+    }
+    
+    return health_status
 
 @app.get("/api/auth/demo", response_model=LoginResponse)
 async def demo_session():
