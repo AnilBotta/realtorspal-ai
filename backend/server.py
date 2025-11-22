@@ -158,8 +158,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
     allow_credentials=True,
+    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
     allow_headers=["*"],
 )
