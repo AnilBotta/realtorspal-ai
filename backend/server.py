@@ -1001,11 +1001,14 @@ async def webrtc_outbound_twiml(request: Request):
         print(f"   Lead ID: {lead_id}")
         print(f"   All params: {all_params}")
         
+        # Get caller ID from environment or use the to_number as fallback
+        caller_id = os.environ.get("TWILIO_CALLER_ID", to_number)
+        
         # Create TwiML to dial the lead's phone number
         twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="alice">Connecting your call</Say>
-    <Dial callerId="+12894012412" timeout="30" timeLimit="3600">
+    <Dial callerId="{caller_id}" timeout="30" timeLimit="3600">
         {to_number}
     </Dial>
     <Say voice="alice">The call could not be completed. Please try again.</Say>
