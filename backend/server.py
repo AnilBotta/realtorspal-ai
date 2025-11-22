@@ -41,27 +41,37 @@ from draft_activity_manager import update_draft_activity as update_draft_activit
 # Load environment from backend/.env if present
 load_dotenv()
 
-print("=" * 80)
-print("🚀 REALTORSPAL AI BACKEND - STARTUP SEQUENCE")
-print("=" * 80)
-
 # --- Environment & DB Setup ---
-print("\n📋 Step 1/5: Loading Environment Variables...")
+# Wrapped in try-except to handle production deployment
+try:
+    print("=" * 80)
+    print("🚀 REALTORSPAL AI BACKEND - STARTUP SEQUENCE")
+    print("=" * 80)
+    print("\n📋 Step 1/5: Loading Environment Variables...")
+except Exception:
+    pass  # Silently continue if print fails
+
 MONGO_URL = os.environ.get("MONGO_URL")
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("EMERGENT_API_KEY")
 DB_NAME = os.environ.get('DB_NAME')
 CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
 REACT_APP_BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'Not Set')
 
-print(f"   ✓ MONGO_URL: {'✓ Set' if MONGO_URL else '✗ NOT SET'}")
-print(f"   ✓ EMERGENT_LLM_KEY: {'✓ Set' if EMERGENT_LLM_KEY else '⚠ Optional (not set)'}")
-print(f"   ✓ DB_NAME: {DB_NAME if DB_NAME else '✗ NOT SET'}")
-print(f"   ✓ CORS_ORIGINS: {CORS_ORIGINS}")
-print(f"   ✓ REACT_APP_BACKEND_URL: {REACT_APP_BACKEND_URL}")
+try:
+    print(f"   ✓ MONGO_URL: {'✓ Set' if MONGO_URL else '✗ NOT SET'}")
+    print(f"   ✓ EMERGENT_LLM_KEY: {'✓ Set' if EMERGENT_LLM_KEY else '⚠ Optional (not set)'}")
+    print(f"   ✓ DB_NAME: {DB_NAME if DB_NAME else '✗ NOT SET'}")
+    print(f"   ✓ CORS_ORIGINS: {CORS_ORIGINS}")
+    print(f"   ✓ REACT_APP_BACKEND_URL: {REACT_APP_BACKEND_URL}")
+except Exception:
+    pass  # Silently continue if print fails
 
 if not MONGO_URL:
-    print("\n❌ FATAL ERROR: MONGO_URL is not set!")
-    print("   Please set it in backend/.env as per platform configuration.")
+    try:
+        print("\n❌ FATAL ERROR: MONGO_URL is not set!")
+        print("   Please set it in backend/.env as per platform configuration.")
+    except Exception:
+        pass
     raise RuntimeError("MONGO_URL is not set. Please set it in backend/.env as per platform configuration.")
 
 print("\n📋 Step 2/5: Initializing Security Components...")
