@@ -64,8 +64,14 @@ if not MONGO_URL:
     print("   Please set it in backend/.env as per platform configuration.")
     raise RuntimeError("MONGO_URL is not set. Please set it in backend/.env as per platform configuration.")
 
+print("\n📋 Step 2/5: Initializing Security Components...")
 # Password hashing - use bcrypt directly to avoid passlib issues
-import bcrypt as bcrypt_lib
+try:
+    import bcrypt as bcrypt_lib
+    print("   ✓ bcrypt library loaded successfully")
+except ImportError as e:
+    print(f"   ✗ Failed to import bcrypt: {e}")
+    raise
 
 def hash_password_safe(password: str) -> str:
     """Hash password with bcrypt"""
@@ -80,6 +86,8 @@ def verify_password_safe(plain_password: str, hashed_password: str) -> bool:
         plain_password.encode('utf-8'),
         hashed_password.encode('utf-8')
     )
+
+print("   ✓ Password hashing functions initialized")
 
 # JWT Configuration
 import jwt
