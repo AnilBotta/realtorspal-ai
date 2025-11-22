@@ -207,16 +207,25 @@ app.add_middleware(
 # Mongo client
 # In production (Kubernetes), DB_NAME is injected as a secret
 # In development, it must be in .env file
-DB_NAME = os.environ.get('DB_NAME')
+print("\n📋 Step 5/5: Connecting to MongoDB...")
 if not DB_NAME:
+    print("   ✗ DB_NAME not set!")
     raise RuntimeError(
         "DB_NAME environment variable is required. "
         "In production, this is injected by Kubernetes secrets. "
         "In development, set it in backend/.env file."
     )
 
-client = AsyncIOMotorClient(MONGO_URL)
-db = client[DB_NAME]
+try:
+    print(f"   → Attempting connection to MongoDB...")
+    print(f"   → Database name: {DB_NAME}")
+    client = AsyncIOMotorClient(MONGO_URL)
+    db = client[DB_NAME]
+    print("   ✓ MongoDB client initialized successfully")
+    print(f"   ✓ Connected to database: {DB_NAME}")
+except Exception as e:
+    print(f"   ✗ MongoDB connection failed: {e}")
+    raise
 
 E164_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 
