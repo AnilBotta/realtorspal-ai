@@ -2063,30 +2063,79 @@ async def verify_password(plain: str, hashed: str) -> bool:
 # --- Startup: indexes & seed ---
 @app.on_event("startup")
 async def on_startup():
-    await db.users.create_index("email", unique=True)
-    await db.leads.create_index([("user_id", 1)])
-    # partial unique only when email exists as string
-    try:
-        async for idx in db.leads.list_indexes():
-            if idx.get("name") == "user_id_1_email_1":
-                await db.leads.drop_index("user_id_1_email_1")
-                break
-    except Exception:
-        pass
-    await db.leads.create_index(
-        [("user_id", 1), ("email", 1)],
-        unique=True,
-        partialFilterExpression={"email": {"$type": "string"}},
-    )
-    await db.settings.create_index([("user_id", 1)], unique=True)
+    """Initialize database and start background services"""
+    print("\n" + "=" * 80)
+    print("🔧 STARTUP EVENT: Initializing Database & Services")
+    print("=" * 80)
     
-    # Start background scheduler for lead nurturing
     try:
-        from nurture_scheduler import start_scheduler
-        start_scheduler()
-        print("✅ Lead nurturing background scheduler started")
-    except Exception as e:
-        print(f"⚠️ Failed to start nurturing scheduler: {e}")
+        # Test MongoDB connection
+        print("\n📊 Testing MongoDB connection...")
+        await db.command("ping")
+        print("   ✓ MongoDB connection successful")
+        
+        # Create database indexes
+        print("\n📑 Creating database indexes...")
+        print("   → Creating user email index...")
+        await db.users.create_index("email", unique=True)
+        print("   ✓ User email index created")
+        
+        print("   → Creating leads user_id index...")
+        await db.leads.create_index([("user_id", 1)])
+        print("   ✓ Leads user_id index created")
+        
+        # partial unique only when email exists as string
+        print("   → Checking for old email index...")
+        try:
+            async for idx in db.leads.list_indexes():
+                if idx.get("name") == "user_id_1_email_1":
+                    print("   → Dropping old email index...")
+                    await db.leads.drop_index("user_id_1_email_1")
+                    print("   ✓ Old index dropped")
+                    break
+        except Exception as idx_check_error:
+            print(f"   ⚠ Index check skipped: {idx_check_error}")
+            pass
+        
+        print("   → Creating leads email unique index (partial)...")
+        await db.leads.create_index(
+            [("user_id", 1), ("email", 1)],
+            unique=True,
+            partialFilterExpression={"email": {"$type": "string"}},
+        )
+        print("   ✓ Leads email index created")
+        
+        print("   → Creating settings user_id index...")
+        await db.settings.create_index([("user_id", 1)], unique=True)
+        print("   ✓ Settings user_id index created")
+        
+        print("\n✅ All database indexes created successfully")
+        
+        # Start background scheduler for lead nurturing
+        print("\n🔄 Starting background services...")
+        try:
+            from nurture_scheduler import start_scheduler
+            start_scheduler()
+            print("   ✓ Lead nurturing background scheduler started")
+        except Exception as scheduler_error:
+            print(f"   ⚠ Failed to start nurturing scheduler: {scheduler_error}")
+            import traceback
+            traceback.print_exc()
+        
+        print("\n" + "=" * 80)
+        print("✅ BACKEND STARTUP COMPLETE - Server is ready!")
+        print("=" * 80)
+        print()
+        
+    except Exception as startup_error:
+        print(f"\n❌ STARTUP ERROR: {startup_error}")
+        import traceback
+        traceback.print_exc()
+        print("\n⚠️ Server may not function properly - check configuration")
+        print("=" * 80)
+        print()
+        # Don't raise - allow server to start even with errors
+        # This helps with debugging in production
 
 @app.on_event("shutdown")
 async def on_shutdown():
