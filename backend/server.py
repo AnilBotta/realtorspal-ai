@@ -113,22 +113,36 @@ except Exception:
     pass
 
 # JWT Configuration
-print("\n📋 Step 3/5: Setting up JWT Authentication...")
+try:
+    print("\n📋 Step 3/5: Setting up JWT Authentication...")
+except Exception:
+    pass
+
 try:
     import jwt
     from jwt.exceptions import InvalidTokenError
-    print("   ✓ JWT library loaded successfully")
+    try:
+        print("   ✓ JWT library loaded successfully")
+    except Exception:
+        pass
 except ImportError as e:
-    print(f"   ✗ Failed to import JWT: {e}")
+    try:
+        print(f"   ✗ Failed to import JWT: {e}")
+    except Exception:
+        pass
     raise
 
 SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "your-secret-key-change-in-production-" + str(uuid.uuid4()))
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
-print(f"   ✓ JWT configured with algorithm: {ALGORITHM}")
-print(f"   ✓ Access token expiry: {ACCESS_TOKEN_EXPIRE_MINUTES} minutes")
-print(f"   ✓ Refresh token expiry: {REFRESH_TOKEN_EXPIRE_DAYS} days")
+
+try:
+    print(f"   ✓ JWT configured with algorithm: {ALGORITHM}")
+    print(f"   ✓ Access token expiry: {ACCESS_TOKEN_EXPIRE_MINUTES} minutes")
+    print(f"   ✓ Refresh token expiry: {REFRESH_TOKEN_EXPIRE_DAYS} days")
+except Exception:
+    pass
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Create JWT access token"""
