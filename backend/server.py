@@ -2147,10 +2147,17 @@ async def on_startup():
     print("=" * 80)
     
     try:
-        # Test MongoDB connection
+        # Test MongoDB connection with timeout
         print("\n📊 Testing MongoDB connection...")
-        await db.command("ping")
-        print("   ✓ MongoDB connection successful")
+        try:
+            await asyncio.wait_for(db.command("ping"), timeout=5.0)
+            print("   ✓ MongoDB connection successful")
+        except asyncio.TimeoutError:
+            print("   ✗ MongoDB ping timeout (5s) - connection may be slow")
+            print("   ⚠️ Continuing startup - please check MongoDB connectivity")
+        except Exception as ping_error:
+            print(f"   ✗ MongoDB ping failed: {ping_error}")
+            print("   ⚠️ Continuing startup - server will retry connections")
         
         # Create database indexes
         print("\n📑 Creating database indexes...")
