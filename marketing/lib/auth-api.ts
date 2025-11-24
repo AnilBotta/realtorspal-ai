@@ -2,7 +2,9 @@
 const getAPIUrl = () => {
   // If explicitly set, use that
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL
+    // Ensure it ends with /api if not already present
+    return baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`
   }
   
   // In browser, check if we're on localhost or preview
