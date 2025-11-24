@@ -60,13 +60,13 @@ The preview environment now runs **both** the Next.js marketing site and the Rea
 
 #### Marketing Site (`/app/marketing/.env.local`)
 ```env
-NEXT_PUBLIC_API_URL=https://realtorspal-crm.preview.emergentagent.com/api
-NEXT_PUBLIC_SITE_URL=https://realtorspal-crm.preview.emergentagent.com
+NEXT_PUBLIC_API_URL=https://realtor-dashboard-3.preview.emergentagent.com/api
+NEXT_PUBLIC_SITE_URL=https://realtor-dashboard-3.preview.emergentagent.com
 ```
 
 #### Frontend CRM (`/app/frontend/.env`)
 ```env
-REACT_APP_BACKEND_URL=https://realtorspal-crm.preview.emergentagent.com
+REACT_APP_BACKEND_URL=https://realtor-dashboard-3.preview.emergentagent.com
 ```
 
 ## Service Management

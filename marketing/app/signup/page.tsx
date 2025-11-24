@@ -58,7 +58,7 @@ export default function SignupPage() {
         window.location.href = "/dashboard"
       } else {
         // On Vercel or other deployments, redirect to the full CRM URL
-        window.location.href = "https://realtorspal-crm.preview.emergentagent.com/dashboard"
+        window.location.href = "https://realtor-dashboard-3.preview.emergentagent.com/dashboard"
       }
     } catch (err: any) {
       setError(err.message || "Failed to create account. Please try again.")

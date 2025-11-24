@@ -15,7 +15,7 @@ async rewrites() {
   return [
     {
       source: '/api/:path*',
-      destination: 'https://realtorspal-crm.preview.emergentagent.com/api/:path*',
+      destination: 'https://realtor-dashboard-3.preview.emergentagent.com/api/:path*',
     },
   ];
 }
@@ -45,11 +45,11 @@ Removed the rewrites configuration from `vercel.json` as well.
 
 The frontend will make direct API calls to your backend using the environment variable:
 - Frontend uses: `process.env.NEXT_PUBLIC_API_URL`
-- API calls go directly to: `https://realtorspal-crm.preview.emergentagent.com/api`
+- API calls go directly to: `https://realtor-dashboard-3.preview.emergentagent.com/api`
 
 This is already configured in `/app/marketing/lib/auth-api.ts`:
 ```typescript
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://realtorspal-crm.preview.emergentagent.com/api'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://realtor-dashboard-3.preview.emergentagent.com/api'
 ```
 
 ## 🚀 Redeploy Instructions
@@ -90,7 +90,7 @@ vercel --prod
 1. Go to: Project → Settings → Environment Variables
 2. Add/Verify:
    ```
-   NEXT_PUBLIC_API_URL=https://realtorspal-crm.preview.emergentagent.com/api
+   NEXT_PUBLIC_API_URL=https://realtor-dashboard-3.preview.emergentagent.com/api
    ```
 
 3. Make sure it's enabled for:
@@ -114,7 +114,7 @@ Visit: `https://your-app.vercel.app/`
    - Last Name: `User`
 3. Submit
 4. Check browser Network tab:
-   - Should see POST to `https://realtorspal-crm.preview.emergentagent.com/api/auth/signup`
+   - Should see POST to `https://realtor-dashboard-3.preview.emergentagent.com/api/auth/signup`
    - Should get 200 OK response
    - Should redirect to CRM dashboard
 
@@ -135,7 +135,7 @@ Visit: `https://your-app.vercel.app/`
 
 **Check 2: Backend is accessible**
 ```bash
-curl https://realtorspal-crm.preview.emergentagent.com/api/health
+curl https://realtor-dashboard-3.preview.emergentagent.com/api/health
 # Should return: {"status":"ok"}
 ```
 
@@ -150,8 +150,8 @@ If you see CORS errors in browser console, the backend CORS is already set to `a
 
 **Solution**: Make sure the API URL doesn't have a trailing slash:
 ```
-✅ Correct: https://realtorspal-crm.preview.emergentagent.com/api
-❌ Wrong: https://realtorspal-crm.preview.emergentagent.com/api/
+✅ Correct: https://realtor-dashboard-3.preview.emergentagent.com/api
+❌ Wrong: https://realtor-dashboard-3.preview.emergentagent.com/api/
 ```
 
 ### Issue: CORS errors in browser console
@@ -240,4 +240,4 @@ MongoDB
 - Check Vercel deployment logs
 - Check browser console (F12 → Console tab)
 - Check Network tab for failed requests
-- Verify backend is running: `curl https://realtorspal-crm.preview.emergentagent.com/api/health`
+- Verify backend is running: `curl https://realtor-dashboard-3.preview.emergentagent.com/api/health`

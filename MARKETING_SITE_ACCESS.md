@@ -7,8 +7,8 @@ The Next.js marketing site is running on **port 3001** and is currently only acc
 ### Current Setup:
 
 - **Marketing Site (Next.js)**: `http://localhost:3001`
-- **CRM Dashboard (React)**: `https://realtorspal-crm.preview.emergentagent.com`
-- **Backend API (FastAPI)**: `https://realtorspal-crm.preview.emergentagent.com/api`
+- **CRM Dashboard (React)**: `https://realtor-dashboard-3.preview.emergentagent.com`
+- **Backend API (FastAPI)**: `https://realtor-dashboard-3.preview.emergentagent.com/api`
 
 ### Access Methods:
 
@@ -19,7 +19,7 @@ If you have terminal access to the server:
 curl http://localhost:3001
 
 # Test signup API
-curl -X POST https://realtorspal-crm.preview.emergentagent.com/api/auth/signup \
+curl -X POST https://realtor-dashboard-3.preview.emergentagent.com/api/auth/signup \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"Test1234","first_name":"Test","last_name":"User"}'
 ```
@@ -75,7 +75,7 @@ Deploy the marketing site on a subdomain like `www.draft-activity-mgr.preview.em
 
 ```bash
 # Signup
-curl -X POST https://realtorspal-crm.preview.emergentagent.com/api/auth/signup \
+curl -X POST https://realtor-dashboard-3.preview.emergentagent.com/api/auth/signup \
   -H "Content-Type: application/json" \
   -d '{
     "email": "newuser@example.com",
@@ -98,7 +98,7 @@ curl -X POST https://realtorspal-crm.preview.emergentagent.com/api/auth/signup \
 }
 
 # Login
-curl -X POST https://realtorspal-crm.preview.emergentagent.com/api/auth/login \
+curl -X POST https://realtor-dashboard-3.preview.emergentagent.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "newuser@example.com",

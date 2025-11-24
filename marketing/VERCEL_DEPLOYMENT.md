@@ -44,7 +44,7 @@ Create a `vercel.json` in the marketing directory (already exists):
   "installCommand": "npm install",
   "framework": "nextjs",
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://realtorspal-crm.preview.emergentagent.com/api",
+    "NEXT_PUBLIC_API_URL": "https://realtor-dashboard-3.preview.emergentagent.com/api",
     "NEXT_PUBLIC_SITE_URL": "https://your-domain.vercel.app"
   }
 }
@@ -55,7 +55,7 @@ Create a `vercel.json` in the marketing directory (already exists):
 Go to your Vercel project → Settings → Environment Variables and add:
 
 ```
-NEXT_PUBLIC_API_URL=https://realtorspal-crm.preview.emergentagent.com/api
+NEXT_PUBLIC_API_URL=https://realtor-dashboard-3.preview.emergentagent.com/api
 NEXT_PUBLIC_SITE_URL=https://your-vercel-domain.vercel.app
 EMERGENT_LLM_KEY=sk-emergent-7751d34B226BdCc8f8
 ```
@@ -132,7 +132,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://realtorspal-crm.preview.emergentagent.com/api/:path*',
+        destination: 'https://realtor-dashboard-3.preview.emergentagent.com/api/:path*',
       },
     ];
   },
@@ -221,7 +221,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://your-vercel-domain.vercel.app",
-        "https://realtorspal-crm.preview.emergentagent.com",
+        "https://realtor-dashboard-3.preview.emergentagent.com",
         "http://localhost:3001",
     ],
     allow_credentials=True,

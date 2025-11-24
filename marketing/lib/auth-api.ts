@@ -23,12 +23,12 @@ const getAPIUrl = () => {
     if (hostname.includes('vercel.app')) {
       // User should set NEXT_PUBLIC_API_URL in Vercel environment variables
       // For now, use the preview backend as fallback
-      return 'https://realtorspal-crm.preview.emergentagent.com/api'
+      return 'https://realtor-dashboard-3.preview.emergentagent.com/api'
     }
   }
   
   // Default fallback
-  return 'https://realtorspal-crm.preview.emergentagent.com/api'
+  return 'https://realtor-dashboard-3.preview.emergentagent.com/api'
 }
 
 const API_URL = getAPIUrl()

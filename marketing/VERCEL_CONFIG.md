@@ -15,13 +15,13 @@ To deploy the marketing site on Vercel with proper backend connectivity, configu
 3. Add the following:
 
 ```env
-NEXT_PUBLIC_API_URL=https://realtorspal-crm.preview.emergentagent.com/api
+NEXT_PUBLIC_API_URL=https://realtor-dashboard-3.preview.emergentagent.com/api
 ```
 
 ### What This Does
 
 - **`NEXT_PUBLIC_API_URL`**: Points to the backend API endpoint
-  - For development/preview: `https://realtorspal-crm.preview.emergentagent.com/api`
+  - For development/preview: `https://realtor-dashboard-3.preview.emergentagent.com/api`
   - For production: Update to your production backend URL
 
 ## How Authentication Works Now
@@ -44,7 +44,7 @@ User logs in → Backend authenticates → Redirect to /dashboard
 **Vercel Deployment (vercel.app)**:
 ```
 User logs in → Backend authenticates → Redirect to full CRM URL
-https://realtorspal-crm.preview.emergentagent.com/dashboard
+https://realtor-dashboard-3.preview.emergentagent.com/dashboard
 ```
 
 ### 3. Token Storage
