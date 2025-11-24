@@ -2159,42 +2159,78 @@ async def on_startup():
             print(f"   ✗ MongoDB ping failed: {ping_error}")
             print("   ⚠️ Continuing startup - server will retry connections")
         
-        # Create database indexes
+        # Create database indexes with timeout protection
         print("\n📑 Creating database indexes...")
-        print("   → Creating user email index...")
-        await db.users.create_index("email", unique=True)
-        print("   ✓ User email index created")
+        try:
+            print("   → Creating user email index...")
+            await asyncio.wait_for(
+                db.users.create_index("email", unique=True),
+                timeout=10.0
+            )
+            print("   ✓ User email index created")
+        except asyncio.TimeoutError:
+            print("   ⚠ User email index creation timeout - may already exist")
+        except Exception as e:
+            print(f"   ⚠ User email index creation error: {e}")
         
-        print("   → Creating leads user_id index...")
-        await db.leads.create_index([("user_id", 1)])
-        print("   ✓ Leads user_id index created")
+        try:
+            print("   → Creating leads user_id index...")
+            await asyncio.wait_for(
+                db.leads.create_index([("user_id", 1)]),
+                timeout=10.0
+            )
+            print("   ✓ Leads user_id index created")
+        except asyncio.TimeoutError:
+            print("   ⚠ Leads user_id index creation timeout - may already exist")
+        except Exception as e:
+            print(f"   ⚠ Leads user_id index creation error: {e}")
         
         # partial unique only when email exists as string
         print("   → Checking for old email index...")
         try:
-            async for idx in db.leads.list_indexes():
-                if idx.get("name") == "user_id_1_email_1":
-                    print("   → Dropping old email index...")
-                    await db.leads.drop_index("user_id_1_email_1")
-                    print("   ✓ Old index dropped")
-                    break
+            async def check_and_drop_old_index():
+                async for idx in db.leads.list_indexes():
+                    if idx.get("name") == "user_id_1_email_1":
+                        print("   → Dropping old email index...")
+                        await db.leads.drop_index("user_id_1_email_1")
+                        print("   ✓ Old index dropped")
+                        break
+            
+            await asyncio.wait_for(check_and_drop_old_index(), timeout=10.0)
+        except asyncio.TimeoutError:
+            print("   ⚠ Index check timeout - skipping")
         except Exception as idx_check_error:
             print(f"   ⚠ Index check skipped: {idx_check_error}")
-            pass
         
-        print("   → Creating leads email unique index (partial)...")
-        await db.leads.create_index(
-            [("user_id", 1), ("email", 1)],
-            unique=True,
-            partialFilterExpression={"email": {"$type": "string"}},
-        )
-        print("   ✓ Leads email index created")
+        try:
+            print("   → Creating leads email unique index (partial)...")
+            await asyncio.wait_for(
+                db.leads.create_index(
+                    [("user_id", 1), ("email", 1)],
+                    unique=True,
+                    partialFilterExpression={"email": {"$type": "string"}},
+                ),
+                timeout=10.0
+            )
+            print("   ✓ Leads email index created")
+        except asyncio.TimeoutError:
+            print("   ⚠ Leads email index creation timeout - may already exist")
+        except Exception as e:
+            print(f"   ⚠ Leads email index creation error: {e}")
         
-        print("   → Creating settings user_id index...")
-        await db.settings.create_index([("user_id", 1)], unique=True)
-        print("   ✓ Settings user_id index created")
+        try:
+            print("   → Creating settings user_id index...")
+            await asyncio.wait_for(
+                db.settings.create_index([("user_id", 1)], unique=True),
+                timeout=10.0
+            )
+            print("   ✓ Settings user_id index created")
+        except asyncio.TimeoutError:
+            print("   ⚠ Settings user_id index creation timeout - may already exist")
+        except Exception as e:
+            print(f"   ⚠ Settings user_id index creation error: {e}")
         
-        print("\n✅ All database indexes created successfully")
+        print("\n✅ Database index setup completed (some may have been skipped)")
         
         # Start background scheduler for lead nurturing
         print("\n🔄 Starting background services...")
