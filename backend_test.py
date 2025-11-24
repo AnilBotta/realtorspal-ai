@@ -5718,6 +5718,13 @@ Test3,User3,test3.{timestamp}@example.com,+14085551234"""
         tests = [
             self.test_health,
             self.test_login,
+            
+            # Marketing Site Auth Integration Tests (Fix for 405 errors)
+            self.test_auth_signup_correct_endpoint,
+            self.test_auth_login_correct_endpoint,
+            self.test_auth_signup_incorrect_endpoint,
+            self.test_auth_login_incorrect_endpoint,
+            
             self.test_get_leads,
             self.test_create_lead,
             self.test_update_lead_stage,
