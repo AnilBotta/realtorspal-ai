@@ -38,8 +38,11 @@ class AuthTester:
         """Test POST /api/auth/signup - Marketing site auth integration fix verification"""
         try:
             # Test the CORRECT endpoint that should work after the fix
+            # Use timestamp to ensure unique email
+            import time
+            timestamp = int(time.time())
             payload = {
-                "email": "test-marketing-auth@realtorspal.com",
+                "email": f"test-marketing-auth-{timestamp}@realtorspal.com",
                 "password": "TestPass123!",
                 "first_name": "Marketing",
                 "last_name": "Test",
