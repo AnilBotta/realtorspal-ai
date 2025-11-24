@@ -49,8 +49,10 @@ User logs in → Backend authenticates → Redirect to /dashboard
 **Vercel Deployment (vercel.app)**:
 ```
 User logs in → Backend authenticates → Redirect to full CRM URL
-https://realtor-dashboard-3.preview.emergentagent.com/dashboard
+https://realtorspal.syncai.tech/dashboard
 ```
+
+The CRM URL is automatically derived from `NEXT_PUBLIC_API_URL`
 
 ### 3. Token Storage
 After successful authentication:
