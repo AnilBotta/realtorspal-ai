@@ -1,5 +1,37 @@
-// API base URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://realtorspal-crm.preview.emergentagent.com/api'
+// API base URL - Dynamically determine based on environment
+const getAPIUrl = () => {
+  // If explicitly set, use that
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+  
+  // In browser, check if we're on localhost or preview
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname
+    
+    // If on localhost, use local backend
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:8001/api'
+    }
+    
+    // If on preview environment, use preview backend
+    if (hostname.includes('preview.emergentagent.com')) {
+      return `${window.location.protocol}//${hostname}/api`
+    }
+    
+    // If on Vercel deployment, use the deployed backend
+    if (hostname.includes('vercel.app')) {
+      // User should set NEXT_PUBLIC_API_URL in Vercel environment variables
+      // For now, use the preview backend as fallback
+      return 'https://realtorspal-crm.preview.emergentagent.com/api'
+    }
+  }
+  
+  // Default fallback
+  return 'https://realtorspal-crm.preview.emergentagent.com/api'
+}
+
+const API_URL = getAPIUrl()
 
 export interface User {
   id: string
