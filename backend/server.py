@@ -277,7 +277,17 @@ try:
     except Exception:
         pass
     
-    client = AsyncIOMotorClient(MONGO_URL)
+    # Configure MongoDB client with Atlas-compatible settings
+    client = AsyncIOMotorClient(
+        MONGO_URL,
+        serverSelectionTimeoutMS=10000,  # 10 second timeout for server selection
+        connectTimeoutMS=10000,           # 10 second timeout for initial connection
+        socketTimeoutMS=30000,            # 30 second timeout for socket operations
+        retryWrites=True,                 # Enable retry writes (required for Atlas)
+        maxPoolSize=50,                   # Maximum connection pool size
+        minPoolSize=10,                   # Minimum connection pool size
+        maxIdleTimeMS=45000,              # Close idle connections after 45 seconds
+    )
     db = client[DB_NAME]
     
     try:
