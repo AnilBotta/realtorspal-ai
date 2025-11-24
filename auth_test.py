@@ -7,6 +7,7 @@ Tests the fix for 405 errors on /auth/signup and /auth/login endpoints
 import requests
 import sys
 import json
+import time
 from datetime import datetime
 
 class AuthTester:
