@@ -23,14 +23,19 @@ const getAPIUrl = () => {
     
     // If on Vercel deployment, use the deployed backend
     if (hostname.includes('vercel.app')) {
-      // User should set NEXT_PUBLIC_API_URL in Vercel environment variables
-      // For now, use the preview backend as fallback
-      return 'https://realtor-dashboard-3.preview.emergentagent.com/api'
+      // User must set NEXT_PUBLIC_API_URL in Vercel environment variables
+      // Log warning if not set
+      console.warn('NEXT_PUBLIC_API_URL not set - auth will fail on Vercel')
+      // Return a placeholder that will fail fast with clear error
+      return 'https://SET_NEXT_PUBLIC_API_URL_IN_VERCEL/api'
     }
   }
   
-  // Default fallback
-  return 'https://realtor-dashboard-3.preview.emergentagent.com/api'
+  // Default fallback for server-side rendering
+  // In production, NEXT_PUBLIC_API_URL should always be set
+  return process.env.NODE_ENV === 'production' 
+    ? 'https://SET_NEXT_PUBLIC_API_URL/api'
+    : 'http://localhost:8001/api'
 }
 
 const API_URL = getAPIUrl()
