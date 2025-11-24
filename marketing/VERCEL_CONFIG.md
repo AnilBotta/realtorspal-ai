@@ -15,14 +15,19 @@ To deploy the marketing site on Vercel with proper backend connectivity, configu
 3. Add the following:
 
 ```env
-NEXT_PUBLIC_API_URL=https://realtor-dashboard-3.preview.emergentagent.com/api
+NEXT_PUBLIC_API_URL=https://realtorspal.syncai.tech
 ```
+
+**Important Notes:**
+- Do **NOT** include `/api` at the end - it will be added automatically
+- The code now ensures `/api` is appended if not present
+- You can set either `https://realtorspal.syncai.tech` or `https://realtorspal.syncai.tech/api` (both work)
 
 ### What This Does
 
 - **`NEXT_PUBLIC_API_URL`**: Points to the backend API endpoint
-  - For development/preview: `https://realtor-dashboard-3.preview.emergentagent.com/api`
-  - For production: Update to your production backend URL
+  - For your production: `https://realtorspal.syncai.tech`
+  - The `/api` prefix is automatically added by the auth client
 
 ## How Authentication Works Now
 
