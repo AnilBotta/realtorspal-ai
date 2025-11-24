@@ -40,10 +40,10 @@ class AuthTester:
         try:
             # Test the CORRECT endpoint that should work after the fix
             # Use timestamp to ensure unique email
-            import time
             timestamp = int(time.time())
+            test_email = f"test-marketing-auth-{timestamp}@realtorspal.com"
             payload = {
-                "email": f"test-marketing-auth-{timestamp}@realtorspal.com",
+                "email": test_email,
                 "password": "TestPass123!",
                 "first_name": "Marketing",
                 "last_name": "Test",
@@ -60,10 +60,11 @@ class AuthTester:
                     
                     user_data = data.get("user", {})
                     if ("id" in user_data and 
-                        user_data.get("email") == "test-marketing-auth@realtorspal.com"):
+                        user_data.get("email") == test_email):
                         
                         self.log_test("Auth Signup Correct Endpoint", True, 
                                     f"Signup successful. User ID: {user_data.get('id')}, "
+                                    f"Email: {user_data.get('email')}, "
                                     f"Has tokens: access_token={bool(data.get('access_token'))}, "
                                     f"refresh_token={bool(data.get('refresh_token'))}")
                         return True
