@@ -31,8 +31,17 @@ export default function LoginPage() {
       localStorage.setItem("refresh_token", response.refresh_token)
       localStorage.setItem("user", JSON.stringify(response.user))
 
-      // Redirect to the CRM dashboard (relative path works in preview)
-      window.location.href = "/dashboard"
+      // Redirect to the CRM dashboard
+      // If on preview environment, use /dashboard route
+      // If on Vercel, redirect to the preview CRM app
+      const hostname = window.location.hostname
+      if (hostname.includes('preview.emergentagent.com')) {
+        // In preview, use the /dashboard route configured by nginx
+        window.location.href = "/dashboard"
+      } else {
+        // On Vercel or other deployments, redirect to the full CRM URL
+        window.location.href = "https://realtorspal-crm.preview.emergentagent.com/dashboard"
+      }
     } catch (err: any) {
       setError(err.message || "Invalid email or password")
     } finally {
