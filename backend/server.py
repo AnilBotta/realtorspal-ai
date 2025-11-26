@@ -242,11 +242,18 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         })
     )
 
-# CORS
+# CORS - Strip whitespace from origins to handle comma-separated lists with spaces
+cors_origins = os.environ.get('CORS_ORIGINS', '*')
+if cors_origins == '*':
+    allowed_origins = ['*']
+else:
+    # Split by comma and strip whitespace from each origin
+    allowed_origins = [origin.strip() for origin in cors_origins.split(',')]
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
