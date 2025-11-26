@@ -250,6 +250,12 @@ else:
     # Split by comma and strip whitespace from each origin
     allowed_origins = [origin.strip() for origin in cors_origins.split(',')]
 
+try:
+    print(f"\n🌐 CORS Configuration:")
+    print(f"   → Allowed origins: {allowed_origins}")
+except Exception:
+    pass
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
