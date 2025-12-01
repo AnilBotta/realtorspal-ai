@@ -43,13 +43,15 @@ export default function Settings({ user }){
   const genericWebhookUrl = `${baseUrl}/api/webhooks/generic-leads/${user?.id}`;
 
   useEffect(() => {
+    if (!user || !user.id) return;
+    
     loadSettings();
     loadWebhookStats();
     
     // Poll webhook stats every 30 seconds
     const interval = setInterval(loadWebhookStats, 30000);
     return () => clearInterval(interval);
-  }, [user.id]);
+  }, [user?.id]);
 
   const loadSettings = async () => {
     try {
