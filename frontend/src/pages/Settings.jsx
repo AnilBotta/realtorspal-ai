@@ -121,6 +121,10 @@ export default function Settings({ user }){
   };
 
   const save = async () => {
+    if (!user || !user.id) {
+      alert("User not loaded. Please refresh the page.");
+      return;
+    }
     await saveSettings({ user_id: user.id, ...form });
     alert("Settings saved successfully!");
   };
