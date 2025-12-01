@@ -54,6 +54,7 @@ export default function Settings({ user }){
   }, [user?.id]);
 
   const loadSettings = async () => {
+    if (!user || !user.id) return;
     try {
       const { data } = await getSettings(user.id);
       setForm({
