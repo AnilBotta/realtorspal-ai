@@ -90,6 +90,7 @@ export default function Settings({ user }){
   };
 
   const loadWebhookStats = async () => {
+    if (!user || !user.id) return;
     try {
       const response = await fetch(`${baseUrl}/api/webhooks/stats/${user.id}`);
       if (response.ok) {
