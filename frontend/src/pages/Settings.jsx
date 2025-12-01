@@ -593,7 +593,7 @@ export default function Settings({ user }){
             <label className="text-sm text-slate-600 font-medium">SSL/TLS</label>
             <select 
               className="w-full px-3 py-2 rounded-lg border mt-1" 
-              value={form.smtp_ssl_tls.toString()} 
+              value={form.smtp_ssl_tls !== undefined && form.smtp_ssl_tls !== null ? form.smtp_ssl_tls.toString() : 'true'} 
               onChange={(e)=>setForm({...form, smtp_ssl_tls: e.target.value === 'true'})}
             >
               <option value="true">Enabled (Recommended)</option>
