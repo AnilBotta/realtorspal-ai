@@ -35,7 +35,6 @@ durationpy==0.10
 ecdsa==0.19.1
 email-validator==2.3.0
 embedchain==0.1.122
-emergentintegrations==0.1.0
 et_xmlfile==2.0.0
 fastapi==0.115.2
 fastavro==1.12.1
