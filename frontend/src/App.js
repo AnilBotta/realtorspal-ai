@@ -21,22 +21,54 @@ export default function App(){
   useEffect(() => {
     async function bootstrap(){
       try{
+        // 1) If marketing handed us tokens via the URL fragment, adopt them.
+        if (typeof window !== "undefined" && window.location.hash && window.location.hash.length > 1) {
+          const params = new URLSearchParams(window.location.hash.slice(1));
+          const accessToken = params.get("access_token");
+          const refreshToken = params.get("refresh_token");
+          const userRaw = params.get("user");
+          if (accessToken && refreshToken && userRaw) {
+            try {
+              const user = JSON.parse(decodeURIComponent(userRaw));
+              localStorage.setItem("access_token", accessToken);
+              localStorage.setItem("refresh_token", refreshToken);
+              localStorage.setItem("user", JSON.stringify(user));
+              // Strip the fragment so tokens don't linger in the address bar / history.
+              window.history.replaceState(null, "", window.location.pathname + window.location.search);
+            } catch (e) {
+              console.warn("Failed to parse user from fragment:", e);
+            }
+          }
+        }
+
+        // 2) If we already have a valid session in localStorage, use it — no demo login.
+        const storedToken = localStorage.getItem("access_token");
+        const storedUser = localStorage.getItem("user");
+        if (storedToken && storedUser) {
+          setSession({
+            access_token: storedToken,
+            refresh_token: localStorage.getItem("refresh_token"),
+            user: JSON.parse(storedUser),
+          });
+          return;
+        }
+
+        // 3) Fallback: demo login (unauthenticated visitors).
         console.log('Starting demo login...');
         console.log('Backend URL:', process.env.REACT_APP_BACKEND_URL);
-        
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Demo login timeout after 10 seconds')), 10000)
         );
-        
-        const loginPromise = demoLogin();
-        const { data } = await Promise.race([loginPromise, timeoutPromise]);
-        
-        console.log('Demo login successful:', data);
+        const { data } = await Promise.race([demoLogin(), timeoutPromise]);
+        if (data?.access_token) {
+          localStorage.setItem("access_token", data.access_token);
+          if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+          if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+        }
         setSession(data);
       }catch(err){
-        console.error('Demo login error:', err);
-        const errorMsg = err?.response?.data?.detail || err?.message || "Failed to initialize demo session";
+        console.error('Bootstrap error:', err);
+        const errorMsg = err?.response?.data?.detail || err?.message || "Failed to initialize session";
         setError(errorMsg);
       }finally{
         setLoading(false);

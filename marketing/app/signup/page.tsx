@@ -44,27 +44,29 @@ export default function SignupPage() {
         company: formData.company,
       })
       
-      // Store tokens
+      // Store tokens on the marketing origin too (harmless fallback)
       localStorage.setItem("access_token", response.access_token)
       localStorage.setItem("refresh_token", response.refresh_token)
       localStorage.setItem("user", JSON.stringify(response.user))
 
-      // Redirect to the CRM dashboard
-      // If on preview environment, use /dashboard route
-      // If on Vercel or other deployments, redirect to the CRM app
+      // Hand tokens to the CRM across origins via URL fragment (not sent to servers/logs).
       const hostname = window.location.hostname
-      if (hostname.includes('preview.emergentagent.com')) {
-        // In preview, use the /dashboard route configured by nginx
+      const crmUrl =
+        process.env.NEXT_PUBLIC_CRM_URL ||
+        (hostname === "localhost" || hostname === "127.0.0.1"
+          ? "http://localhost:3000"
+          : "")
+
+      if (hostname.includes("preview.emergentagent.com")) {
         window.location.href = "/dashboard"
-      } else if (hostname.includes('vercel.app')) {
-        // On Vercel, redirect to the deployed CRM app
-        // Get the CRM URL from the same base as the API
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://realtorspal.syncai.tech'
-        const crmUrl = apiUrl.replace('/api', '')
-        window.location.href = `${crmUrl}/dashboard`
+      } else if (crmUrl) {
+        const fragment =
+          `access_token=${encodeURIComponent(response.access_token)}` +
+          `&refresh_token=${encodeURIComponent(response.refresh_token)}` +
+          `&user=${encodeURIComponent(JSON.stringify(response.user))}`
+        window.location.href = `${crmUrl}/#${fragment}`
       } else {
-        // Default fallback
-        window.location.href = "https://realtorspal.syncai.tech/dashboard"
+        setError("CRM URL is not configured. Set NEXT_PUBLIC_CRM_URL.")
       }
     } catch (err: any) {
       setError(err.message || "Failed to create account. Please try again.")
