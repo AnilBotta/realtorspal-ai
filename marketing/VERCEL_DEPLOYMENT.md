@@ -57,7 +57,7 @@ Go to your Vercel project → Settings → Environment Variables and add:
 ```
 NEXT_PUBLIC_API_URL=https://realtor-dashboard-3.preview.emergentagent.com/api
 NEXT_PUBLIC_SITE_URL=https://your-vercel-domain.vercel.app
-EMERGENT_LLM_KEY=sk-emergent-7751d34B226BdCc8f8
+EMERGENT_LLM_KEY=<your-emergent-key>
 ```
 
 ### 4. **Deploy to Vercel**

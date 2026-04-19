@@ -160,7 +160,7 @@ The login and signup pages are currently **placeholders** that redirect to the e
    Already configured in `.env.local`:
    ```
    NEXT_PUBLIC_API_URL=https://realtor-dashboard-3.preview.emergentagent.com/api
-   EMERGENT_LLM_KEY=sk-emergent-7751d34B226BdCc8f8
+   EMERGENT_LLM_KEY=<your-emergent-key>
    ```
 
 ### Emergent Auth Playbook
@@ -214,7 +214,7 @@ Required in `.env.local`:
 NEXT_PUBLIC_API_URL=https://realtor-dashboard-3.preview.emergentagent.com/api
 
 # Emergent LLM Key (for future AI features)
-EMERGENT_LLM_KEY=sk-emergent-7751d34B226BdCc8f8
+EMERGENT_LLM_KEY=<your-emergent-key>
 
 # Site URL (for SEO and redirects)
 NEXT_PUBLIC_SITE_URL=https://realtor-dashboard-3.preview.emergentagent.com

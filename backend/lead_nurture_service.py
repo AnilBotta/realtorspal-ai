@@ -175,11 +175,11 @@ async def _get_llm(user_id: str):
     settings = await _get_settings(user_id)
     openai_key = settings.get("openai_api_key") or os.getenv("OPENAI_API_KEY")
     
-    # If no OpenAI key, use Emergent LLM key
+    # If no OpenAI key, fall back to Emergent LLM key from env
     if not openai_key:
-        # Use the Emergent LLM key directly
-        openai_key = "sk-emergent-7751d34B226BdCc8f8"
-        _log(f"user_{user_id}", "[LLM] Using Emergent LLM key for CrewAI")
+        openai_key = os.getenv("EMERGENT_LLM_KEY") or os.getenv("EMERGENT_API_KEY")
+        if openai_key:
+            _log(f"user_{user_id}", "[LLM] Using Emergent LLM key for CrewAI")
     else:
         _log(f"user_{user_id}", "[LLM] Using user's OpenAI key for CrewAI")
     
